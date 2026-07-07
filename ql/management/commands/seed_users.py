@@ -3,7 +3,7 @@ import re
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from ql.models import UserProperty
+from ql.models import UserProperty, Tariff
 
 USERS = [
     ('Wahyu Candra Mardianto',  'A1',  'OCCUPIED'),
@@ -89,22 +89,39 @@ class Command(BaseCommand):
         for full_name, home_number, status in USERS:
             username = _make_username(full_name)
             if User.objects.filter(username=username).exists():
-                self.stdout.write(f'  skip  {username} (already exists)')
-                skipped += 1
-                continue
+                user = User.objects.get(username=username)
+            else:
+                parts = full_name.split(None, 1)
+                user = User.objects.create_user(
+                    username=username,
+                    password=None,
+                    first_name=parts[0],
+                    last_name=parts[1] if len(parts) > 1 else '',
+                )
 
-            parts = full_name.split(None, 1)
-            user = User.objects.create_user(
-                username=username,
-                password=None,
-                first_name=parts[0],
-                last_name=parts[1] if len(parts) > 1 else '',
-            )
-            UserProperty.objects.create(
-                user=user,
-                occupancy_status=status,
-                home_number=home_number,
-            )
+            if not UserProperty.objects.filter(user=user).exists():
+                UserProperty.objects.create(
+                    user=user,
+                    occupancy_status=status,
+                    home_number=home_number,
+                )
+
+            if not Tariff.objects.filter(user=user, kind=Tariff.Kind.MONTHLY).exists():
+                Tariff.objects.create(
+                    user=user,
+                    kind=Tariff.Kind.MONTHLY,
+                    nominal=70_000,
+                    start_from='2026-01-01',
+                )
+
+            if not Tariff.objects.filter(user=user, kind=Tariff.Kind.GARBAGE).exists():
+                Tariff.objects.create(
+                    user=user,
+                    kind=Tariff.Kind.GARBAGE,
+                    nominal=30_000,
+                    start_from='2026-01-01',
+                )
+
             self.stdout.write(f'  add   {username} ({home_number}, {status})')
             created += 1
 

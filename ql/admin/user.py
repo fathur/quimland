@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from ..models import PaymentBatch, Tariff, UserProperty
 
 
+User.__str__ = lambda self: self.get_full_name() or self.username
+
+
 class UserPropertyInline(admin.StackedInline):
     model = UserProperty
     extra = 1
