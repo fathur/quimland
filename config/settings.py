@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'mcp_server',
+    # 'mcp_server',
     'ql',
     'sorl.thumbnail',
 ]
@@ -98,6 +98,10 @@ STATIC_ROOT = os.environ.get('STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
+
+# Receipts and other sensitive uploads — NOT under MEDIA_ROOT, NOT publicly served.
+# Access is gated by the /secure-media/ view which enforces authentication.
+SECURE_MEDIA_ROOT = os.environ.get('SECURE_MEDIA_ROOT', str(BASE_DIR / 'secure_media'))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ---------------------------------------------------------------------------

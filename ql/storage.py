@@ -21,4 +21,8 @@ def get_receipt_storage():
             kwargs['custom_domain'] = settings.R2_CUSTOM_DOMAIN
         return S3Boto3Storage(**kwargs)
 
-    return FileSystemStorage()
+    # Local: store under SECURE_MEDIA_ROOT, served by the authenticated /admin/media/ view.
+    return FileSystemStorage(
+        location=settings.SECURE_MEDIA_ROOT,
+        base_url='/admin/media/',
+    )

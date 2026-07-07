@@ -20,11 +20,15 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
+from ql.views import serve_secure_media
+
 admin.site.site_header = 'Quim Land Administration'
 admin.site.site_title  = 'Quim Land Administration'
 admin.site.index_title = 'Quim Land Administration'
 
 urlpatterns = [
+    path('admin/media/<path:path>', serve_secure_media, name='secure_media'),
+
     path('admin/', admin.site.urls),
-    path("", include('mcp_server.urls')),
+    # path("", include('mcp_server.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -8,7 +8,6 @@ from django.urls import path
 from django.utils import timezone
 from django.utils.html import format_html
 from ql.utils import fmt_rupiah
-from sorl.thumbnail import get_thumbnail
 
 from ..models import Payment, PaymentBatch, Tariff
 
@@ -161,16 +160,12 @@ class PaymentBatchAdmin(admin.ModelAdmin):
     def receipt_preview(self, obj):
         if not obj or not obj.receipt:
             return '—'
-        try:
-            thumb = get_thumbnail(obj.receipt, '400x400', crop='noop', quality=85)
-            return format_html(
-                '<a href="{}" target="_blank">'
-                '<img src="{}" style="max-width:400px;max-height:400px;border-radius:8px;">'
-                '</a>',
-                obj.receipt.url, thumb.url,
-            )
-        except Exception:
-            return format_html('<a href="{}" target="_blank">View receipt</a>', obj.receipt.url)
+        return format_html(
+            '<a href="{}" target="_blank">'
+            '<img src="{}" style="max-width:400px;max-height:400px;border-radius:8px;">'
+            '</a>',
+            obj.receipt.url, obj.receipt.url,
+        )
 
     def save_model(self, request, obj, form, change):
         if not change:
