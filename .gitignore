@@ -1,0 +1,3 @@
+.env
+paycache/
+*.sqlite3

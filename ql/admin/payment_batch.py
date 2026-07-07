@@ -1,0 +1,104 @@
+from datetime import date
+
+from django import forms
+from django.contrib import admin
+from django.db.models import Q
+from django.http import JsonResponse
+from django.urls import path
+
+from ..models import Payment, PaymentBatch, Tariff
+
+
+
+class MonthPickerWidget(forms.TextInput):
+    input_type = 'month'
+
+
+class PaymentInlineForm(forms.ModelForm):
+    nominal = forms.DecimalField(required=False, max_digits=15, decimal_places=2)
+
+    class Meta:
+        model = Payment
+        fields = '__all__'
+        widgets = {'period': MonthPickerWidget()}
+
+
+class PaymentInline(admin.TabularInline):
+    model = Payment
+    form = PaymentInlineForm
+    extra = 1
+
+
+@admin.register(PaymentBatch)
+class PaymentBatchAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'paid_at', 'creator', 'note']
+    list_filter = ['paid_at']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name']
+    ordering = ['-paid_at']
+    autocomplete_fields = ['user', 'creator']
+    inlines = [PaymentInline]
+
+    class Media:
+        js = ('ql/js/payment_inline.js',)
+
+    def get_urls(self):
+        return [
+            path(
+                'tariff-lookup/',
+                self.admin_site.admin_view(self.tariff_lookup_view),
+                name='payment_tariff_lookup',
+            ),
+        ] + super().get_urls()
+
+    def tariff_lookup_view(self, request):
+        user_id = request.GET.get('user_id')
+        kind = request.GET.get('kind')
+        period = request.GET.get('period')  # YYYY-MM
+
+        if not all([user_id, kind, period]):
+            return JsonResponse({'nominal': None, 'warning': None})
+
+        try:
+            period_date = date(int(period[:4]), int(period[5:7]), 1)
+        except (ValueError, IndexError):
+            return JsonResponse({'nominal': None, 'warning': None})
+
+        end_of_year = date(date.today().year, 12, 31)
+
+        tariffs = (
+            Tariff.objects
+            .filter(user_id=user_id, kind=kind, start_from__lte=period_date)
+            .filter(Q(end_to__isnull=False, end_to__gte=period_date) | Q(end_to__isnull=True))
+            .order_by('-start_from')
+        )
+        # null end_to means "active through end of this year" — exclude if period is beyond that
+        if period_date > end_of_year:
+            tariffs = tariffs.filter(end_to__isnull=False)
+
+        count = tariffs.count()
+        if count == 0:
+            return JsonResponse({'nominal': None, 'warning': None})
+
+        tariff = tariffs.first()
+        warning = (
+            f'{count} overlapping tariffs found for this user/kind/period; '
+            f'using the most recent one (Rp {tariff.nominal:,}).'
+            if count >= 2 else None
+        )
+        return JsonResponse({'nominal': str(tariff.nominal), 'warning': warning})
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not obj:
+            return [f for f in fields if f != 'creator']
+        return fields
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ['creator']
+        return []
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.creator = request.user
+        super().save_model(request, obj, form, change)

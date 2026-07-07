@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(poetry run *)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Read(//Users/fathur/**)",
+      "Bash(pip show *)",
+      "Bash(poetry add *)",
+      "Bash(DB_ENGINE=django.db.backends.sqlite3 poetry run python manage.py test ql.tests --verbosity=2)"
+    ]
+  }
+}
