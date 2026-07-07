@@ -44,7 +44,7 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(PaymentBatch)
 class PaymentBatchAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'paid_at', 'nominal_display', 'note']
+    list_display = ['id', 'user', 'paid_at', 'nominal_display', 'receipt_icon', 'note']
     list_filter = ['paid_at']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
     ordering = ['-paid_at']
@@ -104,6 +104,23 @@ class PaymentBatchAdmin(admin.ModelAdmin):
     @admin.display(description='Nominal', ordering='nominal')
     def nominal_display(self, obj):
         return fmt_rupiah(obj.nominal)
+
+    @admin.display(description='', ordering='receipt')
+    def receipt_icon(self, obj):
+        if not obj.receipt:
+            return '—'
+        return format_html(
+            '<a href="{}" target="_blank" title="View receipt">'
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+            ' stroke-linejoin="round" width="16" height="16"'
+            ' style="vertical-align:middle;color:var(--body-fg)">'
+            '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19'
+            ' a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'
+            '</svg>'
+            '</a>',
+            obj.receipt.url,
+        )
     
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = self.get_object(request, object_id)
