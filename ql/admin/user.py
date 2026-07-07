@@ -28,6 +28,29 @@ class PaymentBatchInline(admin.TabularInline):
 class ExtendedUserAdmin(UserAdmin):
     inlines = list(UserAdmin.inlines) + [UserPropertyInline, TariffInline, PaymentBatchInline]
 
+    list_display = ['full_name', 'home_number', 'occupancy_status', 'phone', 'is_active', 'is_staff']
+    ordering = ['first_name', 'last_name']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('properties')
+
+    @admin.display(description='Full Name', ordering='first_name')
+    def full_name(self, obj):
+        return obj.get_full_name() or obj.username
+
+    @admin.display(description='Home No.', ordering='properties__home_number')
+    def home_number(self, obj):
+        return getattr(obj, 'properties', None) and obj.properties.home_number or '—'
+
+    @admin.display(description='Status', ordering='properties__occupancy_status')
+    def occupancy_status(self, obj):
+        prop = getattr(obj, 'properties', None)
+        return prop.get_occupancy_status_display() if prop else '—'
+
+    @admin.display(description='Phone', ordering='properties__phone')
+    def phone(self, obj):
+        return getattr(obj, 'properties', None) and obj.properties.phone or '—'
+
     def save_formset(self, request, _form, formset, _change):
         instances = formset.save(commit=False)
         for instance in instances:
