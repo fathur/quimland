@@ -3,8 +3,10 @@ import datetime
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from .base import TimestampMixin
 
-class SalaryRate(models.Model):
+
+class SalaryRate(TimestampMixin):
     class Payee(models.TextChoices):
         SECURITY = 'SECURITY', 'Security Guard'
 

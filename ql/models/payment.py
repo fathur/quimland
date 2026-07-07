@@ -3,7 +3,10 @@ from datetime import date
 from django.db import models
 from django.db.models import Q
 
-class Payment(models.Model):
+from .base import TimestampMixin
+
+
+class Payment(TimestampMixin):
     class Kind(models.TextChoices):
         MONTHLY = 'MONTHLY', 'Monthly iuran'
         GARBAGE = 'GARBAGE', 'Garbage iuran'
@@ -26,9 +29,31 @@ class Payment(models.Model):
         is_new = self.pk is None
         
         if is_new:
+            self._fill_period_from_previous_payment()
             self._fill_nominal_from_tariff()
 
         super().save(*args, **kwargs)
+
+
+    def _fill_period_from_previous_payment(self):
+        if self.period:
+            return
+
+        latest = (
+            Payment.objects
+            .filter(batch__user=self.batch.user, kind=self.kind)
+            .order_by('-period')
+            .values_list('period', flat=True)
+            .first()
+        )
+        if latest is None:
+            raise ValueError('period is required: no previous payment found to derive it from.')
+
+        year, month = int(latest[:4]), int(latest[5:7])
+        month += 1
+        if month > 12:
+            year, month = year + 1, 1
+        self.period = f'{year:04d}-{month:02d}'
 
     def _fill_nominal_from_tariff(self):
         from .tariff import Tariff

@@ -2,8 +2,10 @@ from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from .base import TimestampMixin
 
-class CashEntry(models.Model):
+
+class CashEntry(TimestampMixin):
     class Direction(models.TextChoices):
         IN  = 'IN',  'Income'
         OUT = 'OUT', 'Expense'

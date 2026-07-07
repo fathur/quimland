@@ -9,4 +9,19 @@ class PayoutAdmin(admin.ModelAdmin):
     list_filter = ['payee', 'period']
     search_fields = ['payee', 'period']
     ordering = ['payout_date', 'payee']
-    autocomplete_fields = ['creator']
+
+    def get_fields(self, request, obj=None):
+        fields = super().get_fields(request, obj)
+        if not obj:
+            return [f for f in fields if f != 'creator']
+        return fields
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ['creator']
+        return []
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.creator = request.user
+        super().save_model(request, obj, form, change)

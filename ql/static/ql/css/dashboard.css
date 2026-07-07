@@ -1,0 +1,164 @@
+/*
+ * Shared dashboard styles for all quimland admin dashboards.
+ * Use {% load static %} and <link rel="stylesheet" href="{% static 'ql/css/dashboard.css' %}">
+ * in {% block extrastyle %} to load these. Page-specific styles go in the template's own <style>.
+ */
+
+/* ---- Layout ---- */
+#content { width: auto; max-width: none; }
+.ql-wrap { max-width: 1100px; margin: 0 auto; }
+
+/* ---- Control / navigation bar ---- */
+.ql-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 18px; margin-bottom: 20px;
+  background: var(--darkened-bg); border: 1px solid var(--hairline-color);
+  border-radius: 10px;
+}
+.ql-bar-title { font-size: 18px; font-weight: 700; margin-right: auto; }
+.ql-bar-flag  { font-size: 12px; color: var(--body-quiet-color); margin-left: auto; }
+.ql-bar-flag strong { color: var(--body-fg); }
+
+/* ---- Form fields inside bars ---- */
+.ql-field { display: flex; flex-direction: column; gap: 5px; }
+.ql-field label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--body-quiet-color); font-weight: 600;
+}
+.ql-bar select,
+.ql-bar input[type=month],
+.ql-bar input[type=date] {
+  padding: 7px 10px; border-radius: 8px;
+  border: 1px solid var(--border-color); background: var(--body-bg); color: var(--body-fg);
+}
+.ql-bar select       { flex: 1; min-width: 220px; max-width: 420px; }
+.ql-bar input[type=date]  { min-width: 170px; }
+.ql-bar input[type=month] { min-width: 150px; }
+
+/* ---- Buttons ---- */
+.ql-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 8px; font-weight: 600; line-height: 1;
+  border: 1px solid var(--border-color); background: var(--body-bg);
+  color: var(--body-fg); text-decoration: none; white-space: nowrap; cursor: pointer;
+}
+.ql-btn:hover { background: var(--selected-bg); }
+.ql-btn-primary { border-color: var(--primary); }
+
+/* ---- Summary cards grid ---- */
+.ql-cards-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 22px; }
+.ql-cards-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+@media (max-width: 900px) { .ql-cards-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 720px) { .ql-cards-2 { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .ql-cards-4 { grid-template-columns: 1fr; } }
+
+.ql-card {
+  padding: 14px 16px; border: 1px solid var(--hairline-color);
+  border-radius: 10px; background: var(--body-bg);
+}
+
+/* Card label / value / sub-label */
+.ql-card-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--body-quiet-color);
+}
+.ql-card-value {
+  font-size: 20px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums;
+}
+.ql-card-value.neg { color: #b91c1c; }
+.ql-card-sub  { font-size: 12px; color: var(--body-quiet-color); margin-top: 4px; }
+
+/* Larger value variant (used in payments dashboard cards) */
+.ql-card-title { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .03em; }
+.ql-card-stats { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 12px; }
+.ql-card-stat .n { font-size: 22px; font-weight: 700; line-height: 1; }
+.ql-card-stat .l { font-size: 12px; color: var(--body-quiet-color); }
+.ql-card-money  { font-size: 13px; color: var(--body-quiet-color); }
+.ql-card-money strong { color: var(--body-fg); }
+
+/* ---- Progress bar ---- */
+.ql-progress { margin: 6px 0 22px; }
+.ql-bar-track { height: 10px; border-radius: 999px; background: var(--darkened-bg); overflow: hidden; }
+.ql-bar-track > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.ql-progress-cap { font-size: 12px; color: var(--body-quiet-color); margin-top: 6px; }
+
+/* ---- Status badges ---- */
+.ql-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap;
+}
+/* Payment statuses */
+.ql-badge.paid    { background: #dcfce7; color: #166534; }
+.ql-badge.partial { background: #fef9c3; color: #854d0e; }
+.ql-badge.unpaid  { background: #fee2e2; color: #991b1b; }
+.ql-badge.na      { background: #e5e7eb; color: #4b5563; }
+/* Earmarked fund statuses */
+.ql-badge.kurang  { background: #fee2e2; color: #991b1b; }
+.ql-badge.pas     { background: #e5e7eb; color: #4b5563; }
+.ql-badge.lebih   { background: #dcfce7; color: #166534; }
+
+/* ---- Colored dots (legend use) ---- */
+.ql-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-right: 5px; vertical-align: middle;
+}
+.ql-dot.paid    { background: #22c55e; }
+.ql-dot.partial { background: #eab308; }
+.ql-dot.unpaid  { background: #ef4444; }
+.ql-dot.na      { background: #9ca3af; }
+
+/* ---- Small inline tags ---- */
+.ql-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; vertical-align: middle;
+}
+.ql-pill {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  padding: 2px 9px; border-radius: 999px;
+}
+.ql-pill.open   { background: #dcfce7; color: #166534; }
+.ql-pill.closed { background: #e5e7eb; color: #4b5563; }
+
+/* ---- Table toolbar (search + filter) ---- */
+.ql-toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 20px 0 10px;
+}
+.ql-toolbar input[type=search],
+.ql-toolbar select {
+  padding: 7px 10px; border-radius: 8px;
+  border: 1px solid var(--border-color); background: var(--body-bg); color: var(--body-fg);
+}
+.ql-toolbar input[type=search] { flex: 1; min-width: 180px; }
+.ql-toolbar-count { font-size: 13px; color: var(--body-quiet-color); margin-left: auto; }
+
+/* ---- Data table ---- */
+.ql-scroll  { overflow-x: auto; }
+.ql-table   { width: 100%; border-collapse: collapse; min-width: 560px; }
+.ql-table th, .ql-table td {
+  padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--hairline-color);
+}
+.ql-table thead th {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--body-quiet-color); white-space: nowrap;
+}
+.ql-table thead th.sortable { cursor: pointer; user-select: none; }
+.ql-table thead th.num,
+.ql-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+.ql-table tbody tr:hover { background: var(--darkened-bg); }
+.ql-table .arrow { opacity: .4; font-size: 10px; }
+.ql-table th[aria-sort="ascending"] .arrow,
+.ql-table th[aria-sort="descending"] .arrow { opacity: 1; }
+
+/* ---- Common table cell helpers ---- */
+.ql-idx   { color: var(--body-quiet-color); width: 42px; }
+.ql-uname { font-weight: 600; }
+.ql-uname a { text-decoration: none; }
+.ql-diff.neg { color: #b91c1c; }
+.ql-diff.pos { color: #15803d; }
+.ql-empty { text-align: center; padding: 40px; color: var(--body-quiet-color); }
+
+/* ---- Info / notice box ---- */
+.ql-note {
+  padding: 14px 18px; border: 1px dashed var(--hairline-color); border-radius: 10px;
+  color: var(--body-quiet-color); background: var(--darkened-bg); margin-bottom: 18px;
+}

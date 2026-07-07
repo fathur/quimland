@@ -1,7 +1,9 @@
 from django.db import models
 
+from .base import TimestampMixin
 
-class Fund(models.Model):
+
+class Fund(TimestampMixin):
     class Kind(models.TextChoices):
         GENERAL   = 'GENERAL',   'General (Kas RT)'
         GARBAGE   = 'GARBAGE',   'Garbage (pass-through)'
@@ -16,7 +18,6 @@ class Fund(models.Model):
     description   = models.TextField(blank=True, default='')
     target_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     status        = models.CharField(max_length=10, choices=Status, default=Status.OPEN)
-    created_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'funds'

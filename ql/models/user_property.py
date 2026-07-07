@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from .base import TimestampMixin
 
-class UserProperty(models.Model):
+
+class UserProperty(TimestampMixin):
     class OccupancyStatus(models.TextChoices):
         OCCUPIED = 'OCCUPIED', 'Occupied'
         VACANT   = 'VACANT',   'Vacant'

@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from .base import TimestampMixin
 
-class Payout(models.Model):
+
+class Payout(TimestampMixin):
     class Payee(models.TextChoices):
         SECURITY   = 'SECURITY',   'Security Guard'
         SANITATION = 'SANITATION', 'Sanitation Worker'

@@ -1,0 +1,98 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'ql/css/dashboard.css' %}">
+<style>
+  /* Page-specific: today flag */
+  .ql-today-flag {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--body-quiet-color);
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; {% translate 'Payments Dashboard' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="ql-wrap">
+
+  {# ---------------- Month navigation bar ---------------- #}
+  <div class="ql-bar">
+    <span class="ql-bar-title">📊 {{ period_label }}{% if is_current %} <span class="ql-today-flag">· this month</span>{% endif %}</span>
+
+    <a class="ql-btn" href="?month={{ prev_month }}">‹ {% translate 'Prev' %}</a>
+
+    <form method="get" style="display:inline-flex;gap:8px;align-items:center;margin:0;">
+      <input type="month" name="month" value="{{ period }}" onchange="this.form.submit()">
+      <noscript><button class="ql-btn" type="submit">{% translate 'Go' %}</button></noscript>
+    </form>
+
+    <a class="ql-btn" href="?month={{ next_month }}">{% translate 'Next' %} ›</a>
+    {% if not is_current %}<a class="ql-btn ql-btn-primary" href="?month={{ current_month }}">{% translate 'This month' %}</a>{% endif %}
+  </div>
+
+  {# ---------------- Summary cards ---------------- #}
+  <div class="ql-cards-2">
+    <div class="ql-card">
+      <h3 class="ql-card-title">Monthly iuran</h3>
+      <div class="ql-card-stats">
+        <div class="ql-card-stat"><div class="n">{{ summary.monthly.paid }}</div><div class="l"><span class="ql-dot paid"></span>Paid</div></div>
+        <div class="ql-card-stat"><div class="n">{{ summary.monthly.partial }}</div><div class="l"><span class="ql-dot partial"></span>Partial</div></div>
+        <div class="ql-card-stat"><div class="n">{{ summary.monthly.unpaid }}</div><div class="l"><span class="ql-dot unpaid"></span>Unpaid</div></div>
+        <div class="ql-card-stat"><div class="n">{{ summary.monthly.na }}</div><div class="l"><span class="ql-dot na"></span>No tariff</div></div>
+      </div>
+      <div class="ql-card-money">Collected <strong>{{ summary.monthly.collected_display }}</strong> of {{ summary.monthly.expected_display }}</div>
+    </div>
+
+    <div class="ql-card">
+      <h3 class="ql-card-title">Garbage iuran</h3>
+      <div class="ql-card-stats">
+        <div class="ql-card-stat"><div class="n">{{ summary.garbage.paid }}</div><div class="l"><span class="ql-dot paid"></span>Paid</div></div>
+        <div class="ql-card-stat"><div class="n">{{ summary.garbage.partial }}</div><div class="l"><span class="ql-dot partial"></span>Partial</div></div>
+        <div class="ql-card-stat"><div class="n">{{ summary.garbage.unpaid }}</div><div class="l"><span class="ql-dot unpaid"></span>Unpaid</div></div>
+        <div class="ql-card-stat"><div class="n">{{ summary.garbage.na }}</div><div class="l"><span class="ql-dot na"></span>No tariff</div></div>
+      </div>
+      <div class="ql-card-money">Collected <strong>{{ summary.garbage.collected_display }}</strong> of {{ summary.garbage.expected_display }}</div>
+    </div>
+  </div>
+
+  {# ---------------- Per-user table ---------------- #}
+  <div class="module ql-scroll">
+    <table class="ql-table">
+      <thead>
+        <tr>
+          <th class="ql-idx">#</th>
+          <th>{% translate 'User' %} ({{ total_users }})</th>
+          <th>Monthly</th>
+          <th>Paid / Expected</th>
+          <th>Garbage</th>
+          <th>Paid / Expected</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="ql-idx">{{ forloop.counter }}</td>
+          <td class="ql-uname">
+            <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
+          </td>
+          <td><span class="ql-badge {{ row.monthly.status.code }}">{{ row.monthly.status.label }}</span></td>
+          <td class="num">{{ row.monthly.paid_display }} / {{ row.monthly.expected_display }}</td>
+          <td><span class="ql-badge {{ row.garbage.status.code }}">{{ row.garbage.status.label }}</span></td>
+          <td class="num">{{ row.garbage.paid_display }} / {{ row.garbage.expected_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="ql-empty" colspan="6">{% translate 'No active users.' %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

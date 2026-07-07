@@ -9,4 +9,5 @@ from . import (
     cash_entry,
     fund_due,
     user,
+    dashboard,
 )

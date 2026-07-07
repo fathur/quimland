@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.db import models
 
+from .base import TimestampMixin
 
-class FundDue(models.Model):
+
+class FundDue(TimestampMixin):
     fund            = models.ForeignKey('Fund', on_delete=models.PROTECT, related_name='dues')
     user            = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='fund_dues')
     expected_amount = models.DecimalField(max_digits=15, decimal_places=2)

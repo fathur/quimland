@@ -2,8 +2,10 @@ from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from .base import TimestampMixin
 
-class Tariff(models.Model):
+
+class Tariff(TimestampMixin):
     class Kind(models.TextChoices):
         MONTHLY = 'MONTHLY', 'Monthly iuran'
         GARBAGE = 'GARBAGE', 'Garbage iuran'

@@ -1,0 +1,226 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'ql/css/dashboard.css' %}">
+<style>
+  /* Page-specific: fund heading */
+  .ql-fund-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; }
+  .ql-fund-head h2 { margin: 0; font-size: 20px; }
+  .ql-fund-desc { color: var(--body-quiet-color); font-size: 13px; margin: 0 0 18px; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; {% translate 'Earmarked Funds' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="ql-wrap">
+
+  {# ---------------- Controls: fund + as_of ---------------- #}
+  <form method="get" class="ql-bar" style="align-items: flex-end;">
+    <div class="ql-field">
+      <label for="ql-fund">{% translate 'Fund' %}</label>
+      <select id="ql-fund" name="fund" onchange="this.form.submit()">
+        {% for f in funds %}
+          <option value="{{ f.id }}" {% if selected and f.id == selected.id %}selected{% endif %}>
+            {{ f.name }}{% if f.status == 'CLOSED' %} · closed{% endif %}
+          </option>
+        {% empty %}
+          <option>{% translate 'No earmarked funds' %}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="ql-field">
+      <label for="ql-asof">{% translate 'As of date' %}</label>
+      <input type="date" id="ql-asof" name="as_of" value="{{ as_of }}" max="{{ today }}"
+             onchange="this.form.submit()">
+    </div>
+
+    {% if as_of %}
+      <button class="ql-btn" type="submit" name="as_of" value="">{% translate 'Clear date' %}</button>
+    {% endif %}
+
+    <span class="ql-bar-flag">
+      {% if as_of_label %}
+        {% translate 'Simulating up to' %} <strong>{{ as_of_label }}</strong>
+      {% else %}
+        {% translate 'Current totals (up to now)' %}
+      {% endif %}
+    </span>
+  </form>
+
+  {% if not selected %}
+    <div class="ql-empty">
+      {% translate 'No earmarked funds exist yet. Create one under Funds (kind = Earmarked).' %}
+    </div>
+  {% else %}
+
+    {# ---------------- Fund heading ---------------- #}
+    <div class="ql-fund-head">
+      <h2>{{ selected.name }}</h2>
+      <span class="ql-pill {% if selected.status == 'OPEN' %}open{% else %}closed{% endif %}">{{ selected.get_status_display }}</span>
+    </div>
+    {% if selected.description %}<p class="ql-fund-desc">{{ selected.description }}</p>{% endif %}
+
+    {# ---------------- Summary cards ---------------- #}
+    <div class="ql-cards-4">
+      <div class="ql-card">
+        <div class="ql-card-label">{% translate 'Target' %}</div>
+        <div class="ql-card-value">{% if target_display %}{{ target_display }}{% else %}—{% endif %}</div>
+        <div class="ql-card-sub">
+          {% if status_vs_target %}<span class="ql-badge {{ status_vs_target.code }}">{{ status_vs_target.label }}</span> {% translate 'vs collected' %}
+          {% else %}{% translate 'No fixed target' %}{% endif %}
+        </div>
+      </div>
+
+      <div class="ql-card">
+        <div class="ql-card-label">{% translate 'Total expected (dues)' %}</div>
+        <div class="ql-card-value">{{ total_expected_display }}</div>
+        <div class="ql-card-sub">
+          {% if status_vs_expected %}<span class="ql-badge {{ status_vs_expected.code }}">{{ status_vs_expected.label }}</span> {% translate 'vs collected' %}
+          {% else %}{% translate 'Voluntary fund' %}{% endif %}
+        </div>
+      </div>
+
+      <div class="ql-card">
+        <div class="ql-card-label">{% translate 'Collected' %}</div>
+        <div class="ql-card-value">{{ collected_display }}</div>
+        <div class="ql-card-sub">{% translate 'Spent' %} {{ spent_display }}</div>
+      </div>
+
+      <div class="ql-card">
+        <div class="ql-card-label">{% translate 'Balance' %}</div>
+        <div class="ql-card-value {% if balance_negative %}neg{% endif %}">{{ balance_display }}</div>
+        <div class="ql-card-sub">{% translate 'Collected − spent' %}</div>
+      </div>
+    </div>
+
+    {% if target_pct is not None %}
+    <div class="ql-progress">
+      <div class="ql-bar-track"><span style="width: {{ target_pct }}%"></span></div>
+      <div class="ql-progress-cap">{{ target_pct }}% {% translate 'of target collected' %} · {{ collected_display }} / {{ target_display }}</div>
+    </div>
+    {% endif %}
+
+    {# ---------------- Per-person breakdown ---------------- #}
+    {% if not has_dues %}
+      <div class="ql-note">
+        🤝 {% translate 'Fund sukarela — tidak ada kewajiban tetap.' %}
+        {% translate 'Semua pemasukan di bawah ini adalah kontribusi sukarela.' %}
+      </div>
+    {% endif %}
+
+    <div class="ql-toolbar">
+      <input type="search" id="ql-search" placeholder="{% translate 'Search name…' %}" autocomplete="off">
+      <select id="ql-filter">
+        <option value="all">{% translate 'All statuses' %}</option>
+        <option value="kurang">{% translate 'Kurang' %} ({{ counts.kurang }})</option>
+        <option value="pas">{% translate 'Pas' %} ({{ counts.pas }})</option>
+        <option value="lebih">{% translate 'Lebih' %} ({{ counts.lebih }})</option>
+        <option value="sukarela">{% translate 'Sukarela' %} ({{ counts.sukarela }})</option>
+      </select>
+      <span class="ql-toolbar-count" id="ql-count">{{ total_people }} {% translate 'people' %}</span>
+    </div>
+
+    <div class="module ql-scroll">
+      <table class="ql-table" id="ql-table">
+        <thead>
+          <tr>
+            <th class="ql-idx">#</th>
+            <th class="sortable" data-key="name" data-type="text">{% translate 'Name' %} <span class="arrow">↕</span></th>
+            <th class="num sortable" data-key="expected" data-type="num">{% translate 'Expected' %} <span class="arrow">↕</span></th>
+            <th class="num sortable" data-key="paid" data-type="num">{% translate 'Paid' %} <span class="arrow">↕</span></th>
+            <th class="num sortable" data-key="diff" data-type="num" aria-sort="ascending">{% translate 'Difference' %} <span class="arrow">↕</span></th>
+            <th class="sortable" data-key="status" data-type="text">{% translate 'Status' %} <span class="arrow">↕</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in people %}
+          <tr data-name="{{ p.name|lower }}"
+              data-status="{{ p.status.code }}"
+              data-voluntary="{{ p.voluntary|yesno:'1,0' }}"
+              data-expected="{{ p.expected }}"
+              data-paid="{{ p.paid }}"
+              data-diff="{{ p.diff }}">
+            <td class="ql-idx"></td>
+            <td class="ql-uname">
+              {% if p.user %}<a href="{% url 'admin:auth_user_change' p.user.id %}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}
+            </td>
+            <td class="num">{{ p.expected_display }}</td>
+            <td class="num">{{ p.paid_display }}</td>
+            <td class="num ql-diff {% if p.diff < 0 %}neg{% elif p.diff > 0 %}pos{% endif %}">{{ p.diff_sign }}{{ p.diff_display }}</td>
+            <td>
+              <span class="ql-badge {{ p.status.code }}">{{ p.status.label }}</span>
+              {% if p.voluntary %}<span class="ql-tag">{% translate 'sukarela' %}</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td class="ql-empty" colspan="6">{% translate 'No contributors or dues for this fund yet.' %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  var table = document.getElementById('ql-table');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  var search = document.getElementById('ql-search');
+  var filter = document.getElementById('ql-filter');
+  var countEl = document.getElementById('ql-count');
+  var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-name]'));
+  var totalLabel = countEl ? countEl.textContent.replace(/^\d+\s*/, '') : '';
+
+  function apply() {
+    var q = (search.value || '').trim().toLowerCase();
+    var f = filter.value;
+    var shown = 0, i = 1;
+    rows.forEach(function (r) {
+      var okText = !q || r.dataset.name.indexOf(q) !== -1;
+      var okFilter =
+        f === 'all' ||
+        (f === 'sukarela' ? r.dataset.voluntary === '1' : r.dataset.status === f);
+      var visible = okText && okFilter;
+      r.style.display = visible ? '' : 'none';
+      if (visible) { r.querySelector('.ql-idx').textContent = i++; shown++; }
+    });
+    if (countEl) countEl.textContent = shown + ' ' + totalLabel;
+  }
+
+  function sortBy(th) {
+    var key = th.dataset.key, type = th.dataset.type;
+    var cur = th.getAttribute('aria-sort');
+    var dir = cur === 'ascending' ? 'descending' : 'ascending';
+    table.querySelectorAll('thead th').forEach(function (h) { h.removeAttribute('aria-sort'); });
+    th.setAttribute('aria-sort', dir);
+    var mul = dir === 'ascending' ? 1 : -1;
+    rows.sort(function (a, b) {
+      var av, bv;
+      if (type === 'num') { av = parseFloat(a.dataset[key]); bv = parseFloat(b.dataset[key]); return (av - bv) * mul; }
+      if (key === 'status') { av = a.dataset.status; bv = b.dataset.status; }
+      else { av = a.dataset.name; bv = b.dataset.name; }
+      return av < bv ? -mul : av > bv ? mul : 0;
+    });
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    apply();
+  }
+
+  search.addEventListener('input', apply);
+  filter.addEventListener('change', apply);
+  table.querySelectorAll('thead th.sortable').forEach(function (th) {
+    th.addEventListener('click', function () { sortBy(th); });
+  });
+
+  apply();
+})();
+</script>
+{% endblock %}
