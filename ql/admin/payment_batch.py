@@ -1,11 +1,14 @@
 from datetime import date
 
 from django import forms
-from django.contrib import admin
-from django.db.models import Q
+from django.contrib import admin, messages
+from django.db.models import Q, Sum
 from django.http import JsonResponse
 from django.urls import path
 from django.utils import timezone
+from django.utils.html import format_html
+from ql.utils import fmt_rupiah
+from sorl.thumbnail import get_thumbnail
 
 from ..models import Payment, PaymentBatch, Tariff
 
@@ -42,7 +45,7 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(PaymentBatch)
 class PaymentBatchAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'paid_at', 'creator', 'note']
+    list_display = ['id', 'user', 'paid_at', 'nominal_display', 'note']
     list_filter = ['paid_at']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
     ordering = ['-paid_at']
@@ -99,6 +102,23 @@ class PaymentBatchAdmin(admin.ModelAdmin):
         # )
         # return JsonResponse({'nominal': str(tariff.nominal), 'warning': warning})
 
+    @admin.display(description='Nominal', ordering='nominal')
+    def nominal_display(self, obj):
+        return fmt_rupiah(obj.nominal)
+    
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.get_object(request, object_id)
+        if obj:
+            payments_total = obj.payments.aggregate(total=Sum('nominal'))['total'] or 0
+            if obj.nominal != payments_total:
+                messages.warning(
+                    request,
+                    f'Batch nominal ({fmt_rupiah(obj.nominal)}) does not match '
+                    f'the sum of its payments ({fmt_rupiah(payments_total)}). '
+                    f'Please review the payment entries.',
+                )
+        return super().change_view(request, object_id, form_url, extra_context)
+
     def _is_locked(self, obj):
         if obj is None:
             return False
@@ -115,15 +135,42 @@ class PaymentBatchAdmin(admin.ModelAdmin):
         return super().has_delete_permission(request, obj)
 
     def get_fields(self, request, obj=None):
-        fields = super().get_fields(request, obj)
-        if not obj:
-            return [f for f in fields if f != 'creator']
+        exclude = {'creator', 'created_at', 'receipt', 'receipt_preview'}
+        fields = [f for f in super().get_fields(request, obj) if f not in exclude]
+        if obj:
+            fields += ['creator', 'created_at']
         return fields
 
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = list(super().get_fieldsets(request, obj))
+        receipt_fields = ['receipt']
+        if obj and obj.receipt:
+            receipt_fields.insert(0, 'receipt_preview')
+        fieldsets.append(('Receipt', {'fields': receipt_fields}))
+        return fieldsets
+
     def get_readonly_fields(self, request, obj=None):
+        ro = []
+        if obj and obj.receipt:
+            ro += ['receipt_preview']
         if obj:
-            return ['creator', 'created_at']
-        return []
+            ro += ['creator', 'created_at']
+        return ro
+
+    @admin.display(description='Receipt preview')
+    def receipt_preview(self, obj):
+        if not obj or not obj.receipt:
+            return '—'
+        try:
+            thumb = get_thumbnail(obj.receipt, '400x400', crop='noop', quality=85)
+            return format_html(
+                '<a href="{}" target="_blank">'
+                '<img src="{}" style="max-width:400px;max-height:400px;border-radius:8px;">'
+                '</a>',
+                obj.receipt.url, thumb.url,
+            )
+        except Exception:
+            return format_html('<a href="{}" target="_blank">View receipt</a>', obj.receipt.url)
 
     def save_model(self, request, obj, form, change):
         if not change:

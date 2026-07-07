@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'mcp_server',
     'ql',
+    'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
@@ -94,4 +95,18 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.environ.get('STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
+
+MEDIA_URL = 'media/'
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ---------------------------------------------------------------------------
+# File storage — set STORAGE_BACKEND=r2 in .env to route uploads to R2
+# ---------------------------------------------------------------------------
+STORAGE_BACKEND = os.environ.get('STORAGE_BACKEND', 'local')  # 'local' | 'r2'
+
+R2_BUCKET_NAME      = os.environ.get('R2_BUCKET_NAME', '')
+R2_ENDPOINT_URL     = os.environ.get('R2_ENDPOINT_URL', '')   # https://<account_id>.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID    = os.environ.get('R2_ACCESS_KEY_ID', '')
+R2_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY', '')
+R2_CUSTOM_DOMAIN    = os.environ.get('R2_CUSTOM_DOMAIN', '')  # optional public domain, e.g. cdn.example.com
