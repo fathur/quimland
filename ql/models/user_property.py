@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.db import models
 
@@ -17,6 +19,15 @@ class UserProperty(TimestampMixin):
 
     class Meta:
         db_table = 'user_properties'
+
+    def clean(self):
+        if self.phone:
+            prefix = '+' if self.phone.startswith('+') else ''
+            self.phone = prefix + re.sub(r'\D', '', self.phone)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.user} | {self.occupancy_status}'
