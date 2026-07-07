@@ -23,7 +23,7 @@ class FundAdmin(admin.ModelAdmin):
     search_fields = ['name']
     inlines = [CashEntryInline, FundDueInline]
 
-    def save_formset(self, request, _form, formset, _change):
+    def save_formset(self, request, _form, formset, change=False):
         instances = formset.save(commit=False)
         for instance in instances:
             if not instance.pk and hasattr(instance, 'creator_id') and not instance.creator_id:
