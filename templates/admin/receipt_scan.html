@@ -1,0 +1,428 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.css">
+<script src="https://cdn.jsdelivr.net/npm/dropzone@5.9.3/dist/min/dropzone.min.js"></script>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+<style>
+/* ---------- Layout ---------- */
+#content { width: auto; max-width: none; }
+.rs-shell { max-width: 1400px; margin: 0 auto; }
+.rs-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 460px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) { .rs-grid { grid-template-columns: 1fr; } }
+
+/* Module header spacing to match Django change form */
+.rs-shell .module { margin-bottom: 20px; }
+.rs-shell .module > h2 { margin: 0; }
+.rs-col-left { position: sticky; top: 16px; }
+
+/* ---------- Drop zone (Django-flavored) ---------- */
+.rs-dropzone {
+  border: 2px dashed var(--border-color, #ccc);
+  border-radius: 4px;
+  background: var(--darkened-bg, #f8f8f8);
+  min-height: 120px;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  cursor: pointer; text-align: center;
+  padding: 18px;
+  transition: border-color .15s, background .15s;
+}
+.rs-dropzone.dz-drag-hover { border-color: var(--primary, #79aec8); background: var(--selected-bg, #e4e4e4); }
+.rs-dropzone .dz-message { color: var(--body-quiet-color, #666); pointer-events: none; margin: 0; }
+.rs-dropzone .rs-upload-icon { font-size: 34px; display: block; margin-bottom: 6px; }
+/* Suppress Dropzone's default preview chrome — we render our own. */
+#dz-previews-hidden { display: none; }
+
+/* ---------- Image preview ---------- */
+.rs-preview-wrap { text-align: center; }
+.rs-preview-img {
+  max-width: 100%; max-height: 78vh; border: 1px solid var(--hairline-color, #e5e5e5);
+  border-radius: 4px; cursor: zoom-in; background: #fff; display: block; margin: 0 auto;
+}
+.rs-preview-meta {
+  margin-top: 8px; font-size: 12px; color: var(--body-quiet-color, #666);
+  display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+}
+
+/* Lightbox */
+.rs-lightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 1100;
+  display: none; align-items: center; justify-content: center; cursor: zoom-out; padding: 24px;
+}
+.rs-lightbox.open { display: flex; }
+.rs-lightbox img { max-width: 100%; max-height: 100%; border-radius: 4px; }
+
+/* ---------- Extraction read-out ---------- */
+.rs-readout { width: 100%; border-collapse: collapse; }
+.rs-readout th, .rs-readout td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--hairline-color, #eee); vertical-align: top; }
+.rs-readout th {
+  width: 120px; font-size: 12px; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--body-quiet-color, #666); font-weight: 600; white-space: nowrap;
+}
+.rs-readout td { font-weight: 600; }
+.rs-readout td.null { color: var(--body-quiet-color, #999); font-style: italic; font-weight: 400; }
+
+/* ---------- User chips ---------- */
+.rs-user-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; }
+.rs-user-chip {
+  display: inline-flex; align-items: center; padding: 5px 12px;
+  border: 1px solid var(--border-color, #ccc); border-radius: 4px;
+  background: var(--button-bg, var(--body-bg, #fff)); color: var(--body-fg, #333);
+  font-size: 13px; cursor: pointer; line-height: 1.4;
+}
+.rs-user-chip:hover { border-color: var(--primary, #79aec8); }
+.rs-user-chip.selected { background: var(--primary, #79aec8); border-color: var(--primary, #79aec8); color: var(--button-fg, #fff); font-weight: 600; }
+
+/* ---------- Loading / spinner ---------- */
+.rs-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 3px solid var(--hairline-color, #ddd); border-top-color: var(--primary, #79aec8);
+  border-radius: 50%; animation: rs-spin .7s linear infinite; vertical-align: middle;
+}
+@keyframes rs-spin { to { transform: rotate(360deg); } }
+.rs-loading { display: flex; align-items: center; gap: 10px; color: var(--body-quiet-color, #666); font-size: 13px; padding: 14px; }
+
+/* Errorlist reset for our JS-populated lists */
+.rs-shell .errorlist { margin: 4px 0 0; padding: 0; }
+.rs-shell .errorlist:empty { display: none; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; {% translate 'Scan Receipt' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rs-shell">
+
+  {# ── Object tools row ── #}
+  <ul class="object-tools" style="float:none; margin: 0 0 12px;">
+    <li><a href="{% url 'admin:ql_paymentbatch_add' %}" class="addlink">{% translate 'Add batch manually' %}</a></li>
+  </ul>
+
+  <div id="alert-area"></div>
+
+  {# ── Drop zone ── #}
+  <div id="receipt-dropzone" class="rs-dropzone">
+    <div class="dz-message">
+      <span class="rs-upload-icon">📄</span>
+      <strong>{% translate 'Drop receipt image here' %}</strong><br>
+      <span style="font-size:13px;">{% translate 'or click to browse — JPG, PNG, WEBP. Drop a new image to replace.' %}</span>
+    </div>
+  </div>
+  <div id="dz-previews-hidden"></div>
+
+  {# ── Results (hidden until upload) ── #}
+  <div id="results-area" style="display:none; margin-top:20px;">
+    <div class="rs-grid">
+
+      {# ---- Left: image preview ---- #}
+      <div class="rs-col-left">
+        <div class="module">
+          <h2>{% translate 'Receipt image' %}</h2>
+          <div class="rs-preview-wrap" style="padding:12px;">
+            <img id="preview-img" class="rs-preview-img" alt="Receipt preview">
+            <div class="rs-preview-meta">
+              <span id="preview-name"></span>
+              <span id="preview-size"></span>
+              <a href="#" id="preview-zoom" onclick="openLightbox(event)">{% translate '🔍 View full size' %}</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ---- Right: data + form ---- #}
+      <div class="rs-col-right">
+
+        {# Extraction #}
+        <div class="module">
+          <h2>{% translate 'Extracted from receipt' %}</h2>
+          <div id="extraction-loading" class="rs-loading">
+            <span class="rs-spinner"></span>
+            <span>{% translate 'Reading receipt with Claude…' %}</span>
+          </div>
+          <table class="rs-readout" id="extraction-table" style="display:none;">
+            <tbody id="extraction-fields"></tbody>
+          </table>
+        </div>
+
+        {# Matched users #}
+        <div class="module" id="user-match-panel" style="display:none;">
+          <h2>
+            {% translate 'Matched users' %}
+            <span id="sender-hint" style="font-weight:400; text-transform:none;"></span>
+          </h2>
+          <div id="user-match-list" class="rs-user-list"></div>
+        </div>
+
+        {# Editable form #}
+        <form id="batch-form" onsubmit="saveBatch(); return false;">
+        <fieldset class="module aligned">
+          <h2>{% translate 'Payment batch details' %}</h2>
+
+          <div class="form-row field-user">
+            <div>
+              <label for="f-user" class="required">{% translate 'User' %}:</label>
+              <select id="f-user">
+                <option value="">— {% translate 'Select user' %} —</option>
+                {% for u in users %}
+                <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+              </select>
+              <ul class="errorlist" id="err-user"></ul>
+            </div>
+          </div>
+
+          <div class="form-row field-paid-at">
+            <div>
+              <label for="f-paid-at" class="required">{% translate 'Paid at' %}:</label>
+              <input type="datetime-local" id="f-paid-at" step="1" class="vDateField">
+              <ul class="errorlist" id="err-paid-at"></ul>
+            </div>
+          </div>
+
+          <div class="form-row field-nominal">
+            <div>
+              <label for="f-nominal" class="required">{% translate 'Nominal (Rp)' %}:</label>
+              <input type="number" id="f-nominal" step="1" min="0" placeholder="0" class="vIntegerField">
+              <ul class="errorlist" id="err-nominal"></ul>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="submit-row">
+          <input type="submit" class="default" id="save-btn" value="{% translate 'Save Payment Batch' %}">
+          <span id="save-spinner" style="display:none; margin-left:12px;"><span class="rs-spinner"></span></span>
+        </div>
+        </form>
+
+      </div>{# /right #}
+    </div>{# /grid #}
+  </div>{# /results-area #}
+
+</div>
+
+{# Lightbox overlay #}
+<div id="lightbox" class="rs-lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" alt="Receipt full size">
+</div>
+
+<script>
+Dropzone.autoDiscover = false;
+
+const CSRF_TOKEN  = '{{ csrf_token }}';
+const EXTRACT_URL = '{% url "admin:receipt_scan_extract" %}';
+const SAVE_URL    = '{% url "admin:receipt_scan_save" %}';
+
+// ── Dropzone ─────────────────────────────────────────────────────────────────
+let uploadedFile = null;
+let previewUrl   = null;
+
+const dz = new Dropzone('#receipt-dropzone', {
+  url: EXTRACT_URL,
+  method: 'post',
+  paramName: 'file',
+  maxFiles: 1,
+  maxFilesize: 10,
+  acceptedFiles: 'image/jpeg,image/png,image/webp,image/gif',
+  addRemoveLinks: false,
+  createImageThumbnails: false,
+  previewsContainer: '#dz-previews-hidden',
+  headers: { 'X-CSRFToken': CSRF_TOKEN },
+
+  init: function () {
+    this.on('maxfilesexceeded', function (file) {
+      this.removeAllFiles(true);
+      this.addFile(file);
+    });
+
+    this.on('addedfile', function (file) {
+      renderPreview(file);
+    });
+
+    this.on('sending', function () {
+      uploadedFile = null;
+      document.getElementById('results-area').style.display = 'block';
+      document.getElementById('extraction-loading').style.display = 'flex';
+      document.getElementById('extraction-table').style.display = 'none';
+      document.getElementById('extraction-fields').innerHTML = '';
+      document.getElementById('user-match-panel').style.display = 'none';
+      clearErrors();
+    });
+
+    this.on('success', function (file, response) {
+      uploadedFile = file;
+      document.getElementById('extraction-loading').style.display = 'none';
+      renderExtraction(response);
+    });
+
+    this.on('error', function (file, errMsg) {
+      document.getElementById('extraction-loading').style.display = 'none';
+      const msg = typeof errMsg === 'string' ? errMsg
+        : (errMsg && errMsg.error ? errMsg.error : 'Upload failed. Please try again.');
+      showAlert(msg, 'error');
+    });
+  },
+});
+
+// ── Preview ──────────────────────────────────────────────────────────────────
+function renderPreview(file) {
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = URL.createObjectURL(file);
+  document.getElementById('preview-img').src = previewUrl;
+  document.getElementById('lightbox-img').src = previewUrl;
+  document.getElementById('preview-name').textContent = file.name;
+  document.getElementById('preview-size').textContent = '· ' + (file.size / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function openLightbox(e) {
+  if (e) e.preventDefault();
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+document.getElementById('preview-img').addEventListener('click', openLightbox);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── Extraction rendering ─────────────────────────────────────────────────────
+function renderExtraction(data) {
+  const fmtAmount = (v) => v != null ? 'Rp ' + Number(v).toLocaleString('id-ID') : null;
+  const fields = [
+    { label: 'Bank',     key: 'bank_name' },
+    { label: 'Sender',   key: 'sender' },
+    { label: 'Receiver', key: 'receiver' },
+    { label: 'Amount',   key: 'nominal',  fmt: fmtAmount },
+    { label: 'Sent at',  key: 'sent_at' },
+  ];
+
+  document.getElementById('extraction-fields').innerHTML = fields.map(f => {
+    const raw = data[f.key];
+    const val = f.fmt ? f.fmt(raw) : (raw != null ? String(raw) : null);
+    return `<tr>
+      <th>${f.label}</th>
+      <td class="${val == null ? 'null' : ''}">${escHtml(val ?? '—')}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('extraction-table').style.display = 'table';
+
+  // Pre-fill form fields
+  if (data.sent_at) {
+    document.getElementById('f-paid-at').value = sentAtToInput(data.sent_at);
+  }
+  if (data.nominal != null) {
+    document.getElementById('f-nominal').value = Math.round(Number(data.nominal));
+  }
+
+  // Matched users
+  const users = data.matched_users || [];
+  if (users.length > 0) {
+    document.getElementById('user-match-panel').style.display = 'block';
+    document.getElementById('sender-hint').textContent =
+      data.sender ? `— for "${data.sender}"` : '';
+    renderUserChips(users);
+    selectUser(users[0].id);
+  }
+}
+
+function sentAtToInput(sentAt) {
+  // "2026-06-15 09:30:45" → "2026-06-15T09:30:45"
+  return sentAt.replace(' ', 'T').substring(0, 19);
+}
+
+function renderUserChips(users) {
+  document.getElementById('user-match-list').innerHTML = users.map(u =>
+    `<button type="button" class="rs-user-chip" data-id="${u.id}"
+       onclick="selectUser(${u.id})">${escHtml(u.name)}</button>`
+  ).join('');
+}
+
+function selectUser(id) {
+  document.getElementById('f-user').value = id;
+  document.querySelectorAll('.rs-user-chip').forEach(chip => {
+    chip.classList.toggle('selected', Number(chip.dataset.id) === id);
+  });
+  document.getElementById('err-user').innerHTML = '';
+}
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+async function saveBatch() {
+  clearErrors();
+
+  const body = new FormData();
+  body.append('csrfmiddlewaretoken', CSRF_TOKEN);
+  body.append('user_id',  document.getElementById('f-user').value);
+  body.append('paid_at',  document.getElementById('f-paid-at').value);
+  body.append('nominal',  document.getElementById('f-nominal').value);
+  if (uploadedFile) {
+    body.append('receipt', uploadedFile, uploadedFile.name);
+  }
+
+  const btn     = document.getElementById('save-btn');
+  const spinner = document.getElementById('save-spinner');
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+
+  try {
+    const resp = await fetch(SAVE_URL, { method: 'POST', body });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      if (data.errors) {
+        const fieldMap = { user_id: 'err-user', paid_at: 'err-paid-at', nominal: 'err-nominal' };
+        Object.entries(data.errors).forEach(([field, msg]) => {
+          const elId = fieldMap[field];
+          if (elId) setFieldError(elId, msg);
+          else showAlert(msg, 'error');
+        });
+      } else {
+        showAlert(data.error || 'Save failed.', 'error');
+      }
+      return;
+    }
+    window.location.href = data.redirect;
+  } catch (e) {
+    showAlert('Network error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function setFieldError(elId, msg) {
+  document.getElementById(elId).innerHTML = `<li>${escHtml(msg)}</li>`;
+}
+
+function showAlert(msg, type) {
+  const area = document.getElementById('alert-area');
+  const cls = type === 'error' ? 'errornote' : 'errornote';
+  area.innerHTML = `<p class="${cls}">${escHtml(msg)}</p>`;
+  area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function clearErrors() {
+  document.querySelectorAll('.rs-shell .errorlist').forEach(el => el.innerHTML = '');
+  document.getElementById('alert-area').innerHTML = '';
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+{% endblock %}

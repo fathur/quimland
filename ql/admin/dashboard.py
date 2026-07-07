@@ -336,6 +336,14 @@ _DASHBOARD_APP = {
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
         },
+        {
+            'name': 'Scan Receipt',
+            'object_name': 'ReceiptScan',
+            'admin_url': '/admin/receipt-scan/',
+            'add_url': None,
+            'view_only': True,
+            'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+        },
     ],
 }
 

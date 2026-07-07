@@ -10,4 +10,5 @@ from . import (
     fund_due,
     user,
     dashboard,
+    receipt_scan,
 )
