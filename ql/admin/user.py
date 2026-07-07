@@ -6,7 +6,15 @@ from django.utils.html import format_html
 from ..models import PaymentBatch, Tariff, UserProperty
 
 
-User.__str__ = lambda self: self.get_full_name() or self.username
+def _user_str(self):
+    name = self.get_full_name() or self.username
+    # Read from the ORM's __dict__ cache only — never issue an extra query.
+    # properties is stored here when select_related('properties') was used.
+    prop = self.__dict__.get('properties')
+    home = (getattr(prop, 'home_number', '') or '') if prop is not None else ''
+    return f'{name} ({home})' if home else name
+
+User.__str__ = _user_str
 
 
 class UserPropertyInline(admin.StackedInline):

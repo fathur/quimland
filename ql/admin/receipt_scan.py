@@ -64,7 +64,11 @@ def _search_users(sender_name):
 # Views
 # ---------------------------------------------------------------------------
 def receipt_scan_page(request):
-    users = list(User.objects.filter(is_active=True).order_by('first_name', 'last_name'))
+    users = list(
+        User.objects.filter(is_active=True)
+        .select_related('properties')
+        .order_by('first_name', 'last_name')
+    )
     context = {
         **admin.site.each_context(request),
         'title': 'Scan Receipt',

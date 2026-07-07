@@ -10,6 +10,9 @@ class PayoutAdmin(admin.ModelAdmin):
     search_fields = ['payee', 'period']
     ordering = ['payout_date', 'payee']
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('creator__properties')
+
     def get_fields(self, request, obj=None):
         fields = super().get_fields(request, obj)
         if not obj:

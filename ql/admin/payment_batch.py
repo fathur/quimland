@@ -101,6 +101,9 @@ class PaymentBatchAdmin(admin.ModelAdmin):
         # )
         # return JsonResponse({'nominal': str(tariff.nominal), 'warning': warning})
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user__properties')
+
     @admin.display(description='Nominal', ordering='nominal')
     def nominal_display(self, obj):
         return fmt_rupiah(obj.nominal)
