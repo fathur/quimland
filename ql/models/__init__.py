@@ -8,6 +8,7 @@ from .payout import Payout
 from .cash_entry import CashEntry
 from .fund_due import FundDue
 from .user_property import UserProperty
+from .property_tax import PropertyTax
 
 __all__ = [
     'Fund',
@@ -20,4 +21,5 @@ __all__ = [
     'CashEntry',
     'FundDue',
     'UserProperty',
+    'PropertyTax',
 ]

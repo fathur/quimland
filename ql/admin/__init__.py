@@ -8,6 +8,7 @@ from . import (
     payout,
     cash_entry,
     fund_due,
+    property_tax,
     user,
     dashboard,
     receipt_scan,

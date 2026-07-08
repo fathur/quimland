@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
 
-from ..models import PaymentBatch, Tariff, UserProperty
+from ..models import PaymentBatch, PropertyTax, Tariff, UserProperty
 
 
 def _user_str(self):
@@ -15,6 +15,14 @@ def _user_str(self):
     return f'{name} ({home})' if home else name
 
 User.__str__ = _user_str
+
+
+class PropertyTaxInline(admin.StackedInline):
+    model = PropertyTax
+    extra = 1
+    max_num = 1
+    can_delete = False
+    verbose_name_plural = 'Property Tax (PBB)'
 
 
 class UserPropertyInline(admin.StackedInline):
@@ -38,7 +46,7 @@ class PaymentBatchInline(admin.TabularInline):
 
 
 class ExtendedUserAdmin(UserAdmin):
-    inlines = list(UserAdmin.inlines) + [UserPropertyInline, TariffInline, PaymentBatchInline]
+    inlines = list(UserAdmin.inlines) + [UserPropertyInline, PropertyTaxInline, TariffInline, PaymentBatchInline]
 
     list_display = ['avatar', 'full_name', 'home_number', 'phone', 'occupancy_status', 'is_active']
     list_display_links = ['full_name']
