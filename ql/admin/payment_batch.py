@@ -1,6 +1,5 @@
 from datetime import date
 
-from admin_auto_filters.filters import AutocompleteFilter
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Q, Sum
@@ -12,10 +11,6 @@ from ql.utils import fmt_rupiah
 
 from ..models import Payment, PaymentBatch, Tariff
 
-
-class UserFilter(AutocompleteFilter):
-    title = 'User'
-    field_name = 'user'
 
 LOCK_AFTER_DAYS = 20
 
@@ -51,7 +46,7 @@ class PaymentInline(admin.TabularInline):
 @admin.register(PaymentBatch)
 class PaymentBatchAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'paid_at', 'nominal_display', 'receipt_icon', 'note']
-    list_filter = [UserFilter, 'paid_at']
+    list_filter = ['user', 'paid_at']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
     ordering = ['-paid_at']
     autocomplete_fields = ['user']
