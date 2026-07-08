@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'admin_auto_filters',
     # 'mcp_server',
     'ql',
     'sorl.thumbnail',
