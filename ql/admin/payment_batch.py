@@ -45,7 +45,7 @@ class PaymentInline(admin.TabularInline):
 @admin.register(PaymentBatch)
 class PaymentBatchAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'paid_at', 'nominal_display', 'receipt_icon', 'note']
-    list_filter = ['paid_at']
+    list_filter = ['user', 'paid_at']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
     ordering = ['-paid_at']
     autocomplete_fields = ['user']
