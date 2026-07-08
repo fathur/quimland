@@ -16,7 +16,7 @@ class FundDueAdmin(admin.ModelAdmin):
 
     @admin.display(description='Home No.', ordering='user__properties__home_number')
     def home_number(self, obj):
-        prop = obj.user.__dict__.get('properties')
+        prop = getattr(obj.user, 'properties', None)
         return (prop.home_number if prop else None) or '—'
 
     @admin.display(description='Expected Amount', ordering='expected_amount')
