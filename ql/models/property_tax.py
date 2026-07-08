@@ -22,3 +22,31 @@ class PropertyTax(TimestampMixin):
 
     class Meta:
         db_table = 'property_taxes'
+
+    def _compress_attachment(self):
+        import os
+        import io
+        
+        from PIL import Image
+        from django.core.files.base import ContentFile
+
+        img = Image.open(self.attachment)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+
+        max_dim = 1920
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=85, optimize=True)
+        buf.seek(0)
+
+        filename = os.path.splitext(os.path.basename(self.attachment.name))[0] + '.jpg'
+        self.attachment.save(filename, ContentFile(buf.read()), save=False)
+
+
+    def save(self, *args, **kwargs):
+        if self.attachment and not self.attachment._committed:
+            self._compress_attachment()
+        super().save(*args, **kwargs)
