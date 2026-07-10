@@ -89,7 +89,6 @@ class Command(BaseCommand):
         migrated = receipt_only = skipped_already_done = 0
 
         for batch in batches:
-            breakpoint()
             payments = list(batch.payments.all())
             has_receipt = bool(batch.receipt)
 
