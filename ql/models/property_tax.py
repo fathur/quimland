@@ -22,6 +22,7 @@ class PropertyTax(TimestampMixin):
 
     class Meta:
         db_table = 'property_taxes'
+        verbose_name_plural = 'Property taxes'
 
     def _compress_attachment(self):
         import os

@@ -150,7 +150,7 @@ class Command(BaseCommand):
                     item = TransactionItem.objects.create(
                         transaction=trx,
                         fund=fund_map[payment.kind],
-                        direction=None,
+                        direction=trx.direction,
                         nominal=payment.nominal,
                     )
                     ItemRoutine.objects.create(

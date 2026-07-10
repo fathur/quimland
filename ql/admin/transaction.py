@@ -47,7 +47,7 @@ class TransactionItemInline(admin.TabularInline):
     model      = TransactionItem
     form       = TransactionItemInlineForm
     extra      = 1
-    fields     = ['fund', 'direction', 'nominal', 'loan', 'period']
+    fields     = ['fund', 'direction', 'nominal', 'period']
     autocomplete_fields = ['fund']
 
 
