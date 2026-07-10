@@ -21,7 +21,11 @@ def _receipt_upload_to(instance, filename):
 
 class Receipt(TimestampMixin):
     # Denormalised for the upload_to path — set before saving the file.
-    user_id         = models.IntegerField(null=True, blank=True, editable=False)
+    user         = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='users',
+    )
     image           = models.ImageField(upload_to=_receipt_upload_to, storage=get_receipt_storage, null=True, blank=True)
     receipt_storage = models.CharField(
         max_length=10,

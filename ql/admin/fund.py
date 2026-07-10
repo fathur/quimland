@@ -21,7 +21,7 @@ class FundAdmin(admin.ModelAdmin):
     list_display = ['name', 'kind', 'status', 'target_amount_display', 'created_at']
     list_filter = ['kind', 'status']
     search_fields = ['name']
-    inlines = [CashEntryInline, FundDueInline]
+    # inlines = [CashEntryInline, FundDueInline]
 
     def save_formset(self, request, _form, formset, change=False):
         instances = formset.save(commit=False)

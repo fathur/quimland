@@ -5,9 +5,10 @@ from .base import TimestampMixin
 
 class Fund(TimestampMixin):
     class Kind(models.TextChoices):
-        GENERAL   = 'GENERAL',   'General (Kas RT)'
-        GARBAGE   = 'GARBAGE',   'Garbage (pass-through)'
+        # GENERAL   = 'GENERAL',   'General (Kas RT)'
+        # GARBAGE   = 'GARBAGE',   'Garbage (pass-through)'
         EARMARKED = 'EARMARKED', 'Earmarked'
+        ROUTINE = 'ROUTINE', 'Routine'
 
     class Status(models.TextChoices):
         OPEN   = 'OPEN',   'Open'
