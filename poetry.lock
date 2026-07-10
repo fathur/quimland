@@ -377,6 +377,24 @@ files = [
 django = ">=2.0"
 
 [[package]]
+name = "django-js-asset"
+version = "4.0.1"
+description = "script tag with additional attributes for django.forms.Media"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "django_js_asset-4.0.1-py3-none-any.whl", hash = "sha256:967ac7d95ce094d9f65f358278bcd494201e2f9bbee936430150de83eac9f656"},
+    {file = "django_js_asset-4.0.1.tar.gz", hash = "sha256:51ad1060115bf741bef88dc1287ca7f70e1d6ea7cf935f52a34f39eca9bd9db1"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+
+[package.extras]
+tests = ["coverage"]
+
+[[package]]
 name = "django-mcp-server"
 version = "0.5.7"
 description = "Django MCP Server is a Django extensions to easily enable AI Agents to interact with Django Apps through the Model Context Protocol it works equally well on WSGI and ASGI"
@@ -394,6 +412,24 @@ djangorestframework = ">=3.15.0"
 inflection = ">=0.5.1,<0.6.0"
 mcp = ">=1.8.0"
 uritemplate = ">=4.1.1,<5.0.0"
+
+[[package]]
+name = "django-mptt"
+version = "0.18.0"
+description = "Utilities for implementing Modified Preorder Tree Traversal with your Django Models and working with trees of Model instances."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "django_mptt-0.18.0-py3-none-any.whl", hash = "sha256:bfa3f01627e3966a1df901aeca74570a3e933e66809ebf58d9df673e63627afb"},
+    {file = "django_mptt-0.18.0.tar.gz", hash = "sha256:cf5661357ff22bc64e20d3341c26e538aa54583aea0763cfe6aaec0ab8e3a8ee"},
+]
+
+[package.dependencies]
+django-js-asset = "*"
+
+[package.extras]
+tests = ["coverage[toml]", "mock-django"]
 
 [[package]]
 name = "django-storages"
@@ -1626,4 +1662,4 @@ standard = ["colorama (>=0.4) ; sys_platform == \"win32\"", "httptools (>=0.8.0)
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.14"
-content-hash = "582ca65941f937ba300d0ec3ca0e7bbbad913a2da0530ed62de6c0fda87c7114"
+content-hash = "9785a3bff3b0a767a2847391b74544c2c5dfb3cdd66c888ca44b511197a96298"

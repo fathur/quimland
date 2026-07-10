@@ -1,8 +1,4 @@
-import io
-import os
-
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
 
@@ -49,27 +45,10 @@ class PaymentBatch(TimestampMixin):
 
     def save(self, *args, **kwargs):
         if self.receipt and not self.receipt._committed:
-            self._compress_receipt()
+            from ..utils import compress_image_field
+            compress_image_field(self.receipt)
             self.receipt_storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
         super().save(*args, **kwargs)
-
-    def _compress_receipt(self):
-        from PIL import Image
-
-        img = Image.open(self.receipt)
-        if img.mode in ('RGBA', 'P'):
-            img = img.convert('RGB')
-
-        max_dim = 1920
-        if img.width > max_dim or img.height > max_dim:
-            img.thumbnail((max_dim, max_dim), Image.LANCZOS)
-
-        buf = io.BytesIO()
-        img.save(buf, format='JPEG', quality=85, optimize=True)
-        buf.seek(0)
-
-        filename = os.path.splitext(os.path.basename(self.receipt.name))[0] + '.jpg'
-        self.receipt.save(filename, ContentFile(buf.read()), save=False)
 
     def __str__(self):
         return f'Batch #{self.pk} | {self.user} | {self.paid_at:%Y-%m-%d}'

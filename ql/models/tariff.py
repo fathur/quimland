@@ -11,6 +11,12 @@ class Tariff(TimestampMixin):
         GARBAGE = 'GARBAGE', 'Garbage iuran'
 
     user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='tariffs')
+    fund       = models.ForeignKey(
+        'Fund', on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='tariffs',
+        help_text='Fund this tariff contributes to. Replaces the kind→fund string mapping.',
+    )
     kind       = models.CharField(max_length=10, choices=Kind)
     nominal    = models.DecimalField(max_digits=15, decimal_places=2)
     start_from = models.DateField()

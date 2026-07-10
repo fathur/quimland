@@ -13,6 +13,12 @@ class Fund(TimestampMixin):
         OPEN   = 'OPEN',   'Open'
         CLOSED = 'CLOSED', 'Closed'
 
+    parent        = models.ForeignKey(
+        'self', on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='children',
+        help_text='Parent fund for sub-fund reporting hierarchy. Child funds share the parent pool (not ring-fenced).',
+    )
     name          = models.CharField(max_length=255)
     kind          = models.CharField(max_length=10, choices=Kind)
     description   = models.TextField(blank=True, default='')
