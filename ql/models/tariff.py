@@ -17,7 +17,7 @@ class Tariff(TimestampMixin):
         related_name='tariffs',
         help_text='Fund this tariff contributes to. Replaces the kind→fund string mapping.',
     )
-    kind       = models.CharField(max_length=10, choices=Kind)
+    kind       = models.CharField(max_length=10, choices=Kind, blank=True, null=True, help_text='Legacy field. Use fund instead.')
     nominal    = models.DecimalField(max_digits=15, decimal_places=2)
     start_from = models.DateField()
     end_to     = models.DateField(null=True, blank=True)
@@ -25,12 +25,12 @@ class Tariff(TimestampMixin):
 
     class Meta:
         db_table = 'tariffs'
-        ordering = ['user', 'kind', 'start_from']
-        indexes  = [models.Index(fields=['user', 'kind'])]
+        ordering = ['user', 'start_from']
+        indexes  = [models.Index(fields=['user', 'fund'])]
 
     def clean(self):
         if self.end_to and self.end_to < self.start_from:
             raise ValidationError('end_to must be on or after start_from.')
 
     def __str__(self):
-        return f'{self.user} | {self.kind} | {self.nominal:,} from {self.start_from}'
+        return f'{self.user} | {self.nominal:,} from {self.start_from}'

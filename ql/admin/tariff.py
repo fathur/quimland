@@ -5,8 +5,9 @@ from ..models import Tariff
 
 @admin.register(Tariff)
 class TariffAdmin(admin.ModelAdmin):
-    list_display = ['user', 'kind', 'nominal', 'start_from', 'end_to']
-    list_filter = ['kind']
+    list_display = ['user', 'nominal', 'start_from', 'end_to']
+    list_filter = ['fund']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
-    ordering = ['user', 'kind', 'start_from']
+    ordering = ['user', 'fund', 'start_from']
     autocomplete_fields = ['user']
+    exclude = ['kind']

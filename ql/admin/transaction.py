@@ -1,8 +1,11 @@
+from datetime import date as date_type
+
 from django import forms
 from django.contrib import admin
+from django.db.models import Q
 from django.utils.html import format_html
 
-from ..models import ItemRoutine, Receipt, Transaction, TransactionItem
+from ..models import ItemRoutine, Receipt, Tariff, Transaction, TransactionItem
 from ..utils import fmt_rupiah
 
 
@@ -19,28 +22,94 @@ class TransactionItemInlineForm(forms.ModelForm):
 
     class Meta:
         model  = TransactionItem
-        fields = ['fund', 'direction', 'nominal', 'loan', 'period']
+        fields = ['fund', 'direction', 'nominal', 'period']
+
+    _transaction = None  # injected per-formset by TransactionItemInline.get_formset
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['nominal'].required = False
         # Pre-populate period from the related ItemRoutine if editing an existing item.
         if self.instance and self.instance.pk:
             routine = ItemRoutine.objects.filter(transaction_item=self.instance).first()
             if routine:
                 self.fields['period'].initial = routine.period
 
-    def save(self, commit=True):
-        item = super().save(commit=commit)
-        period = self.cleaned_data.get('period', '').strip()
-        if commit and item.pk:
-            if period:
-                ItemRoutine.objects.update_or_create(
-                    transaction_item=item,
-                    defaults={'period': period},
+    def clean(self):
+        cleaned_data = super().clean()
+        txn        = self._transaction
+        fund       = cleaned_data.get('fund')
+        direction  = cleaned_data.get('direction')
+        nominal    = cleaned_data.get('nominal')
+        period_str = (cleaned_data.get('period') or '').strip()
+
+        # Skip validation for empty/placeholder rows (no fund selected).
+        if not fund:
+            return cleaned_data
+
+        # ── Rule 1: direction ────────────────────────────────────────────────
+        # IN / OUT → item direction is optional (inherits from transaction).
+        # TRANSFER → item direction must be explicitly chosen.
+        txn_direction = getattr(txn, 'direction', None)
+        if txn_direction == Transaction.Direction.TRANSFER and not direction:
+            self.add_error('direction', 'Required for TRANSFER transactions.')
+        cleaned_data['direction'] = direction or txn_direction
+
+        # Look up tariff once — used for both nominal fill and period fallback.
+        user_id = getattr(txn, 'user_id', None)
+        tariff  = None
+        if user_id:
+            if period_str:
+                try:
+                    ref_date = date_type.fromisoformat(f'{period_str}-01')
+                except ValueError:
+                    ref_date = date_type.today()
+            else:
+                ref_date = date_type.today()
+            tariff = (
+                Tariff.objects
+                .filter(user_id=user_id, fund=fund, start_from__lte=ref_date)
+                .filter(Q(end_to__isnull=True) | Q(end_to__gte=ref_date))
+                .order_by('-start_from')
+                .first()
+            )
+
+        # ── Rule 2: nominal from tariff if blank ─────────────────────────────
+        if nominal is None:
+            if tariff:
+                cleaned_data['nominal'] = tariff.nominal
+            elif user_id:
+                self.add_error(
+                    'nominal',
+                    'No active tariff found for this fund/user/period. Enter amount manually.',
                 )
             else:
-                ItemRoutine.objects.filter(transaction_item=item).delete()
-        return item
+                self.add_error('nominal', 'This field is required.')
+
+        # ── Rule 3: period ───────────────────────────────────────────────────
+        # Priority: user input → latest existing ItemRoutine (same fund+user)
+        #           → tariff start_from (first time ever).
+        if not period_str and user_id:
+            latest = (
+                ItemRoutine.objects
+                .filter(
+                    transaction_item__fund=fund,
+                    transaction_item__transaction__user_id=user_id,
+                )
+                .order_by('-period')
+                .values_list('period', flat=True)
+                .first()
+            )
+            if latest:
+                y, m = map(int, latest.split('-'))
+                m += 1
+                if m > 12:
+                    m, y = 1, y + 1
+                cleaned_data['period'] = f'{y:04d}-{m:02d}'
+            elif tariff:
+                cleaned_data['period'] = tariff.start_from.strftime('%Y-%m')
+
+        return cleaned_data
 
 
 class TransactionItemInline(admin.TabularInline):
@@ -50,19 +119,66 @@ class TransactionItemInline(admin.TabularInline):
     fields     = ['fund', 'direction', 'nominal', 'period']
     autocomplete_fields = ['fund']
 
+    def get_formset(self, request, obj=None, **kwargs):
+        FormSet = super().get_formset(request, obj, **kwargs)
+
+        # Inject parent transaction so the form can validate direction
+        # and look up the user's tariff for nominal auto-fill.
+        if obj is not None:
+            _txn = obj
+        elif request.method == 'POST':
+            # New transaction: build a proxy from POST so validation still works.
+            user_pk = request.POST.get('user', '')
+            _txn = type('_TxnProxy', (), {
+                'direction': request.POST.get('direction'),
+                'user_id': int(user_pk) if user_pk.isdigit() else None,
+            })()
+        else:
+            _txn = None
+
+        OriginalForm = FormSet.form
+
+        class BoundForm(OriginalForm):
+            _transaction = _txn
+
+        BoundForm.__name__ = OriginalForm.__name__
+        FormSet.form = BoundForm
+        return FormSet
+
+
+class TransactionAdminForm(forms.ModelForm):
+    receipt_image = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(),
+        help_text='Upload a receipt image. Uploading a new file replaces the existing one.',
+    )
+
+    class Meta:
+        model  = Transaction
+        exclude = ['receipt']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.receipt_id:
+            try:
+                self.fields['receipt_image'].initial = self.instance.receipt.image
+            except Receipt.DoesNotExist:
+                pass
+
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
+    form           = TransactionAdminForm
     list_display   = ['id', 'direction', 'user', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
     list_filter    = ['direction', 'occurred_at']
     search_fields  = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering       = ['-occurred_at', '-created_at']
-    autocomplete_fields = ['user', 'receipt']
+    autocomplete_fields = ['user']
     readonly_fields = ['creator', 'created_at', 'updated_at', 'receipt_preview']
     inlines        = [TransactionItemInline]
 
     def get_fields(self, request, obj=None):
-        fields = ['direction', 'nominal', 'occurred_at', 'user', 'note', 'receipt']
+        fields = ['direction', 'nominal', 'occurred_at', 'user', 'note', 'receipt_image']
         if obj and obj.receipt:
             fields.append('receipt_preview')
         if obj:
@@ -71,10 +187,10 @@ class TransactionAdmin(admin.ModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         fields = self.get_fields(request, obj)
-        receipt_fields = ['receipt']
+        receipt_fields = ['receipt_image']
         if obj and obj.receipt:
             receipt_fields.insert(0, 'receipt_preview')
-        other_fields = [f for f in fields if f not in ('receipt', 'receipt_preview', 'creator', 'created_at', 'updated_at')]
+        other_fields = [f for f in fields if f not in ('receipt_image', 'receipt_preview', 'creator', 'created_at', 'updated_at')]
         fieldsets = [
             (None, {'fields': other_fields}),
             ('Receipt', {'fields': receipt_fields}),
@@ -88,9 +204,28 @@ class TransactionAdmin(admin.ModelAdmin):
             obj.creator = request.user
         super().save_model(request, obj, form, change)
 
+        image = form.cleaned_data.get('receipt_image')
+        if image is False:
+            # Cleared — delete the linked receipt
+            if obj.receipt_id:
+                old = obj.receipt
+                obj.receipt = None
+                obj.save(update_fields=['receipt'])
+                old.delete()
+        elif image:
+            # New upload — update existing receipt or create one
+            if obj.receipt_id:
+                receipt = obj.receipt
+                receipt.image = image
+                receipt.user_id = obj.user_id
+                receipt.save()
+            else:
+                receipt = Receipt(user_id=obj.user_id, image=image)
+                receipt.save()
+                obj.receipt = receipt
+                obj.save(update_fields=['receipt'])
+
     def save_formset(self, request, form, formset, change):
-        # Persist TransactionItem instances first so they have a PK,
-        # then let the inline form's save() handle ItemRoutine.
         instances = formset.save(commit=False)
         for instance in instances:
             instance.save()

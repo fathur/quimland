@@ -13,10 +13,10 @@ class Transaction(TimestampMixin):
     direction   = models.CharField(max_length=10, choices=Direction)
     nominal     = models.DecimalField(max_digits=15, decimal_places=2)
     occurred_at = models.DateTimeField(null=True, blank=True)
-    receipt   = models.ForeignKey(
+    receipt   = models.OneToOneField(
         'Receipt', on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='transactions',
+        related_name='transaction',
     )
     # resident/contributor (IN) or PIC/responsible person (OUT/TRANSFER)
     user      = models.ForeignKey(
