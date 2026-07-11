@@ -1,8 +1,9 @@
 from datetime import date as date_type
+from decimal import Decimal
 
 from django import forms
-from django.contrib import admin
-from django.db.models import Q
+from django.contrib import admin, messages
+from django.db.models import Q, Sum
 from django.utils.html import format_html
 
 from ..models import ItemRoutine, Receipt, Tariff, Transaction, TransactionItem
@@ -177,6 +178,27 @@ class TransactionAdmin(admin.ModelAdmin):
     readonly_fields = ['creator', 'created_at', 'updated_at', 'receipt_preview']
     inlines        = [TransactionItemInline]
 
+    def _check_nominal_mismatch(self, request, obj):
+        if obj and obj.pk:
+            items_total = (
+                obj.items.aggregate(s=Sum('nominal'))['s'] or Decimal('0')
+            )
+            if obj.nominal != items_total:
+                diff = abs(obj.nominal - items_total)
+                self.message_user(
+                    request,
+                    f'Warning: transaction nominal ({fmt_rupiah(obj.nominal)}) does not match '
+                    f'the sum of items ({fmt_rupiah(items_total)}). '
+                    f'Difference: {fmt_rupiah(diff)}.',
+                    level=messages.WARNING,
+                )
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.get_object(request, object_id)
+        if request.method == 'GET':
+            self._check_nominal_mismatch(request, obj)
+        return super().change_view(request, object_id, form_url, extra_context)
+
     def get_fields(self, request, obj=None):
         fields = ['direction', 'nominal', 'occurred_at', 'user', 'note', 'receipt_image']
         if obj and obj.receipt:
@@ -242,6 +264,8 @@ class TransactionAdmin(admin.ModelAdmin):
         for obj in formset.deleted_objects:
             obj.delete()
         formset.save_m2m()
+
+        self._check_nominal_mismatch(request, form.instance)
 
     # ── display helpers ──────────────────────────────────────────────────────
 

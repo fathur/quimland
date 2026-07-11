@@ -113,8 +113,15 @@ def payments_dashboard_view(request):
             | Q(properties__home_number__icontains=q)
         )
 
-    if sort == 'home':
-        users_qs = users_qs.order_by('properties__home_number', 'first_name', 'last_name')
+    if sort in ('home', '-home'):
+        prefix = '-' if sort == '-home' else ''
+        users_qs = users_qs.order_by(
+            f'{prefix}properties__home_number',
+            f'{prefix}first_name',
+            f'{prefix}last_name',
+        )
+    elif sort == '-name':
+        users_qs = users_qs.order_by('-first_name', '-last_name', '-username')
     else:
         users_qs = users_qs.order_by('first_name', 'last_name', 'username')
 

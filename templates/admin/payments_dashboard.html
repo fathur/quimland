@@ -26,7 +26,7 @@
   .badge.unpaid { background:#ef4444; color:#fff; }
 
   /* Matrix table */
-  .txn-scroll { overflow-x:auto; overflow-y:auto; max-height:75vh; }
+  .txn-scroll { overflow-x:auto; }
   .txn-table { border-collapse:collapse; white-space:nowrap; font-size:13px; }
   .txn-table th, .txn-table td {
     padding:6px 10px;
@@ -63,7 +63,7 @@
 
 {# ── Search ── #}
 <form method="get" style="display:flex;gap:8px;align-items:center;margin-bottom:18px;">
-  {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  {% if sort and sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
   <input type="search" name="q" value="{{ q }}"
          placeholder="{% translate 'Search name or home number…' %}"
          style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:13px;min-width:260px;">
@@ -72,7 +72,7 @@
 </form>
 
 {# ── Legend ── #}
-<div class="module" style="padding:12px 16px;margin-bottom:18px;">
+{% comment %} <div class="module" style="padding:12px 16px;margin-bottom:18px;">
   <div class="txn-legend">
     <strong style="font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin-right:4px;">{% translate 'Legend' %}:</strong>
     {% for fund in funds %}
@@ -91,7 +91,7 @@
   <div style="font-size:12px;color:var(--body-quiet-color);margin-top:6px;">
     {% blocktranslate with n=funds|length %}Each cell shows {{ n }} column(s) of badges — one per routine fund, left to right matching the order above. The badge number is the day of the month the payment was recorded. Multiple badges appear when a fund was paid in separate transactions. Click a cell to view that user's transactions for that month.{% endblocktranslate %}
   </div>
-</div>
+</div> {% endcomment %}
 
 {# ── Matrix ── #}
 <div class="module txn-scroll">
@@ -99,13 +99,13 @@
     <thead>
       <tr>
         <th class="name-col" style="text-align:left;">
-          <a class="sort-link" href="?sort=name{% if q %}&q={{ q }}{% endif %}">
-            {% translate 'Name' %}{% if sort == 'name' %} ↑{% endif %}
+          <a class="sort-link" href="?sort={% if sort == 'name' %}-name{% else %}name{% endif %}{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Name' %}{% if sort == 'name' %} ↑{% elif sort == '-name' %} ↓{% endif %}
           </a>
         </th>
         <th style="text-align:left;">
-          <a class="sort-link" href="?sort=home{% if q %}&q={{ q }}{% endif %}">
-            {% translate 'Home No.' %}{% if sort == 'home' %} ↑{% endif %}
+          <a class="sort-link" href="?sort={% if sort == 'home' %}-home{% else %}home{% endif %}{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Home No.' %}{% if sort == 'home' %} ↑{% elif sort == '-home' %} ↓{% endif %}
           </a>
         </th>
         {% for month_date in months %}
