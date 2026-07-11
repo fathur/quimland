@@ -24,6 +24,7 @@
            font-size:11px; font-weight:700; line-height:1.4;
            white-space:nowrap; text-decoration:none !important; }
   .badge.unpaid { background:#ef4444; color:#fff; }
+  .badge.unpaid.noted { background:#f59e0b; color:#fff; }  /* amber = unpaid but explained */
 
   /* Matrix table */
   .txn-scroll { overflow-x:auto; }
@@ -132,8 +133,10 @@
               <a class="badge" href="{% url 'admin:ql_transaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
               {% elif badge.status == 'partial' %}
               <a class="badge" href="{% url 'admin:ql_transaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+              {% elif badge.note %}
+              <a class="badge unpaid noted" href="{% url 'admin:ql_duenote_change' badge.note.id %}" title="{{ dot.fund.name }} — {{ badge.note.reason_label }}{% if badge.note.note %}: {{ badge.note.note }}{% endif %}{% if badge.note.has_proof %} (proof attached){% endif %}">{% if badge.note.has_proof %}📎{% else %}ⓘ{% endif %}</a>
               {% else %}
-              <span class="badge unpaid" title="{{ dot.fund.name }}: unpaid">—</span>
+              <a class="badge unpaid" href="{% url 'admin:ql_duenote_add' %}?user={{ row.user.id }}&fund={{ dot.fund.id }}&period={{ badge.period }}" title="{{ dot.fund.name }}: unpaid — click to add a reason">—</a>
               {% endif %}
               {% endfor %}
             </span>

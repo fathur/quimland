@@ -3,12 +3,12 @@ from decimal import Decimal
 
 from django.contrib import admin
 from django.contrib.auth.models import User
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from ..models import CashEntry, Fund, FundDue, ItemRoutine, Tariff
+from ..models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff
 from ..utils import fmt_rupiah
 
 
@@ -79,6 +79,25 @@ def _year_paid_map(year):
     return result
 
 
+def _year_note_map(year):
+    """{(user_id, fund_id, period): {'id', 'reason', 'reason_label', 'note'}} for the year."""
+    rows = (
+        DueNote.objects
+        .filter(period__gte=f'{year}-01', period__lte=f'{year}-12')
+        .annotate(_proof_count=Count('proofs'))
+    )
+    return {
+        (n.user_id, n.fund_id, n.period): {
+            'id': n.id,
+            'reason': n.reason,
+            'reason_label': n.get_reason_display(),
+            'note': n.note,
+            'has_proof': n._proof_count > 0,
+        }
+        for n in rows
+    }
+
+
 def _dot_status(amount, expected):
     if expected is None:
         return 'na'
@@ -99,6 +118,7 @@ def payments_dashboard_view(request):
     funds      = list(Fund.objects.filter(kind=Fund.Kind.ROUTINE).order_by('name'))
     get_tariff = _year_tariff_map(year)
     paid       = _year_paid_map(year)
+    notes      = _year_note_map(year)
 
     q    = request.GET.get('q', '').strip()
     sort = request.GET.get('sort', 'name')
@@ -149,7 +169,12 @@ def payments_dashboard_view(request):
                 elif status == 'na':
                     badges = []
                 else:
-                    badges = [{'occurred_at': None, 'status': 'unpaid'}]
+                    badges = [{
+                        'occurred_at': None,
+                        'status': 'unpaid',
+                        'period': period,
+                        'note': notes.get((user.id, fund.id, period)),
+                    }]
 
                 dots.append({'fund': fund, 'status': status, 'badges': badges})
             month_cells.append({'month': month_date.month, 'dots': dots})

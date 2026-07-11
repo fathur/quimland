@@ -16,4 +16,5 @@ from . import (
     loan,
     project,
     transaction,
+    due_note,
 )
