@@ -8,9 +8,12 @@ from ..models import PaymentBatch, PropertyTax, Tariff, UserProperty
 
 def _user_str(self):
     name = self.get_full_name() or self.username
-    # Read from the ORM's __dict__ cache only — never issue an extra query.
-    # properties is stored here when select_related('properties') was used.
     prop = self.__dict__.get('properties')
+    if prop is None:
+        try:
+            prop = self.properties
+        except Exception:
+            prop = None
     home = (getattr(prop, 'home_number', '') or '') if prop is not None else ''
     return f'{name} ({home})' if home else name
 
@@ -51,6 +54,7 @@ class ExtendedUserAdmin(UserAdmin):
     list_display = ['avatar', 'full_name', 'home_number', 'phone', 'occupancy_status', 'is_active']
     list_display_links = ['full_name']
     ordering = ['first_name', 'last_name']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'properties__home_number']
 
     class Media:
         css = {'all': ['admin/css/user_changelist.css']}
