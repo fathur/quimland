@@ -39,13 +39,15 @@
     font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--body-quiet-color);
     position:sticky; top:0; z-index:2;
   }
-  .txn-table td.name-col {
-    text-align:left; font-weight:600; white-space:nowrap;
+  .txn-table td.name-col, .txn-table td.home-col {
+    text-align:left; white-space:nowrap;
     background:var(--body-bg);
-    position:sticky; left:0; z-index:1;
   }
-  .txn-table thead th:first-child { z-index:3; left:0; }
+  .txn-table td.name-col { font-weight:600; position:sticky; left:0; z-index:1; }
+  .txn-table thead th.name-col { position:sticky; left:0; z-index:3; }
   .txn-table td.name-col a { text-decoration:none; color:var(--body-fg); }
+  .sort-link { text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:4px; }
+  .sort-link:hover { text-decoration:underline; }
   .txn-table th.cur-month { color:var(--primary); }
   .txn-table td.cur-month { background:color-mix(in srgb, var(--primary) 5%, var(--body-bg)); }
 
@@ -58,6 +60,16 @@
 <div class="txn-header">
   <span class="sub">{{ year }} &mdash; {{ total_users }} {% translate 'residents' %}</span>
 </div>
+
+{# ── Search ── #}
+<form method="get" style="display:flex;gap:8px;align-items:center;margin-bottom:18px;">
+  {% if sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  <input type="search" name="q" value="{{ q }}"
+         placeholder="{% translate 'Search name or home number…' %}"
+         style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:13px;min-width:260px;">
+  <button type="submit" class="button default">{% translate 'Search' %}</button>
+  {% if q %}<a href="?{% if sort != 'name' %}sort={{ sort }}{% endif %}" class="button">{% translate 'Clear' %}</a>{% endif %}
+</form>
 
 {# ── Legend ── #}
 <div class="module" style="padding:12px 16px;margin-bottom:18px;">
@@ -86,7 +98,16 @@
   <table class="txn-table">
     <thead>
       <tr>
-        <th rowspan="1" style="text-align:left;">{% translate 'Resident' %}</th>
+        <th class="name-col" style="text-align:left;">
+          <a class="sort-link" href="?sort=name{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Name' %}{% if sort == 'name' %} ↑{% endif %}
+          </a>
+        </th>
+        <th style="text-align:left;">
+          <a class="sort-link" href="?sort=home{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Home No.' %}{% if sort == 'home' %} ↑{% endif %}
+          </a>
+        </th>
         {% for month_date in months %}
         <th class="{% if month_date.month == current_month %}cur-month{% endif %}">
           {{ month_date|date:"M" }}
@@ -100,6 +121,7 @@
         <td class="name-col">
           <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
         </td>
+        <td class="home-col">{{ row.home_number|default:"—" }}</td>
         {% for cell in row.month_cells %}
         <td class="{% if cell.month == current_month %}cur-month{% endif %}">
           <span class="cell-link">
@@ -122,7 +144,7 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="{{ months|length|add:1 }}" style="padding:40px;color:var(--body-quiet-color);">
+        <td colspan="{{ months|length|add:2 }}" style="padding:40px;color:var(--body-quiet-color);">
           {% translate 'No active residents.' %}
         </td>
       </tr>

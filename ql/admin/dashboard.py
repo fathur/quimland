@@ -100,15 +100,30 @@ def payments_dashboard_view(request):
     get_tariff = _year_tariff_map(year)
     paid       = _year_paid_map(year)
 
-    users = list(
-        User.objects.filter(is_active=True)
-        .select_related('properties')
-        .order_by('first_name', 'last_name', 'username')
-    )
+    q    = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'name')
+
+    users_qs = User.objects.filter(is_active=True).select_related('properties')
+
+    if q:
+        users_qs = users_qs.filter(
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(username__icontains=q)
+            | Q(properties__home_number__icontains=q)
+        )
+
+    if sort == 'home':
+        users_qs = users_qs.order_by('properties__home_number', 'first_name', 'last_name')
+    else:
+        users_qs = users_qs.order_by('first_name', 'last_name', 'username')
 
     zero = Decimal('0')
     rows = []
-    for user in users:
+    for user in users_qs:
+        prop = getattr(user, 'properties', None)
+        home = (getattr(prop, 'home_number', '') or '') if prop is not None else ''
+
         month_cells = []
         for month_date in months:
             period = month_date.strftime('%Y-%m')
@@ -134,7 +149,8 @@ def payments_dashboard_view(request):
 
         rows.append({
             'user': user,
-            'name': str(user),
+            'name': user.get_full_name() or user.username,
+            'home_number': home,
             'month_cells': month_cells,
         })
 
@@ -147,6 +163,8 @@ def payments_dashboard_view(request):
         'rows': rows,
         'total_users': len(rows),
         'current_month': timezone.localdate().month,
+        'q': q,
+        'sort': sort,
     }
     return render(request, 'admin/payments_dashboard.html', context)
 
