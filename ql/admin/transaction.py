@@ -4,10 +4,20 @@ from decimal import Decimal
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Q, Sum
+from django.forms.models import BaseInlineFormSet
 from django.utils.html import format_html
 
 from ..models import ItemRoutine, Receipt, Tariff, Transaction, TransactionItem
 from ..utils import fmt_rupiah
+
+
+def _next_period(period):
+    """'YYYY-MM' → the following month as 'YYYY-MM'."""
+    y, m = map(int, period.split('-'))
+    m += 1
+    if m > 12:
+        m, y = 1, y + 1
+    return f'{y:04d}-{m:02d}'
 
 
 class MonthPickerWidget(forms.TextInput):
@@ -43,6 +53,9 @@ class TransactionItemInlineForm(forms.ModelForm):
         direction  = cleaned_data.get('direction')
         nominal    = cleaned_data.get('nominal')
         period_str = (cleaned_data.get('period') or '').strip()
+        # Remembered so the formset can hand out consecutive months to the
+        # sibling rows that left the period blank (see the formset's clean()).
+        self._period_was_blank = not period_str
 
         # Skip validation for empty/placeholder rows (no fund selected).
         if not fund:
@@ -102,20 +115,53 @@ class TransactionItemInlineForm(forms.ModelForm):
                 .first()
             )
             if latest:
-                y, m = map(int, latest.split('-'))
-                m += 1
-                if m > 12:
-                    m, y = 1, y + 1
-                cleaned_data['period'] = f'{y:04d}-{m:02d}'
+                cleaned_data['period'] = _next_period(latest)
             elif tariff:
                 cleaned_data['period'] = tariff.start_from.strftime('%Y-%m')
 
         return cleaned_data
 
 
+class TransactionItemInlineFormSet(BaseInlineFormSet):
+    """Hand out consecutive months to sibling rows of the same fund.
+
+    Each form's clean() computes its period against the *committed* DB state, so
+    when several rows for one fund are added in a single submission they'd all
+    resolve to the same 'latest + 1' month. Here — where every row is visible at
+    once — we walk the rows in entry order and, per fund, advance one month for
+    each row that left the period blank. Rows with an explicit period are kept
+    and reset the cursor to the month after them.
+    """
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+
+        cursor_by_fund = {}
+        for form in self.forms:
+            cd = getattr(form, 'cleaned_data', None)
+            if not cd or cd.get('DELETE'):
+                continue
+            fund = cd.get('fund')
+            if not fund:
+                continue
+
+            period = (cd.get('period') or '').strip()
+            if getattr(form, '_period_was_blank', False):
+                cursor = cursor_by_fund.get(fund.id) or period
+                if cursor:
+                    cd['period'] = cursor
+                    cursor_by_fund[fund.id] = _next_period(cursor)
+            elif period:
+                # Explicit period: keep it, continue the sequence after it.
+                cursor_by_fund[fund.id] = _next_period(period)
+
+
 class TransactionItemInline(admin.TabularInline):
     model      = TransactionItem
     form       = TransactionItemInlineForm
+    formset    = TransactionItemInlineFormSet
     extra      = 1
     fields     = ['fund', 'direction', 'nominal', 'period']
     autocomplete_fields = ['fund']
