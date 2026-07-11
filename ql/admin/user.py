@@ -46,7 +46,7 @@ class PaymentBatchInline(admin.TabularInline):
 
 
 class ExtendedUserAdmin(UserAdmin):
-    inlines = list(UserAdmin.inlines) + [UserPropertyInline, PropertyTaxInline, TariffInline, PaymentBatchInline]
+    inlines = list(UserAdmin.inlines) + [UserPropertyInline, PropertyTaxInline, TariffInline]
 
     list_display = ['avatar', 'full_name', 'home_number', 'phone', 'occupancy_status', 'is_active']
     list_display_links = ['full_name']

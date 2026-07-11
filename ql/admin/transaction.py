@@ -170,7 +170,7 @@ class TransactionAdminForm(forms.ModelForm):
 class TransactionAdmin(admin.ModelAdmin):
     form           = TransactionAdminForm
     list_display   = ['id', 'direction', 'user', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
-    list_filter    = ['direction', 'occurred_at']
+    list_filter    = ['direction', 'occurred_at', 'user']
     search_fields  = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering       = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
