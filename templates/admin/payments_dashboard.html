@@ -1,98 +1,134 @@
 {% extends "admin/base_site.html" %}
-{% load i18n static %}
-
-{% block extrastyle %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'ql/css/dashboard.css' %}">
-<style>
-  /* Page-specific: today flag */
-  .ql-today-flag {
-    font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
-    color: var(--body-quiet-color);
-  }
-</style>
-{% endblock %}
+{% load i18n %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
-  &rsaquo; {% translate 'Payments Dashboard' %}
+  &rsaquo; {% translate 'Transactions' %}
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="ql-wrap">
+<style>
+  #content { max-width: none; }
 
-  {# ---------------- Month navigation bar ---------------- #}
-  <div class="ql-bar">
-    <span class="ql-bar-title">📊 {{ period_label }}{% if is_current %} <span class="ql-today-flag">· this month</span>{% endif %}</span>
+  .txn-header { display:flex; align-items:baseline; gap:12px; margin-bottom:18px; }
+  .txn-header h1 { margin:0; }
+  .txn-header .sub { font-size:14px; color:var(--body-quiet-color); }
 
-    <a class="ql-btn" href="?month={{ prev_month }}">‹ {% translate 'Prev' %}</a>
+  /* Legend */
+  .txn-legend { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:18px; font-size:13px; }
+  .txn-legend-item { display:flex; align-items:center; gap:5px; }
+  .badge { display:inline-flex; align-items:center; justify-content:center;
+           min-width:52px; padding:2px 6px; border-radius:4px;
+           font-size:11px; font-weight:700; line-height:1.4;
+           white-space:nowrap; text-decoration:none !important; }
+  .badge.unpaid { background:#ef4444; color:#fff; }
 
-    <form method="get" style="display:inline-flex;gap:8px;align-items:center;margin:0;">
-      <input type="month" name="month" value="{{ period }}" onchange="this.form.submit()">
-      <noscript><button class="ql-btn" type="submit">{% translate 'Go' %}</button></noscript>
-    </form>
+  /* Matrix table */
+  .txn-scroll { overflow-x:auto; overflow-y:auto; max-height:75vh; }
+  .txn-table { border-collapse:collapse; white-space:nowrap; font-size:13px; }
+  .txn-table th, .txn-table td {
+    padding:6px 10px;
+    border:1px solid var(--hairline-color);
+    text-align:center;
+    vertical-align:middle;
+  }
+  .txn-table th {
+    background:var(--darkened-bg);
+    font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--body-quiet-color);
+    position:sticky; top:0; z-index:2;
+  }
+  .txn-table td.name-col {
+    text-align:left; font-weight:600; white-space:nowrap;
+    background:var(--body-bg);
+    position:sticky; left:0; z-index:1;
+  }
+  .txn-table thead th:first-child { z-index:3; left:0; }
+  .txn-table td.name-col a { text-decoration:none; color:var(--body-fg); }
+  .txn-table th.cur-month { color:var(--primary); }
+  .txn-table td.cur-month { background:color-mix(in srgb, var(--primary) 5%, var(--body-bg)); }
 
-    <a class="ql-btn" href="?month={{ next_month }}">{% translate 'Next' %} ›</a>
-    {% if not is_current %}<a class="ql-btn ql-btn-primary" href="?month={{ current_month }}">{% translate 'This month' %}</a>{% endif %}
-  </div>
+  /* Cell badges */
+  .cell-link { display:inline-flex; flex-direction:column; align-items:center; gap:4px; padding:3px 4px; border-radius:6px; text-decoration:none !important; }
+  .cell-link:hover { background:var(--selected-bg); }
+  .cell-fund { display:flex; flex-direction:column; gap:2px; align-items:center; }
+</style>
 
-  {# ---------------- Summary cards ---------------- #}
-  <div class="ql-cards-2">
-    <div class="ql-card">
-      <h3 class="ql-card-title">Monthly iuran</h3>
-      <div class="ql-card-stats">
-        <div class="ql-card-stat"><div class="n">{{ summary.monthly.paid }}</div><div class="l"><span class="ql-dot paid"></span>Paid</div></div>
-        <div class="ql-card-stat"><div class="n">{{ summary.monthly.partial }}</div><div class="l"><span class="ql-dot partial"></span>Partial</div></div>
-        <div class="ql-card-stat"><div class="n">{{ summary.monthly.unpaid }}</div><div class="l"><span class="ql-dot unpaid"></span>Unpaid</div></div>
-        <div class="ql-card-stat"><div class="n">{{ summary.monthly.na }}</div><div class="l"><span class="ql-dot na"></span>No tariff</div></div>
-      </div>
-      <div class="ql-card-money">Collected <strong>{{ summary.monthly.collected_display }}</strong> of {{ summary.monthly.expected_display }}</div>
-    </div>
-
-    <div class="ql-card">
-      <h3 class="ql-card-title">Garbage iuran</h3>
-      <div class="ql-card-stats">
-        <div class="ql-card-stat"><div class="n">{{ summary.garbage.paid }}</div><div class="l"><span class="ql-dot paid"></span>Paid</div></div>
-        <div class="ql-card-stat"><div class="n">{{ summary.garbage.partial }}</div><div class="l"><span class="ql-dot partial"></span>Partial</div></div>
-        <div class="ql-card-stat"><div class="n">{{ summary.garbage.unpaid }}</div><div class="l"><span class="ql-dot unpaid"></span>Unpaid</div></div>
-        <div class="ql-card-stat"><div class="n">{{ summary.garbage.na }}</div><div class="l"><span class="ql-dot na"></span>No tariff</div></div>
-      </div>
-      <div class="ql-card-money">Collected <strong>{{ summary.garbage.collected_display }}</strong> of {{ summary.garbage.expected_display }}</div>
-    </div>
-  </div>
-
-  {# ---------------- Per-user table ---------------- #}
-  <div class="module ql-scroll">
-    <table class="ql-table">
-      <thead>
-        <tr>
-          <th class="ql-idx">#</th>
-          <th>{% translate 'User' %} ({{ total_users }})</th>
-          <th>Monthly</th>
-          <th>Paid / Expected</th>
-          <th>Garbage</th>
-          <th>Paid / Expected</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          <td class="ql-idx">{{ forloop.counter }}</td>
-          <td class="ql-uname">
-            <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
-          </td>
-          <td><span class="ql-badge {{ row.monthly.status.code }}">{{ row.monthly.status.label }}</span></td>
-          <td class="num">{{ row.monthly.paid_display }} / {{ row.monthly.expected_display }}</td>
-          <td><span class="ql-badge {{ row.garbage.status.code }}">{{ row.garbage.status.label }}</span></td>
-          <td class="num">{{ row.garbage.paid_display }} / {{ row.garbage.expected_display }}</td>
-        </tr>
-        {% empty %}
-        <tr><td class="ql-empty" colspan="6">{% translate 'No active users.' %}</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
+<div class="txn-header">
+  <span class="sub">{{ year }} &mdash; {{ total_users }} {% translate 'residents' %}</span>
 </div>
+
+{# ── Legend ── #}
+<div class="module" style="padding:12px 16px;margin-bottom:18px;">
+  <div class="txn-legend">
+    <strong style="font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin-right:4px;">{% translate 'Legend' %}:</strong>
+    {% for fund in funds %}
+    <span class="txn-legend-item" style="border-left:3px solid var(--hairline-color);padding-left:12px;gap:6px;">
+      <span class="badge" style="background:{{ fund.color }};color:#fff;">15</span>
+      <span class="badge" style="background:#fff;border:2px solid {{ fund.color }};color:{{ fund.color }};">8</span>
+      <strong>{{ fund.name }}</strong>
+      <span style="color:var(--body-quiet-color);font-size:11px;">(paid / partial)</span>
+    </span>
+    {% endfor %}
+    <span style="border-left:3px solid var(--hairline-color);padding-left:12px;display:flex;gap:8px;align-items:center;">
+      <span class="txn-legend-item"><span class="badge unpaid">—</span> {% translate 'Unpaid' %}</span>
+      <span class="txn-legend-item" style="color:var(--body-quiet-color);">{% translate '(empty = no tariff)' %}</span>
+    </span>
+  </div>
+  <div style="font-size:12px;color:var(--body-quiet-color);margin-top:6px;">
+    {% blocktranslate with n=funds|length %}Each cell shows {{ n }} column(s) of badges — one per routine fund, left to right matching the order above. The badge number is the day of the month the payment was recorded. Multiple badges appear when a fund was paid in separate transactions. Click a cell to view that user's transactions for that month.{% endblocktranslate %}
+  </div>
+</div>
+
+{# ── Matrix ── #}
+<div class="module txn-scroll">
+  <table class="txn-table">
+    <thead>
+      <tr>
+        <th rowspan="1" style="text-align:left;">{% translate 'Resident' %}</th>
+        {% for month_date in months %}
+        <th class="{% if month_date.month == current_month %}cur-month{% endif %}">
+          {{ month_date|date:"M" }}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td class="name-col">
+          <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
+        </td>
+        {% for cell in row.month_cells %}
+        <td class="{% if cell.month == current_month %}cur-month{% endif %}">
+          <span class="cell-link">
+            {% for dot in cell.dots %}
+            <span class="cell-fund">
+              {% for badge in dot.badges %}
+              {% if badge.status == 'paid' %}
+              <a class="badge" href="{% url 'admin:ql_transaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+              {% elif badge.status == 'partial' %}
+              <a class="badge" href="{% url 'admin:ql_transaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+              {% else %}
+              <span class="badge unpaid" title="{{ dot.fund.name }}: unpaid">—</span>
+              {% endif %}
+              {% endfor %}
+            </span>
+            {% endfor %}
+          </span>
+        </td>
+        {% endfor %}
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="{{ months|length|add:1 }}" style="padding:40px;color:var(--body-quiet-color);">
+          {% translate 'No active residents.' %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 {% endblock %}

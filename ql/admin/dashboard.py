@@ -8,139 +8,145 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from ..models import CashEntry, Fund, FundDue, Payment, Tariff
+from ..models import CashEntry, Fund, FundDue, ItemRoutine, Tariff
 from ..utils import fmt_rupiah
-
-
-# ---------------------------------------------------------------------------
-# Month helpers
-# ---------------------------------------------------------------------------
-def _parse_month(value):
-    """First day of the requested YYYY-MM, defaulting to the current month."""
-    today = timezone.localdate()
-    if value:
-        try:
-            return date(int(value[:4]), int(value[5:7]), 1)
-        except (ValueError, IndexError):
-            pass
-    return date(today.year, today.month, 1)
-
-
-def _shift_month(d, delta):
-    """Return the first day of the month `delta` months away from `d`."""
-    index = d.year * 12 + (d.month - 1) + delta
-    return date(index // 12, index % 12 + 1, 1)
 
 
 # ---------------------------------------------------------------------------
 # Data helpers
 # ---------------------------------------------------------------------------
-def _tariff_map(period_date):
-    """{(user_id, kind): nominal} — the active tariff for the given month.
-
-    Mirrors the resolution used in PaymentBatchAdmin.tariff_lookup_view: a tariff
-    with a null end_to is active through the end of the current calendar year.
-    """
-    end_of_year = date(date.today().year, 12, 31)
-
+def _year_tariff_map(year):
+    """Returns get_nominal(user_id, fund_id, month_date) for all ROUTINE tariffs in the year."""
+    year_start = date(year, 1, 1)
+    year_end   = date(year, 12, 31)
     qs = (
         Tariff.objects
-        .filter(start_from__lte=period_date)
-        .filter(Q(end_to__isnull=True) | Q(end_to__gte=period_date))
-        .order_by('user_id', 'kind', '-start_from')
+        .filter(fund__kind=Fund.Kind.ROUTINE, start_from__lte=year_end)
+        .filter(Q(end_to__isnull=True) | Q(end_to__gte=year_start))
+        .order_by('user_id', 'fund_id', '-start_from')
     )
-    if period_date > end_of_year:
-        qs = qs.filter(end_to__isnull=False)
+    by_key = {}
+    for t in qs:
+        by_key.setdefault((t.user_id, t.fund_id), []).append(t)
 
+    def get_nominal(user_id, fund_id, month_date):
+        for t in by_key.get((user_id, fund_id), []):
+            if t.start_from <= month_date and (t.end_to is None or t.end_to >= month_date):
+                return t.nominal
+        return None
+
+    return get_nominal
+
+
+def _year_paid_map(year):
+    """
+    {(user_id, fund_id, period): {'total': Decimal, 'entries': [{'occurred_at': dt, 'amount': Decimal}]}}
+    One entry per distinct transaction, ordered by occurred_at ascending.
+    """
+    rows = (
+        ItemRoutine.objects
+        .filter(period__gte=f'{year}-01', period__lte=f'{year}-12')
+        .filter(transaction_item__transaction__direction='IN')
+        .filter(transaction_item__fund__kind=Fund.Kind.ROUTINE)
+        .filter(transaction_item__transaction__user__is_active=True)
+        .values(
+            'transaction_item__transaction__user_id',
+            'transaction_item__fund_id',
+            'period',
+            'transaction_item__transaction_id',
+            'transaction_item__transaction__occurred_at',
+        )
+        .annotate(amount=Sum('transaction_item__nominal'))
+        .order_by('transaction_item__transaction__occurred_at')
+    )
     result = {}
-    for tariff in qs:
-        key = (tariff.user_id, tariff.kind)
-        if key not in result:  # ordering guarantees the most recent tariff first
-            result[key] = tariff.nominal
+    zero = Decimal('0')
+    for r in rows:
+        key = (
+            r['transaction_item__transaction__user_id'],
+            r['transaction_item__fund_id'],
+            r['period'],
+        )
+        if key not in result:
+            result[key] = {'total': zero, 'entries': []}
+        amt = r['amount'] or zero
+        result[key]['total'] += amt
+        result[key]['entries'].append({
+            'occurred_at': r['transaction_item__transaction__occurred_at'],
+            'amount': amt,
+            'transaction_id': r['transaction_item__transaction_id'],
+        })
     return result
 
 
-def _paid_map(period):
-    """{(user_id, kind): total_paid} for the YYYY-MM period, across all batches."""
-    rows = (
-        Payment.objects
-        .filter(period=period, batch__user__is_active=True)
-        .values('batch__user_id', 'kind')
-        .annotate(total=Sum('nominal'))
-    )
-    return {(r['batch__user_id'], r['kind']): r['total'] for r in rows}
-
-
-def _status(paid, expected):
-    """Classify a single (paid vs. expected) cell."""
+def _dot_status(amount, expected):
     if expected is None:
-        return {'code': 'na', 'label': 'No tariff'}
-    if paid >= expected:
-        return {'code': 'paid', 'label': 'Paid'}
-    if paid > 0:
-        return {'code': 'partial', 'label': 'Partial'}
-    return {'code': 'unpaid', 'label': 'Unpaid'}
+        return 'na'
+    if amount >= expected:
+        return 'paid'
+    if amount > 0:
+        return 'partial'
+    return 'unpaid'
 
 
 # ---------------------------------------------------------------------------
 # View
 # ---------------------------------------------------------------------------
 def payments_dashboard_view(request):
-    period_date = _parse_month(request.GET.get('month'))
-    period = period_date.strftime('%Y-%m')
+    year   = timezone.localdate().year
+    months = [date(year, m, 1) for m in range(1, 13)]
 
-    tariffs = _tariff_map(period_date)
-    paid = _paid_map(period)
+    funds      = list(Fund.objects.filter(kind=Fund.Kind.ROUTINE).order_by('name'))
+    get_tariff = _year_tariff_map(year)
+    paid       = _year_paid_map(year)
 
-    users = User.objects.filter(is_active=True).order_by('first_name', 'last_name', 'username')
+    users = list(
+        User.objects.filter(is_active=True)
+        .select_related('properties')
+        .order_by('first_name', 'last_name', 'username')
+    )
 
-    empty = lambda: {'paid': 0, 'partial': 0, 'unpaid': 0, 'na': 0, 'collected': 0, 'expected': 0}
-    summary = {'monthly': empty(), 'garbage': empty()}
-
+    zero = Decimal('0')
     rows = []
     for user in users:
-        cells = {}
-        for skey, kind in (('monthly', Payment.Kind.MONTHLY), ('garbage', Payment.Kind.GARBAGE)):
-            expected = tariffs.get((user.id, kind))
-            amount = paid.get((user.id, kind), 0) or 0
-            status = _status(amount, expected)
+        month_cells = []
+        for month_date in months:
+            period = month_date.strftime('%Y-%m')
+            dots = []
+            for fund in funds:
+                expected = get_tariff(user.id, fund.id, month_date)
+                data     = paid.get((user.id, fund.id, period))
+                total    = data['total'] if data else zero
+                status   = _dot_status(total, expected)
 
-            cells[skey] = {
-                'status': status,
-                'paid': amount,
-                'paid_display': fmt_rupiah(amount),
-                'expected_display': fmt_rupiah(expected) if expected is not None else '—',
-            }
+                if data and data['entries']:
+                    badges = [
+                        {'occurred_at': e['occurred_at'], 'status': status, 'transaction_id': e['transaction_id']}
+                        for e in data['entries']
+                    ]
+                elif status == 'na':
+                    badges = []
+                else:
+                    badges = [{'occurred_at': None, 'status': 'unpaid'}]
 
-            bucket = summary[skey]
-            bucket[status['code']] += 1
-            bucket['collected'] += amount
-            if expected is not None:
-                bucket['expected'] += expected
+                dots.append({'fund': fund, 'status': status, 'badges': badges})
+            month_cells.append({'month': month_date.month, 'dots': dots})
 
         rows.append({
             'user': user,
-            'name': user.get_full_name() or user.username,
-            'monthly': cells['monthly'],
-            'garbage': cells['garbage'],
+            'name': str(user),
+            'month_cells': month_cells,
         })
-
-    for bucket in summary.values():
-        bucket['collected_display'] = fmt_rupiah(bucket['collected'])
-        bucket['expected_display'] = fmt_rupiah(bucket['expected'])
 
     context = {
         **admin.site.each_context(request),
-        'title': 'Payments Dashboard',
-        'period': period,
-        'period_label': period_date.strftime('%B %Y'),
-        'prev_month': _shift_month(period_date, -1).strftime('%Y-%m'),
-        'next_month': _shift_month(period_date, +1).strftime('%Y-%m'),
-        'current_month': timezone.localdate().strftime('%Y-%m'),
-        'is_current': period == timezone.localdate().strftime('%Y-%m'),
+        'title': 'Transactions',
+        'year': year,
+        'months': months,
+        'funds': funds,
         'rows': rows,
-        'summary': summary,
         'total_users': len(rows),
+        'current_month': timezone.localdate().month,
     }
     return render(request, 'admin/payments_dashboard.html', context)
 
@@ -321,8 +327,8 @@ _DASHBOARD_APP = {
     'has_module_perms': True,
     'models': [
         {
-            'name': 'Payments',
-            'object_name': 'PaymentsDashboard',
+            'name': 'Transactions',
+            'object_name': 'TransactionsDashboard',
             'admin_url': '/admin/payments-dashboard/',
             'add_url': None,
             'view_only': True,

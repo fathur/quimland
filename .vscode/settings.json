@@ -1,0 +1,7 @@
+{
+  "css.lint.emptyRules": "ignore",
+  "css.validate": false,
+  "files.associations": {
+    "*.html": "django-html"
+  }
+}

@@ -21,6 +21,7 @@ class Fund(TimestampMixin):
         help_text='Parent fund for sub-fund reporting hierarchy. Child funds share the parent pool (not ring-fenced).',
     )
     name          = models.CharField(max_length=255)
+    color         = models.CharField(max_length=20, default='#6b7280', blank=True, help_text='Hex color used in the dashboard badges, e.g. #22c55e')
     kind          = models.CharField(max_length=10, choices=Kind)
     description   = models.TextField(blank=True, default='')
     target_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)

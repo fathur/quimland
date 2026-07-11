@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
 
-from ..models import PaymentBatch, PropertyTax, Tariff, UserProperty
+from ..models import PropertyTax, Tariff, UserProperty
 
 
 def _user_str(self):
@@ -39,13 +39,6 @@ class TariffInline(admin.TabularInline):
     model = Tariff
     extra = 1
     fk_name = 'user'
-
-
-class PaymentBatchInline(admin.TabularInline):
-    model = PaymentBatch
-    extra = 1
-    fk_name = 'user'
-    exclude = ['creator']
 
 
 class ExtendedUserAdmin(UserAdmin):

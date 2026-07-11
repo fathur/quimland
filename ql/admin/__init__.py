@@ -11,7 +11,7 @@ from . import (
     property_tax,
     user,
     dashboard,
-    receipt_scan,
+    # receipt_scan,
     receipt,
     loan,
     project,
