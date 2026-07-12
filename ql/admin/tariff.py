@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ..models import Tariff
+from ql.models import Tariff
 
 
 @admin.register(Tariff)

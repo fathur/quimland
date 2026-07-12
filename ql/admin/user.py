@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
 
-from ..models import PropertyTax, Tariff, UserProperty
+from ql.models import PropertyTax, Tariff, UserProperty
 
 
 def _user_str(self):

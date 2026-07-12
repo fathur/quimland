@@ -9,8 +9,8 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from ..models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff, TransactionItem
-from ..utils import fmt_rupiah
+from ql.models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff, TransactionItem
+from ql.utils import fmt_rupiah
 
 
 # ---------------------------------------------------------------------------

@@ -13,7 +13,7 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from ..models import Receipt, Transaction
+from ql.models import Receipt, Transaction
 
 # ---------------------------------------------------------------------------
 # Prompt placeholder — edit this constant to tune extraction behavior.

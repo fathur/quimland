@@ -2,8 +2,8 @@ from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
 
-from ..models import CashEntry, Fund, FundDue
-from ..utils import fmt_rupiah
+from ql.models import CashEntry, Fund, FundDue
+from ql.utils import fmt_rupiah
 
 
 class CashEntryInline(admin.TabularInline):

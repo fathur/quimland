@@ -17,4 +17,5 @@ from . import (
     project,
     transaction,
     due_note,
+    wallet
 )

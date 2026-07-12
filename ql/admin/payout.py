@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ..models import Payout
+from ql.models import Payout
 
 
 @admin.register(Payout)

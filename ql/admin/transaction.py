@@ -7,8 +7,28 @@ from django.db.models import Q, Sum
 from django.forms.models import BaseInlineFormSet
 from django.utils.html import format_html
 
-from ..models import ItemRoutine, Receipt, Tariff, Transaction, TransactionItem
-from ..utils import fmt_rupiah
+from ql.models import Fund, ItemRoutine, Receipt, Tariff, Transaction, TransactionItem
+from ql.utils import fmt_rupiah
+
+
+class FundGroupedSelect(forms.Select):
+    """Select widget that groups <option>s by Fund.kind using <optgroup>."""
+
+    def optgroups(self, name, value, attrs=None):  # noqa: ARG002
+        groups = {}
+        for fund in Fund.objects.order_by('kind', 'name'):
+            label = fund.get_kind_display()
+            groups.setdefault(label, []).append((fund.pk, str(fund)))
+
+        result = []
+        for group_label, options in groups.items():
+            subgroup = []
+            for pk, display in options:
+                subgroup.append(self.create_option(
+                    name, pk, display, selected=str(pk) in value, index=len(result),
+                ))
+            result.append((group_label, subgroup, 0))
+        return result
 
 
 def _next_period(period):
@@ -32,8 +52,9 @@ class TransactionItemInlineForm(forms.ModelForm):
     )
 
     class Meta:
-        model  = TransactionItem
-        fields = ['fund', 'direction', 'nominal', 'period']
+        model   = TransactionItem
+        fields  = ['fund', 'direction', 'nominal', 'period']
+        widgets = {'fund': FundGroupedSelect}
 
     _transaction = None  # injected per-formset by TransactionItemInline.get_formset
 
@@ -164,7 +185,6 @@ class TransactionItemInline(admin.TabularInline):
     formset    = TransactionItemInlineFormSet
     extra      = 1
     fields     = ['fund', 'direction', 'nominal', 'period']
-    autocomplete_fields = ['fund']
 
     def get_formset(self, request, obj=None, **kwargs):
         FormSet = super().get_formset(request, obj, **kwargs)
@@ -216,7 +236,7 @@ class TransactionAdminForm(forms.ModelForm):
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     form           = TransactionAdminForm
-    list_display   = ['id', 'direction', 'user', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
+    list_display   = ['id', 'direction', 'user', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
     list_filter    = ['direction', 'occurred_at', 'user']
     search_fields  = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering       = ['-occurred_at', '-created_at']
@@ -246,7 +266,7 @@ class TransactionAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
     def get_fields(self, request, obj=None):
-        fields = ['direction', 'nominal', 'occurred_at', 'user', 'note', 'receipt_image']
+        fields = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image']
         if obj and obj.receipt:
             fields.append('receipt_preview')
         if obj:

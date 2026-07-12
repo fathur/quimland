@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ..models import Setting
+from ql.models import Setting
 
 
 @admin.register(Setting)

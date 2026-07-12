@@ -29,6 +29,11 @@ class Transaction(TimestampMixin):
         related_name='created_transactions',
     )
     note      = models.TextField(blank=True, default='')
+    wallet = models.ForeignKey(
+        'Wallet', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='transactions',
+    )
 
     class Meta:
         db_table = 'transactions'

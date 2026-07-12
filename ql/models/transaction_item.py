@@ -20,6 +20,7 @@ class TransactionItem(TimestampMixin):
         null=True, blank=True,
         related_name='transaction_items',
     )
+    
 
     class Meta:
         db_table = 'transaction_items'

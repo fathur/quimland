@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ..models import CashEntry
+from ql.models import CashEntry
 
 
 @admin.register(CashEntry)

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db.models import Count
 from django.utils.html import format_html
 
-from ..models import DueNote, DueNoteProof
+from ql.models import DueNote, DueNoteProof
 
 
 class DueNoteProofInline(admin.TabularInline):

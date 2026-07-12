@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html, format_html_join
 
-from ..models import Loan, Project
-from ..utils import fmt_rupiah
+from ql.models import Loan, Project
+from ql.utils import fmt_rupiah
 
 
 @admin.register(Project)

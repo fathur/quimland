@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ..models import SalaryRate
+from ql.models import SalaryRate
 
 
 @admin.register(SalaryRate)
