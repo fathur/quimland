@@ -9,6 +9,36 @@
 
 {% block content %}
 <div id="content-main" class="app-list">
+
+  {# Dashboard quick-links section (not a real registered app, inject from available_apps) #}
+  {% for app in available_apps %}
+    {% if app.app_label == 'ql_dashboard' %}
+    <div class="app-ql_dashboard module">
+      <table>
+        <caption>
+          <a href="{{ app.app_url }}" class="section">{{ app.name }}</a>
+        </caption>
+        <thead class="visually-hidden">
+          <tr>
+            <th scope="col">{% translate 'Page' %}</th>
+            <th scope="col"></th>
+            <th scope="col">{% translate 'View' %}</th>
+          </tr>
+        </thead>
+        {% for model in app.models %}
+          <tr class="model-{{ model.object_name|lower }}">
+            <th scope="row">
+              <a href="{{ model.admin_url }}">{{ model.name }}</a>
+            </th>
+            <td></td>
+            <td><a href="{{ model.admin_url }}" class="viewlink">{% translate 'View' %}</a></td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  {% endfor %}
+
   {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
 </div>
 {% endblock %}
