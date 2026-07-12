@@ -110,7 +110,7 @@
 
   {# ── Object tools row ── #}
   <ul class="object-tools" style="float:none; margin: 0 0 12px;">
-    <li><a href="{% url 'admin:ql_paymentbatch_add' %}" class="addlink">{% translate 'Add batch manually' %}</a></li>
+    <li><a href="{% url 'admin:ql_transaction_add' %}" class="addlink">{% translate 'Add transaction manually' %}</a></li>
   </ul>
 
   <div id="alert-area"></div>
@@ -171,7 +171,7 @@
         {# Editable form #}
         <form id="batch-form" onsubmit="saveBatch(); return false;">
         <fieldset class="module aligned">
-          <h2>{% translate 'Payment batch details' %}</h2>
+          <h2>{% translate 'Transaction details' %}</h2>
 
           <div class="form-row field-user">
             <div>
@@ -204,7 +204,7 @@
         </fieldset>
 
         <div class="submit-row">
-          <input type="submit" class="default" id="save-btn" value="{% translate 'Save Payment Batch' %}">
+          <input type="submit" class="default" id="save-btn" value="{% translate 'Save Transaction' %}">
           <span id="save-spinner" style="display:none; margin-left:12px;"><span class="rs-spinner"></span></span>
         </div>
         </form>

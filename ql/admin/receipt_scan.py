@@ -5,14 +5,15 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import admin
 from django.contrib.auth.models import User
+from django.db import transaction as db_transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.urls import path
+from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from ..models import PaymentBatch
+from ..models import Receipt, Transaction
 
 # ---------------------------------------------------------------------------
 # Prompt placeholder — edit this constant to tune extraction behavior.
@@ -139,7 +140,7 @@ def user_search_view(request):
     ]})
 
 
-def save_batch_view(request):
+def save_transaction_view(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
@@ -177,20 +178,30 @@ def save_batch_view(request):
         return JsonResponse({'errors': errors}, status=400)
 
     try:
-        batch = PaymentBatch(
-            user_id=user_id,
-            paid_at=paid_at,
-            nominal=nominal,
-            creator=request.user,
-        )
-        receipt_file = request.FILES.get('receipt')
-        if receipt_file:
-            batch.receipt = receipt_file
-        batch.save()
+        with db_transaction.atomic():
+            # Receipt first — its save() compresses the image before storage.
+            receipt_obj = None
+            receipt_file = request.FILES.get('receipt')
+            if receipt_file:
+                receipt_obj = Receipt(user_id=user_id, image=receipt_file)
+                receipt_obj.save()
+
+            # Header-only Transaction (direction=IN). Fund/period line items are
+            # added afterwards on the change page via the existing inline.
+            trx = Transaction.objects.create(
+                direction=Transaction.Direction.IN,
+                nominal=nominal,
+                occurred_at=paid_at,
+                user_id=user_id,
+                creator=request.user,
+                receipt=receipt_obj,
+            )
     except Exception as exc:
         return JsonResponse({'errors': {'__all__': str(exc)}}, status=400)
 
-    return JsonResponse({'redirect': f'/admin/ql/paymentbatch/{batch.id}/change/'})
+    return JsonResponse({
+        'redirect': reverse('admin:ql_transaction_change', args=[trx.id]),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +229,7 @@ def _get_urls():
         ),
         path(
             'receipt-scan/save/',
-            admin.site.admin_view(save_batch_view),
+            admin.site.admin_view(save_transaction_view),
             name='receipt_scan_save',
         ),
     ]
