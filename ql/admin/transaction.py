@@ -183,7 +183,7 @@ class TransactionItemInline(admin.TabularInline):
     model      = TransactionItem
     form       = TransactionItemInlineForm
     formset    = TransactionItemInlineFormSet
-    extra      = 1
+    extra      = 0
     fields     = ['fund', 'direction', 'nominal', 'period']
 
     def get_formset(self, request, obj=None, **kwargs):
