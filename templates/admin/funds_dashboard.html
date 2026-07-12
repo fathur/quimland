@@ -1,0 +1,129 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'ql/css/dashboard.css' %}">
+<style>
+  /* Big hero number for total money on hand */
+  .ql-hero {
+    padding: 22px 24px; margin-bottom: 26px;
+    border: 1px solid var(--hairline-color); border-radius: 12px;
+    background: var(--darkened-bg);
+  }
+  .ql-hero-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--body-quiet-color); font-weight: 600;
+  }
+  .ql-hero-value {
+    font-size: 40px; font-weight: 800; line-height: 1.1; margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ql-hero-value.neg { color: #b91c1c; }
+  .ql-hero-sub { font-size: 12px; color: var(--body-quiet-color); margin-top: 6px; }
+
+  /* Section heading between fund groups */
+  .ql-section-head {
+    font-size: 13px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--body-quiet-color); font-weight: 700;
+    margin: 4px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--hairline-color);
+  }
+
+  /* Fund card grid */
+  .ql-fund-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px;
+  }
+  @media (max-width: 900px) { .ql-fund-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .ql-fund-grid { grid-template-columns: 1fr; } }
+
+  .ql-fund-card {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 16px 18px; border: 1px solid var(--hairline-color);
+    border-radius: 12px; background: var(--body-bg);
+  }
+  .ql-fund-card.closed { opacity: .72; background: var(--darkened-bg); }
+
+  .ql-fund-card-head { display: flex; align-items: flex-start; gap: 10px; }
+  .ql-fund-card-name { font-size: 15px; font-weight: 700; margin: 0; flex: 1; line-height: 1.3; }
+  .ql-fund-card-name a { text-decoration: none; color: var(--body-fg); }
+  .ql-fund-card-name a:hover { color: var(--link-fg); }
+  .ql-fund-swatch { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex: none; }
+
+  .ql-fund-balance { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .ql-fund-balance.neg { color: #b91c1c; }
+  .ql-fund-balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--body-quiet-color); }
+
+  .ql-fund-figs { display: flex; gap: 18px; font-size: 12px; color: var(--body-quiet-color); }
+  .ql-fund-figs strong { display: block; color: var(--body-fg); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .ql-fund-progress-cap { font-size: 11px; color: var(--body-quiet-color); margin-top: 5px; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; {% translate 'Funds' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="ql-wrap">
+
+  {# ---------------- Hero: total money on hand ---------------- #}
+  <div class="ql-hero">
+    <div class="ql-hero-label">{% translate 'Total money on hand' %}</div>
+    <div class="ql-hero-value {% if total_balance_negative %}neg{% endif %}">{{ total_balance_display }}</div>
+    <div class="ql-hero-sub">
+      {% blocktranslate count counter=fund_count %}Across {{ counter }} fund — collected minus spent, not yet allocated{% plural %}Across {{ counter }} funds — collected minus spent, still available{% endblocktranslate %}
+    </div>
+  </div>
+
+  {# ---------------- Fund cards, grouped by kind ---------------- #}
+  {% for section in sections %}
+    <div class="ql-section-head">{{ section.label }}</div>
+    <div class="ql-fund-grid">
+      {% for card in section.cards %}
+        <div class="ql-fund-card {% if not card.is_open %}closed{% endif %}">
+
+          <div class="ql-fund-card-head">
+            <span class="ql-fund-swatch" style="background: {{ card.fund.color|default:'#6b7280' }};"></span>
+            <h3 class="ql-fund-card-name">
+              <a href="{% url 'admin:ql_fund_change' card.fund.id %}">{{ card.fund.name }}</a>
+            </h3>
+            <span class="ql-pill {% if card.is_open %}open{% else %}closed{% endif %}">
+              {{ card.fund.get_status_display }}
+            </span>
+          </div>
+
+          <div>
+            <div class="ql-fund-balance {% if card.balance_negative %}neg{% endif %}">{{ card.balance_display }}</div>
+            <div class="ql-fund-balance-label">{% translate 'Balance (collected − spent)' %}</div>
+          </div>
+
+          <div class="ql-fund-figs">
+            <span>{% translate 'Collected' %}<strong>{{ card.collected_display }}</strong></span>
+            <span>{% translate 'Spent' %}<strong>{{ card.spent_display }}</strong></span>
+          </div>
+
+          {% if card.is_earmarked %}
+            {% if card.progress_pct is not None %}
+              <div class="ql-progress" style="margin: 4px 0 0;">
+                <div class="ql-bar-track"><span style="width: {{ card.progress_pct }}%; background: {{ card.fund.color|default:'#417690' }};"></span></div>
+                <div class="ql-fund-progress-cap">
+                  {{ card.progress_pct }}% {% translate 'of target' %} · {{ card.collected_display }} / {{ card.target_display }}
+                </div>
+              </div>
+            {% else %}
+              <div class="ql-fund-progress-cap">{% translate 'No target set' %}</div>
+            {% endif %}
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    </div>
+  {% empty %}
+    <div class="ql-empty">{% translate 'No funds yet. Create one under Funds.' %}</div>
+  {% endfor %}
+
+</div>
+{% endblock %}

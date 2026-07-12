@@ -4,11 +4,12 @@ from decimal import Decimal
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.db.models import Count, Q, Sum
+from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from ..models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff
+from ..models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff, TransactionItem
 from ..utils import fmt_rupiah
 
 
@@ -96,6 +97,36 @@ def _year_note_map(year):
         }
         for n in rows
     }
+
+
+def _fund_money_map():
+    """
+    {fund_id: {'collected': Decimal, 'spent': Decimal, 'balance': Decimal}}
+
+    'collected' sums every IN line item, 'spent' sums every OUT line item, using
+    each item's *effective* direction — its own direction for TRANSFER legs, else
+    the parent transaction's direction (IN/OUT items leave it null and inherit).
+    """
+    rows = (
+        TransactionItem.objects
+        .annotate(eff_dir=Coalesce('direction', 'transaction__direction'))
+        .values('fund_id', 'eff_dir')
+        .annotate(total=Sum('nominal'))
+    )
+    zero = Decimal('0')
+    result = {}
+    for r in rows:
+        bucket = result.setdefault(
+            r['fund_id'], {'collected': zero, 'spent': zero, 'balance': zero}
+        )
+        amount = r['total'] or zero
+        if r['eff_dir'] == 'IN':
+            bucket['collected'] += amount
+        elif r['eff_dir'] == 'OUT':
+            bucket['spent'] += amount
+    for bucket in result.values():
+        bucket['balance'] = bucket['collected'] - bucket['spent']
+    return result
 
 
 def _dot_status(amount, expected):
@@ -199,6 +230,58 @@ def payments_dashboard_view(request):
         'sort': sort,
     }
     return render(request, 'admin/payments_dashboard.html', context)
+
+
+# ===========================================================================
+# Funds overview dashboard — one card per fund, grouped by kind
+# ===========================================================================
+def funds_dashboard_view(request):
+    money = _fund_money_map()
+    zero  = Decimal('0')
+
+    # OPEN before CLOSED within each kind, then alphabetical.
+    funds = list(Fund.objects.order_by('-status', 'name'))
+
+    total_balance = zero
+    groups = {}  # kind value -> [card dict, ...]
+    for fund in funds:
+        m         = money.get(fund.id, {'collected': zero, 'spent': zero, 'balance': zero})
+        collected = m['collected']
+        balance   = m['balance']
+        total_balance += balance
+
+        card = {
+            'fund': fund,
+            'is_open': fund.status == Fund.Status.OPEN,
+            'is_earmarked': fund.kind == Fund.Kind.EARMARKED,
+            'collected_display': fmt_rupiah(collected),
+            'spent_display': fmt_rupiah(m['spent']),
+            'balance_display': fmt_rupiah(balance),
+            'balance_negative': balance < 0,
+            'target_display': fmt_rupiah(fund.target_amount) if fund.target_amount else None,
+            'progress_pct': None,
+        }
+        if fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
+            card['progress_pct'] = int(min(collected / fund.target_amount, 1) * 100)
+
+        groups.setdefault(fund.kind, []).append(card)
+
+    # Section order follows Fund.Kind declaration order; skip empty kinds.
+    sections = [
+        {'label': label, 'cards': groups[value]}
+        for value, label in Fund.Kind.choices
+        if groups.get(value)
+    ]
+
+    context = {
+        **admin.site.each_context(request),
+        'title': 'Funds',
+        'total_balance_display': fmt_rupiah(total_balance),
+        'total_balance_negative': total_balance < 0,
+        'sections': sections,
+        'fund_count': len(funds),
+    }
+    return render(request, 'admin/funds_dashboard.html', context)
 
 
 # ===========================================================================
@@ -357,6 +440,11 @@ def _get_urls():
             name='payments_dashboard',
         ),
         path(
+            'funds-dashboard/',
+            admin.site.admin_view(funds_dashboard_view),
+            name='funds_dashboard',
+        ),
+        path(
             'earmarked-dashboard/',
             admin.site.admin_view(earmarked_dashboard_view),
             name='earmarked_dashboard',
@@ -380,6 +468,14 @@ _DASHBOARD_APP = {
             'name': 'Transactions',
             'object_name': 'TransactionsDashboard',
             'admin_url': '/admin/payments-dashboard/',
+            'add_url': None,
+            'view_only': True,
+            'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+        },
+        {
+            'name': 'Funds overview',
+            'object_name': 'FundsDashboard',
+            'admin_url': '/admin/funds-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
