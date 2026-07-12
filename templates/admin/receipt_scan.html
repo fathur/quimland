@@ -12,14 +12,13 @@
 <style>
 /* ---------- Layout ---------- */
 #content { width: auto; max-width: none; }
-.rs-shell { max-width: 1400px; margin: 0 auto; }
+.rs-shell { max-width: 1400px; margin: 0 auto; padding: 0 8px; box-sizing: border-box; }
 .rs-grid {
   display: grid;
   grid-template-columns: minmax(320px, 460px) 1fr;
   gap: 20px;
   align-items: start;
 }
-@media (max-width: 900px) { .rs-grid { grid-template-columns: 1fr; } }
 
 /* Module header spacing to match Django change form */
 .rs-shell .module { margin-bottom: 20px; }
@@ -52,6 +51,34 @@
 .rs-preview-meta {
   margin-top: 8px; font-size: 12px; color: var(--body-quiet-color, #666);
   display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 767px) {
+  .rs-grid { grid-template-columns: 1fr; gap: 12px; }
+  .rs-col-left { position: static; }          /* no sticky on single-column */
+
+  /* Compact image — shows enough context, form remains reachable */
+  .rs-preview-img { max-height: 220px; object-fit: contain; }
+
+  /* Shrink the dropzone vertically */
+  .rs-dropzone { min-height: 80px; padding: 12px; }
+  .rs-dropzone .rs-upload-icon { font-size: 24px; margin-bottom: 4px; }
+
+  /* Full-width form controls */
+  .rs-shell select,
+  .rs-shell input[type="datetime-local"],
+  .rs-shell input[type="number"] { width: 100%; box-sizing: border-box; }
+
+  /* Stacked submit row */
+  .rs-shell .submit-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+  .rs-shell .submit-row input[type="submit"] { width: 100%; }
+}
+
+/* Tablet: same two-column grid but tighter */
+@media (min-width: 768px) and (max-width: 900px) {
+  .rs-grid { grid-template-columns: 1fr 1fr; }
+  .rs-preview-img { max-height: 45vh; }
 }
 
 /* Lightbox */
