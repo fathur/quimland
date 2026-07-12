@@ -21,6 +21,31 @@
   .ql-hero-value.neg { color: #b91c1c; }
   .ql-hero-sub { font-size: 12px; color: var(--body-quiet-color); margin-top: 6px; }
 
+  /* Date filter bar */
+  .ql-filter-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .ql-filter-bar label { font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .ql-filter-bar input[type="datetime-local"] {
+    font-size: 13px; padding: 5px 8px;
+    border: 1px solid var(--border-color); border-radius: 4px;
+    background: var(--body-bg); color: var(--body-fg);
+  }
+  .ql-filter-bar .ql-btn {
+    font-size: 13px; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+    border: 1px solid var(--border-color); background: var(--darkened-bg); color: var(--body-fg);
+    text-decoration: none;
+  }
+  .ql-filter-bar .ql-btn-primary {
+    background: var(--primary); color: #fff; border-color: var(--primary);
+  }
+  .ql-as-of-badge {
+    font-size: 12px; font-weight: 600; color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    padding: 2px 8px; border-radius: 10px; margin-left: 6px;
+  }
+
   /* Wallet card grid */
   .ql-fund-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px;
@@ -58,9 +83,20 @@
 {% block content %}
 <div class="ql-wrap">
 
+  {# ---------------- Date filter ---------------- #}
+  <form method="get" class="ql-filter-bar">
+    <label for="as_of">{% translate 'As of' %}</label>
+    <input type="datetime-local" id="as_of" name="as_of" value="{{ as_of_input }}" step="1">
+    <button type="submit" class="ql-btn ql-btn-primary">{% translate 'Apply' %}</button>
+    {% if as_of_input %}<a href="?" class="ql-btn">{% translate 'Clear' %}</a>{% endif %}
+  </form>
+
   {# ---------------- Hero: total money across all wallets ---------------- #}
   <div class="ql-hero">
-    <div class="ql-hero-label">{% translate 'Total across all wallets' %}</div>
+    <div class="ql-hero-label">
+      {% translate 'Total across all wallets' %}
+      {% if as_of_label %}<span class="ql-as-of-badge">{{ as_of_label }}</span>{% endif %}
+    </div>
     <div class="ql-hero-value {% if total_balance_negative %}neg{% endif %}">{{ total_balance_display }}</div>
     <div class="ql-hero-sub">
       {% blocktranslate count counter=wallet_count %}{{ counter }} wallet — income minus expense{% plural %}{{ counter }} wallets — income minus expense{% endblocktranslate %}

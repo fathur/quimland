@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.contrib import admin
@@ -99,20 +99,32 @@ def _year_note_map(year):
     }
 
 
-def _fund_money_map():
+def _parse_as_of_dt(value):
+    """Parse a datetime-local string (YYYY-MM-DDTHH:MM[:SS]) into an aware datetime."""
+    if not value:
+        return None
+    for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%d'):
+        try:
+            dt = datetime.strptime(value, fmt)
+            return timezone.make_aware(dt)
+        except ValueError:
+            continue
+    return None
+
+
+def _fund_money_map(as_of=None):
     """
     {fund_id: {'collected': Decimal, 'spent': Decimal, 'balance': Decimal}}
 
     'collected' sums every IN line item, 'spent' sums every OUT line item, using
     each item's *effective* direction — its own direction for TRANSFER legs, else
     the parent transaction's direction (IN/OUT items leave it null and inherit).
+    Pass as_of (aware datetime) to restrict to transactions up to that point.
     """
-    rows = (
-        TransactionItem.objects
-        .annotate(eff_dir=Coalesce('direction', 'transaction__direction'))
-        .values('fund_id', 'eff_dir')
-        .annotate(total=Sum('nominal'))
-    )
+    qs = TransactionItem.objects.annotate(eff_dir=Coalesce('direction', 'transaction__direction'))
+    if as_of:
+        qs = qs.filter(transaction__occurred_at__lte=as_of)
+    rows = qs.values('fund_id', 'eff_dir').annotate(total=Sum('nominal'))
     zero = Decimal('0')
     result = {}
     for r in rows:
@@ -129,7 +141,7 @@ def _fund_money_map():
     return result
 
 
-def _wallet_money_map():
+def _wallet_money_map(as_of=None):
     """
     {wallet_id: {'in': Decimal, 'out': Decimal, 'balance': Decimal}}
 
@@ -137,13 +149,12 @@ def _wallet_money_map():
     direction. Wallet transfers land here as their split IN/OUT legs (see
     WalletTransfer.save), so a transfer debits the source wallet and credits
     the destination without any special handling.
+    Pass as_of (aware datetime) to restrict to transactions up to that point.
     """
-    rows = (
-        Transaction.objects
-        .filter(wallet_id__isnull=False)
-        .values('wallet_id', 'direction')
-        .annotate(total=Sum('nominal'))
-    )
+    qs = Transaction.objects.filter(wallet_id__isnull=False)
+    if as_of:
+        qs = qs.filter(occurred_at__lte=as_of)
+    rows = qs.values('wallet_id', 'direction').annotate(total=Sum('nominal'))
     zero = Decimal('0')
     result = {}
     for r in rows:
@@ -267,7 +278,10 @@ def payments_dashboard_view(request):
 # Funds overview dashboard — one card per fund, grouped by kind
 # ===========================================================================
 def funds_dashboard_view(request):
-    money = _fund_money_map()
+    as_of     = _parse_as_of_dt(request.GET.get('as_of', ''))
+    as_of_input = as_of.strftime('%Y-%m-%dT%H:%M:%S') if as_of else ''
+
+    money = _fund_money_map(as_of=as_of)
     zero  = Decimal('0')
 
     # OPEN before CLOSED within each kind, then alphabetical.
@@ -311,6 +325,8 @@ def funds_dashboard_view(request):
         'total_balance_negative': total_balance < 0,
         'sections': sections,
         'fund_count': len(funds),
+        'as_of_input': as_of_input,
+        'as_of_label': as_of.strftime('%d %b %Y %H:%M:%S') if as_of else None,
     }
     return render(request, 'admin/funds_dashboard.html', context)
 
@@ -319,7 +335,10 @@ def funds_dashboard_view(request):
 # Wallets overview dashboard — one card per wallet
 # ===========================================================================
 def wallet_dashboard_view(request):
-    money = _wallet_money_map()
+    as_of       = _parse_as_of_dt(request.GET.get('as_of', ''))
+    as_of_input = as_of.strftime('%Y-%m-%dT%H:%M:%S') if as_of else ''
+
+    money = _wallet_money_map(as_of=as_of)
     zero  = Decimal('0')
 
     wallets = list(Wallet.objects.order_by('name'))
@@ -347,6 +366,8 @@ def wallet_dashboard_view(request):
         'total_balance_negative': total_balance < 0,
         'cards': cards,
         'wallet_count': len(wallets),
+        'as_of_input': as_of_input,
+        'as_of_label': as_of.strftime('%d %b %Y %H:%M:%S') if as_of else None,
     }
     return render(request, 'admin/wallet_dashboard.html', context)
 
