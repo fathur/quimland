@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # 'mcp_server',
     'ql',
     'sorl.thumbnail',
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
