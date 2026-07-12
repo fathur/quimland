@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from ql.models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff, TransactionItem
+from ql.models import CashEntry, DueNote, Fund, FundDue, ItemRoutine, Tariff, Transaction, TransactionItem, Wallet
 from ql.utils import fmt_rupiah
 
 
@@ -126,6 +126,37 @@ def _fund_money_map():
             bucket['spent'] += amount
     for bucket in result.values():
         bucket['balance'] = bucket['collected'] - bucket['spent']
+    return result
+
+
+def _wallet_money_map():
+    """
+    {wallet_id: {'in': Decimal, 'out': Decimal, 'balance': Decimal}}
+
+    Sums every transaction that carries a wallet, by the transaction's own
+    direction. Wallet transfers land here as their split IN/OUT legs (see
+    WalletTransfer.save), so a transfer debits the source wallet and credits
+    the destination without any special handling.
+    """
+    rows = (
+        Transaction.objects
+        .filter(wallet_id__isnull=False)
+        .values('wallet_id', 'direction')
+        .annotate(total=Sum('nominal'))
+    )
+    zero = Decimal('0')
+    result = {}
+    for r in rows:
+        bucket = result.setdefault(
+            r['wallet_id'], {'in': zero, 'out': zero, 'balance': zero}
+        )
+        amount = r['total'] or zero
+        if r['direction'] == Transaction.Direction.IN:
+            bucket['in'] += amount
+        elif r['direction'] == Transaction.Direction.OUT:
+            bucket['out'] += amount
+    for bucket in result.values():
+        bucket['balance'] = bucket['in'] - bucket['out']
     return result
 
 
@@ -282,6 +313,42 @@ def funds_dashboard_view(request):
         'fund_count': len(funds),
     }
     return render(request, 'admin/funds_dashboard.html', context)
+
+
+# ===========================================================================
+# Wallets overview dashboard — one card per wallet
+# ===========================================================================
+def wallet_dashboard_view(request):
+    money = _wallet_money_map()
+    zero  = Decimal('0')
+
+    wallets = list(Wallet.objects.order_by('name'))
+
+    total_balance = zero
+    cards = []
+    for wallet in wallets:
+        m       = money.get(wallet.id, {'in': zero, 'out': zero, 'balance': zero})
+        balance = m['balance']
+        total_balance += balance
+
+        cards.append({
+            'wallet': wallet,
+            'kind_display': wallet.get_kind_display(),
+            'in_display': fmt_rupiah(m['in']),
+            'out_display': fmt_rupiah(m['out']),
+            'balance_display': fmt_rupiah(balance),
+            'balance_negative': balance < 0,
+        })
+
+    context = {
+        **admin.site.each_context(request),
+        'title': 'Wallets',
+        'total_balance_display': fmt_rupiah(total_balance),
+        'total_balance_negative': total_balance < 0,
+        'cards': cards,
+        'wallet_count': len(wallets),
+    }
+    return render(request, 'admin/wallet_dashboard.html', context)
 
 
 # ===========================================================================
@@ -445,6 +512,11 @@ def _get_urls():
             name='funds_dashboard',
         ),
         path(
+            'wallet-dashboard/',
+            admin.site.admin_view(wallet_dashboard_view),
+            name='wallet_dashboard',
+        ),
+        path(
             'earmarked-dashboard/',
             admin.site.admin_view(earmarked_dashboard_view),
             name='earmarked_dashboard',
@@ -476,6 +548,14 @@ _DASHBOARD_APP = {
             'name': 'Funds overview',
             'object_name': 'FundsDashboard',
             'admin_url': '/admin/funds-dashboard/',
+            'add_url': None,
+            'view_only': True,
+            'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+        },
+        {
+            'name': 'Wallets overview',
+            'object_name': 'WalletDashboard',
+            'admin_url': '/admin/wallet-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
