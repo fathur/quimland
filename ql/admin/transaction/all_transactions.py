@@ -20,7 +20,7 @@ class AllTransactionAdmin(admin.ModelAdmin):
         return (
             super().get_queryset(request)
             .filter(direction__in=[Transaction.Direction.IN, Transaction.Direction.OUT])
-            .filter(transfer__isnull=True)
+            # .filter(transfer__isnull=True)
         )
 
     def has_add_permission(self, request):  # noqa: ARG002
