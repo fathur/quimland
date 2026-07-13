@@ -198,6 +198,7 @@ class ExpenseTransactionItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['quantity'].required = False
         self.fields['nominal'].required = False
         self.fields['fund'].label = 'Source of fund'
 
@@ -210,6 +211,9 @@ class ExpenseTransactionItemForm(forms.ModelForm):
 
         if not fund:
             return cleaned_data
+        
+        if quantity is None:
+            quantity = 1
 
         if nominal is None and price is not None and quantity is not None:
             cleaned_data['nominal'] = price * quantity
@@ -252,7 +256,7 @@ class TransferTransactionItemForm(forms.ModelForm):
 class TransferTransactionItemInline(admin.TabularInline):
     model  = TransactionItem
     form   = TransferTransactionItemForm
-    extra  = 2
+    extra  = 0
     fields = ['fund', 'direction', 'nominal']
 
 
@@ -361,8 +365,11 @@ class BaseTransactionAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
     def save_formset(self, request, form, formset, change):  # noqa: ARG002
+        _auto_dir = self._forced_direction if self._forced_direction != Transaction.Direction.TRANSFER else None
         instances = formset.save(commit=False)
         for instance in instances:
+            if _auto_dir:
+                instance.direction = _auto_dir
             instance.save()
         for obj in formset.deleted_objects:
             obj.delete()
@@ -426,6 +433,7 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
     def save_formset(self, request, form, formset, change):
         instances = formset.save(commit=False)
         for instance in instances:
+            instance.direction = Transaction.Direction.IN
             instance.save()
         for form_instance in formset.forms:
             if hasattr(form_instance, 'instance') and form_instance.instance.pk:
