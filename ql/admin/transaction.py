@@ -13,6 +13,9 @@ from ql.models import (
     ItemRoutine, Receipt, Tariff, Transaction, TransactionItem,
 )
 from ql.utils import fmt_rupiah
+from .filters import make_date_range_filter
+
+OccurredAtRangeFilter = make_date_range_filter('occurred_at', 'occurred at')
 
 
 class FundGroupedSelect(forms.Select):
@@ -289,7 +292,7 @@ class TransactionAdminForm(forms.ModelForm):
 class BaseTransactionAdmin(admin.ModelAdmin):
     form                = TransactionAdminForm
     list_display        = ['id', 'user', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
-    list_filter         = ['occurred_at', 'user']
+    list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
     search_fields       = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
