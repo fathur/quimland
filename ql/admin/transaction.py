@@ -214,6 +214,7 @@ class ExpenseTransactionItemForm(forms.ModelForm):
         
         if quantity is None:
             quantity = 1
+            cleaned_data['quantity'] = quantity
 
         if nominal is None and price is not None and quantity is not None:
             cleaned_data['nominal'] = price * quantity
