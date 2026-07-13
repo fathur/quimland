@@ -412,6 +412,11 @@ class BaseTransactionAdmin(admin.ModelAdmin):
 class IncomeTransactionAdmin(BaseTransactionAdmin):
     _forced_direction = Transaction.Direction.IN
     inlines           = [IncomeTransactionItemInline]
+    list_display      = ['id', 'resident', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
+
+    @admin.display(description='Resident', ordering='user')
+    def resident(self, obj):
+        return obj.user
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -442,6 +447,11 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
 class ExpenseTransactionAdmin(BaseTransactionAdmin):
     _forced_direction = Transaction.Direction.OUT
     inlines           = [ExpenseTransactionItemInline]
+    list_display      = ['id', 'pic', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
+
+    @admin.display(description='PIC', ordering='user')
+    def pic(self, obj):
+        return obj.user
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
