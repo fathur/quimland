@@ -14,8 +14,12 @@ class WalletTransfer(TimestampMixin):
     occurred_at     = models.DateTimeField()
     note            = models.TextField(blank=True, default='')
     creator         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    out_transaction = models.OneToOneField('Transaction', on_delete=models.PROTECT, editable=False, related_name='+')
-    in_transaction  = models.OneToOneField('Transaction', on_delete=models.PROTECT, editable=False, related_name='+')
+    # CASCADE both ways: a transfer and its two IN/OUT legs are one atomic unit.
+    # Deleting the transfer removes both legs (via Transaction.transfer), and
+    # deleting a leg removes the transfer. This also avoids a PROTECT/CASCADE
+    # cycle that would otherwise block deletion entirely.
+    out_transaction = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
+    in_transaction  = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
 
     def save(self, *args, **kwargs):
         creating = self.pk is None
@@ -32,5 +36,10 @@ class WalletTransfer(TimestampMixin):
                     user=self.creator, creator=self.creator, note=self.note,
                 )
                 super().save(*args, **kwargs)
+                # Now that this transfer has a PK, tag both legs so income/expense
+                # reports can exclude them (they stay IN/OUT for wallet balances).
+                Transaction.objects.filter(
+                    pk__in=[self.out_transaction_id, self.in_transaction_id]
+                ).update(transfer=self)
         else:
             super().save(*args, **kwargs)

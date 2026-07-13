@@ -301,7 +301,14 @@ class BaseTransactionAdmin(admin.ModelAdmin):
     _forced_direction = None  # overridden by each subclass
 
     def get_queryset(self, request):
-        return super().get_queryset(request).filter(direction=self._forced_direction)
+        # Exclude internal wallet-transfer legs: they are stored as IN/OUT
+        # transactions (so wallet balances move correctly) but must not appear
+        # as real income/expense, nor inflate the nominal-total card.
+        return (
+            super().get_queryset(request)
+            .filter(direction=self._forced_direction)
+            .filter(transfer__isnull=True)
+        )
 
     def get_fields(self, request, obj=None):
         fields = ['nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image']

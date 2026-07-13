@@ -17,6 +17,7 @@ from .project import Project
 from .due_note import DueNote, DueNoteProof
 from .wallet import Wallet
 from .asset import Asset
+from .wallet_transfer import WalletTransfer
 
 __all__ = [
     'Fund',
@@ -42,4 +43,5 @@ __all__ = [
     'DueNoteProof',
     'Wallet',
     'Asset',
+    'WalletTransfer',
 ]

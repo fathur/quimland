@@ -35,6 +35,14 @@ class Transaction(TimestampMixin):
         null=True, blank=True,
         related_name='transactions',
     )
+    # Set when this transaction is one of the two legs of an internal wallet
+    # transfer. Transfer legs stay IN/OUT so the wallet dashboard debits/credits
+    # correctly, but carry this marker so income/expense reports can exclude them.
+    transfer = models.ForeignKey(
+        'WalletTransfer', on_delete=models.CASCADE,
+        null=True, blank=True, editable=False,
+        related_name='legs',
+    )
     # Polymorphic attachments (e.g. shopping proof for expenses). Reverse side
     # of Asset's GenericForeignKey; lets a transaction hold many proof files
     # and cascade-deletes them with the transaction.

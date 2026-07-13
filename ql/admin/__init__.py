@@ -20,4 +20,5 @@ from . import (
     wallet,
     asset,
     asset_manager,
+    wallet_transfer,
 )
