@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import admin
-from django.db.models import Sum
+from django.db.models import Q, Sum
 
 from ql.models import AllTransaction, Transaction
 from ql.utils import fmt_rupiah
@@ -36,8 +36,17 @@ class AllTransactionAdmin(admin.ModelAdmin):
         response = super().changelist_view(request, extra_context)
         try:
             qs = response.context_data['cl'].queryset
-            total = qs.aggregate(total=Sum('nominal'))['total'] or Decimal('0')
-            response.context_data['nominal_total'] = fmt_rupiah(total)
+            agg = qs.aggregate(
+                income=Sum('nominal', filter=Q(direction=Transaction.Direction.IN)),
+                expense=Sum('nominal', filter=Q(direction=Transaction.Direction.OUT)),
+            )
+            income  = agg['income']  or Decimal('0')
+            expense = agg['expense'] or Decimal('0')
+            balance = income - expense
+            response.context_data['income_total']  = fmt_rupiah(income)
+            response.context_data['expense_total'] = fmt_rupiah(expense)
+            response.context_data['balance_total'] = fmt_rupiah(balance)
+            response.context_data['balance_negative'] = balance < 0
             response.context_data['nominal_total_count'] = qs.count()
         except (AttributeError, KeyError):
             pass
