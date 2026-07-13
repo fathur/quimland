@@ -363,6 +363,17 @@ class BaseTransactionAdmin(admin.ModelAdmin):
                     level=messages.WARNING,
                 )
 
+    def changelist_view(self, request, extra_context=None):
+        response = super().changelist_view(request, extra_context)
+        try:
+            qs = response.context_data['cl'].queryset
+            total = qs.aggregate(total=Sum('nominal'))['total'] or Decimal('0')
+            response.context_data['nominal_total'] = fmt_rupiah(total)
+            response.context_data['nominal_total_count'] = qs.count()
+        except (AttributeError, KeyError):
+            pass
+        return response
+
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = self.get_object(request, object_id)
         if request.method == 'GET':
