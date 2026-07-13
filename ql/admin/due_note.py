@@ -7,7 +7,7 @@ from ql.models import DueNote, DueNoteProof
 
 class DueNoteProofInline(admin.TabularInline):
     model = DueNoteProof
-    extra = 3
+    extra = 0
     fields = ['image', 'preview']
     readonly_fields = ['preview']
 
