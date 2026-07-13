@@ -600,12 +600,53 @@ _DASHBOARD_APP = {
     ],
 }
 
+_TRANSACTIONS_APP = {
+    'name': 'Transactions',
+    'app_label': 'ql_transactions',
+    'app_url': '/admin/ql/incometransaction/',
+    'has_module_perms': True,
+    'models': [
+        {
+            'name': 'Income',
+            'object_name': 'IncomeTransaction',
+            'admin_url': '/admin/ql/incometransaction/',
+            'add_url': '/admin/ql/incometransaction/add/',
+            'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
+        },
+        {
+            'name': 'Expenses',
+            'object_name': 'ExpenseTransaction',
+            'admin_url': '/admin/ql/expensetransaction/',
+            'add_url': '/admin/ql/expensetransaction/add/',
+            'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
+        },
+        {
+            'name': 'Transfers',
+            'object_name': 'TransferTransaction',
+            'admin_url': '/admin/ql/transfertransaction/',
+            'add_url': '/admin/ql/transfertransaction/add/',
+            'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
+        },
+    ],
+}
+
 _original_each_context = admin.site.__class__.each_context
 
 
 def _each_context(self, request):
     ctx = _original_each_context(self, request)
-    ctx['available_apps'] = [_DASHBOARD_APP] + list(ctx.get('available_apps', []))
+    # Filter out the raw ql app entries for the three proxy transaction models
+    # so they don't appear twice (once here, once under the Ql app group).
+    filtered_apps = []
+    proxy_labels = {'incometransaction', 'expensetransaction', 'transfertransaction'}
+    for app in ctx.get('available_apps', []):
+        if app.get('app_label') == 'ql':
+            models = [m for m in app['models'] if m['object_name'].lower() not in proxy_labels]
+            if models:
+                filtered_apps.append({**app, 'models': models})
+        else:
+            filtered_apps.append(app)
+    ctx['available_apps'] = [_DASHBOARD_APP, _TRANSACTIONS_APP] + filtered_apps
     return ctx
 
 

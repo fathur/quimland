@@ -137,7 +137,8 @@
 
   {# ── Object tools row ── #}
   <ul class="object-tools" style="float:none; margin: 0 0 12px;">
-    <li><a href="{% url 'admin:ql_transaction_add' %}" class="addlink">{% translate 'Add transaction manually' %}</a></li>
+    <li><a href="{% url 'admin:ql_incometransaction_add' %}" class="addlink">{% translate 'Add income' %}</a></li>
+    <li><a href="{% url 'admin:ql_expensetransaction_add' %}" class="addlink">{% translate 'Add expense' %}</a></li>
   </ul>
 
   <div id="alert-area"></div>
@@ -199,6 +200,22 @@
         <form id="batch-form" onsubmit="saveBatch(); return false;">
         <fieldset class="module aligned">
           <h2>{% translate 'Transaction details' %}</h2>
+
+          <div class="form-row field-direction">
+            <div>
+              <label class="required">{% translate 'Direction' %}:</label>
+              <div style="display:flex; gap:8px; margin-top:4px;">
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                  <input type="radio" name="direction" id="f-dir-in" value="IN" checked>
+                  {% translate 'Income (IN)' %}
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                  <input type="radio" name="direction" id="f-dir-out" value="OUT">
+                  {% translate 'Expense (OUT)' %}
+                </label>
+              </div>
+            </div>
+          </div>
 
           <div class="form-row field-user">
             <div>
@@ -391,6 +408,7 @@ async function saveBatch() {
 
   const body = new FormData();
   body.append('csrfmiddlewaretoken', CSRF_TOKEN);
+  body.append('direction', document.querySelector('input[name="direction"]:checked').value);
   body.append('user_id',  document.getElementById('f-user').value);
   body.append('paid_at',  document.getElementById('f-paid-at').value);
   body.append('nominal',  document.getElementById('f-nominal').value);

@@ -130,9 +130,9 @@
             <span class="cell-fund">
               {% for badge in dot.badges %}
               {% if badge.status == 'paid' %}
-              <a class="badge" href="{% url 'admin:ql_transaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+              <a class="badge" href="{% url 'admin:ql_incometransaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
               {% elif badge.status == 'partial' %}
-              <a class="badge" href="{% url 'admin:ql_transaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+              <a class="badge" href="{% url 'admin:ql_incometransaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
               {% elif badge.note %}
               <a class="badge unpaid noted" href="{% url 'admin:ql_duenote_change' badge.note.id %}" title="{{ dot.fund.name }} — {{ badge.note.reason_label }}{% if badge.note.note %}: {{ badge.note.note }}{% endif %}{% if badge.note.has_proof %} (proof attached){% endif %}">{% if badge.note.has_proof %}📎{% else %}ⓘ{% endif %}</a>
               {% else %}

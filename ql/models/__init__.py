@@ -10,7 +10,7 @@ from .user_property import UserProperty
 from .property_tax import PropertyTax
 from .receipt import Receipt
 from .loan import Loan
-from .transaction import Transaction
+from .transaction import Transaction, IncomeTransaction, ExpenseTransaction, TransferTransaction
 from .transaction_item import TransactionItem
 from .item_routine import ItemRoutine
 from .project import Project
@@ -31,6 +31,9 @@ __all__ = [
     'Receipt',
     'Loan',
     'Transaction',
+    'IncomeTransaction',
+    'ExpenseTransaction',
+    'TransferTransaction',
     'TransactionItem',
     'ItemRoutine',
     'Project',

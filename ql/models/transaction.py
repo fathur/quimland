@@ -46,3 +46,24 @@ class Transaction(TimestampMixin):
 
     def __str__(self):
         return f'{self.direction} | {self.nominal:,} | {self.created_at:%Y-%m-%d}'
+
+
+class IncomeTransaction(Transaction):
+    class Meta:
+        proxy = True
+        verbose_name        = 'Income'
+        verbose_name_plural = 'Income'
+
+
+class ExpenseTransaction(Transaction):
+    class Meta:
+        proxy = True
+        verbose_name        = 'Expense'
+        verbose_name_plural = 'Expenses'
+
+
+class TransferTransaction(Transaction):
+    class Meta:
+        proxy = True
+        verbose_name        = 'Transfer'
+        verbose_name_plural = 'Transfers'

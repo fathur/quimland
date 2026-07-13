@@ -146,6 +146,11 @@ def save_transaction_view(request):
 
     errors = {}
 
+    direction_raw = request.POST.get('direction', '').strip().upper()
+    valid_directions = {Transaction.Direction.IN, Transaction.Direction.OUT}
+    if direction_raw not in valid_directions:
+        direction_raw = Transaction.Direction.IN
+
     user_id = request.POST.get('user_id', '').strip()
     if not user_id:
         errors['user_id'] = 'User is required.'
@@ -186,10 +191,9 @@ def save_transaction_view(request):
                 receipt_obj = Receipt(user_id=user_id, image=receipt_file)
                 receipt_obj.save()
 
-            # Header-only Transaction (direction=IN). Fund/period line items are
-            # added afterwards on the change page via the existing inline.
+            # Header-only Transaction; fund/period line items added on the change page.
             trx = Transaction.objects.create(
-                direction=Transaction.Direction.IN,
+                direction=direction_raw,
                 nominal=nominal,
                 occurred_at=paid_at,
                 user_id=user_id,
@@ -199,9 +203,12 @@ def save_transaction_view(request):
     except Exception as exc:
         return JsonResponse({'errors': {'__all__': str(exc)}}, status=400)
 
-    return JsonResponse({
-        'redirect': reverse('admin:ql_transaction_change', args=[trx.id]),
-    })
+    url_name = (
+        'admin:ql_incometransaction_change'
+        if direction_raw == Transaction.Direction.IN
+        else 'admin:ql_expensetransaction_change'
+    )
+    return JsonResponse({'redirect': reverse(url_name, args=[trx.id])})
 
 
 # ---------------------------------------------------------------------------
