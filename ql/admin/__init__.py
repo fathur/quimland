@@ -10,7 +10,6 @@ from . import (
     # fund_due,
     property_tax,
     user,
-    dashboard,
     receipt_scan,
     receipt,
     loan,
@@ -22,3 +21,4 @@ from . import (
     asset_manager,
     wallet_transfer,
 )
+from .dashboards import registry as _dashboard_registry  # noqa: F401 — import for side-effects (URL + sidebar registration)
