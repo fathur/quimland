@@ -11,30 +11,30 @@
 
 {% block content %}
 <style>
-  .ad-wrap { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
-  .ad-preview { flex:1 1 420px; }
-  .ad-preview img { max-width:100%; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.15); }
-  .ad-badge { display:inline-block; font-weight:700; font-size:22px; color:#fff; background:#6b7280; padding:40px 48px; border-radius:12px; }
-  .ad-side { flex:1 1 300px; }
-  .ad-side table { width:100%; border-collapse:collapse; }
-  .ad-side th, .ad-side td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--hairline-color); font-size:13px; vertical-align:top; }
-  .ad-side th { width:40%; color:var(--body-quiet-color); font-weight:600; }
+  .adet-wrap { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .adet-preview { flex:1 1 420px; }
+  .adet-preview img { max-width:100%; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.15); }
+  .adet-badge { display:inline-block; font-weight:700; font-size:22px; color:#fff; background:#6b7280; padding:40px 48px; border-radius:12px; }
+  .adet-side { flex:1 1 300px; }
+  .adet-side table { width:100%; border-collapse:collapse; }
+  .adet-side th, .adet-side td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--hairline-color); font-size:13px; vertical-align:top; }
+  .adet-side th { width:40%; color:var(--body-quiet-color); font-weight:600; }
 </style>
 
-<div class="ad-wrap">
-  <div class="ad-preview">
+<div class="adet-wrap">
+  <div class="adet-preview">
     {% if asset.url %}
       <p><a class="button default" href="{{ asset.url }}" target="_blank" rel="noopener">{% translate 'Open external link' %} ↗</a></p>
       <p style="word-break:break-all;color:var(--body-quiet-color);">{{ asset.url }}</p>
     {% elif is_image %}
       <a href="{{ asset.file.url }}" target="_blank" rel="noopener"><img src="{{ asset.file.url }}" alt=""></a>
     {% else %}
-      <div class="ad-badge">{{ label }}</div>
+      <div class="adet-badge">{{ label }}</div>
       <p style="margin-top:16px;"><a class="button default" href="{{ asset.file.url }}" target="_blank" rel="noopener">{% translate 'Download file' %} ↓</a></p>
     {% endif %}
   </div>
 
-  <div class="ad-side">
+  <div class="adet-side">
     <div class="module">
       <h2>{% translate 'Details' %}</h2>
       <table>
