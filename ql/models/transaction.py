@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 
 from .base import TimestampMixin
@@ -34,6 +35,10 @@ class Transaction(TimestampMixin):
         null=True, blank=True,
         related_name='transactions',
     )
+    # Polymorphic attachments (e.g. shopping proof for expenses). Reverse side
+    # of Asset's GenericForeignKey; lets a transaction hold many proof files
+    # and cascade-deletes them with the transaction.
+    assets = GenericRelation('Asset', related_query_name='transaction')
 
     class Meta:
         db_table = 'transactions'

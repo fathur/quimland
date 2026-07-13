@@ -17,5 +17,7 @@ from . import (
     project,
     transaction,
     due_note,
-    wallet
+    wallet,
+    asset,
+    asset_manager,
 )

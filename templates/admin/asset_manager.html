@@ -1,0 +1,213 @@
+{% load i18n %}
+{% comment %} 
+Reusable Asset grid manager. Requires context: asset_content_type_id,
+   asset_object_id, asset_purpose. Dropzone JS/CSS must be loaded by the host.  
+{% endcomment %}
+
+<div class="module asection" id="asset-manager"
+     data-ct="{{ asset_content_type_id }}"
+     data-obj="{{ asset_object_id }}"
+     data-purpose="{{ asset_purpose|default:'' }}"
+     data-upload-url="{% url 'admin:asset_upload' %}"
+     data-addurl-url="{% url 'admin:asset_add_url' %}"
+     data-list-url="{% url 'admin:asset_list' %}"
+     data-delete-base="{% url 'admin:asset_delete' 0 %}">
+
+  <h2 style="display:flex;align-items:center;gap:12px;">
+    {% translate 'Proof of shopping' %}
+    <button type="button" class="button" id="am-add-url-btn" style="margin-left:auto;font-size:12px;">
+      + {% translate 'Add URL' %}
+    </button>
+  </h2>
+
+  <div style="padding:12px 14px;">
+    <div id="am-dropzone" class="am-dropzone">
+      <span class="am-dz-icon">⬆</span>
+      <p class="am-dz-msg">{% translate 'Drag files here or click to upload' %}<br>
+        <small style="color:var(--body-quiet-color);">PDF, JPG, PNG, DOC(X), XLS(X) — multiple allowed</small></p>
+    </div>
+    <div id="am-dz-hidden" style="display:none;"></div>
+
+    <div id="am-grid" class="am-grid"></div>
+    <p id="am-empty" class="am-empty">{% translate 'No files attached yet.' %}</p>
+  </div>
+</div>
+
+{# ── URL modal ── #}
+<div id="am-modal" class="am-modal-overlay">
+  <div class="am-modal">
+    <h3 style="margin-top:0;">{% translate 'Attach a URL' %}</h3>
+    <p style="color:var(--body-quiet-color);font-size:12px;margin-top:-6px;">
+      {% translate 'Use this for large files hosted elsewhere (Drive, etc.), or any external link.' %}</p>
+    <input type="url" id="am-url-input" placeholder="https://…"
+           style="width:100%;padding:8px;box-sizing:border-box;margin-bottom:12px;">
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" class="button" id="am-modal-cancel">{% translate 'Cancel' %}</button>
+      <button type="button" class="button default" id="am-modal-save">{% translate 'Attach' %}</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .am-dropzone {
+    border:2px dashed var(--border-color,#ccc); border-radius:8px;
+    padding:22px; text-align:center; cursor:pointer; transition:.15s;
+    background:var(--darkened-bg); margin-bottom:16px;
+  }
+  .am-dropzone.dz-drag-hover { border-color:var(--primary,#79aec8); background:var(--selected-bg,#e4e4e4); }
+  .am-dz-icon { font-size:28px; display:block; }
+  .am-dz-msg { margin:6px 0 0; color:var(--body-quiet-color,#666); pointer-events:none; }
+
+  .am-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
+  .am-empty { color:var(--body-quiet-color); font-size:13px; margin:8px 0 0; }
+  .am-card {
+    position:relative; border:1px solid var(--hairline-color,#e0e0e0);
+    overflow:hidden; background:var(--body-bg); display:flex; flex-direction:column;
+  }
+  .am-card-link { display:block; text-decoration:none; color:inherit; }
+  .am-thumb {
+    height:110px; display:flex; align-items:center; justify-content:center;
+    background:var(--darkened-bg); overflow:hidden;
+  }
+  .am-thumb img { width:100%; height:100%; object-fit:cover; }
+  .am-badge {
+    font-weight:700; font-size:15px; letter-spacing:.04em; color:#fff;
+    padding:14px 12px; border-radius:6px; background:#6b7280;
+  }
+  .am-badge.url { background:#2563eb; }
+  .am-badge.PDF { background:#dc2626; }
+  .am-badge.DOC, .am-badge.DOCX { background:#2563eb; }
+  .am-badge.XLS, .am-badge.XLSX { background:#16a34a; }
+  .am-meta { padding:7px 9px; font-size:12px; }
+  .am-name { display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .am-sub { color:var(--body-quiet-color); font-size:11px; }
+  .am-del {
+    position:absolute; top:5px; right:5px; width:22px; height:22px; line-height:20px;
+    border:none; border-radius:50%; background:rgba(0,0,0,.55); color:#fff;
+    cursor:pointer; font-size:14px; padding:0; opacity:0; transition:.15s;
+  }
+  .am-card:hover .am-del { opacity:1; }
+
+  .am-modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:10000; align-items:center; justify-content:center;
+  }
+  .am-modal-overlay.open { display:flex; }
+  .am-modal { background:var(--body-bg,#fff); border-radius:10px; padding:20px; width:420px; max-width:92vw; box-shadow:0 10px 40px rgba(0,0,0,.3); }
+</style>
+
+<script>
+(function () {
+  const root       = document.getElementById('asset-manager');
+  const grid       = document.getElementById('am-grid');
+  const emptyMsg   = document.getElementById('am-empty');
+  const CT         = root.dataset.ct;
+  const OBJ        = root.dataset.obj;
+  const PURPOSE    = root.dataset.purpose;
+  const UPLOAD_URL = root.dataset.uploadUrl;
+  const ADDURL_URL = root.dataset.addurlUrl;
+  const LIST_URL   = root.dataset.listUrl;
+  const DELETE_BASE= root.dataset.deleteBase;   // ends in /0/delete/
+  const CSRF       = '{{ csrf_token }}';
+
+  function refreshEmpty() {
+    emptyMsg.style.display = grid.children.length ? 'none' : 'block';
+  }
+
+  function cardHtml(a) {
+    const thumb = a.thumb_url
+      ? `<div class="am-thumb"><img src="${a.thumb_url}" alt=""></div>`
+      : `<div class="am-thumb"><span class="am-badge ${a.is_url ? 'url' : a.label}">${a.label}</span></div>`;
+    const sub = a.is_url ? '{% translate "External link" %}' : (a.size_text || a.mime);
+    return `
+      <div class="am-card" data-id="${a.id}">
+        <a class="am-card-link" href="${a.click_url}" target="_blank" rel="noopener">
+          ${thumb}
+          <div class="am-meta">
+            <span class="am-name" title="${a.name}">${a.name}</span>
+            <span class="am-sub">${sub}</span>
+          </div>
+        </a>
+        <button type="button" class="am-del" title="{% translate 'Remove' %}">×</button>
+      </div>`;
+  }
+
+  function addCard(a) {
+    grid.insertAdjacentHTML('beforeend', cardHtml(a));
+    refreshEmpty();
+  }
+
+  // Delete (event-delegated)
+  grid.addEventListener('click', function (e) {
+    const btn = e.target.closest('.am-del');
+    if (!btn) return;
+    e.preventDefault();
+    const card = btn.closest('.am-card');
+    const id = card.dataset.id;
+    if (!confirm('{% translate "Remove this attachment?" %}')) return;
+    fetch(DELETE_BASE.replace('/0/', '/' + id + '/'), {
+      method: 'POST', headers: { 'X-CSRFToken': CSRF },
+    }).then(r => r.json()).then(() => { card.remove(); refreshEmpty(); });
+  });
+
+  // Initial load
+  fetch(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
+    .then(r => r.json())
+    .then(d => { (d.assets || []).forEach(addCard); refreshEmpty(); });
+
+  // ── Dropzone ──
+  Dropzone.autoDiscover = false;
+  const dz = new Dropzone('#am-dropzone', {
+    url: UPLOAD_URL,
+    paramName: 'file',
+    uploadMultiple: false,
+    parallelUploads: 3,
+    createImageThumbnails: false,
+    previewsContainer: '#am-dz-hidden',
+    clickable: '#am-dropzone',
+    headers: { 'X-CSRFToken': CSRF },
+    acceptedFiles: '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx',
+    init: function () {
+      this.on('sending', function (file, xhr, formData) {
+        formData.append('content_type_id', CT);
+        formData.append('object_id', OBJ);
+        formData.append('purpose', PURPOSE);
+      });
+      this.on('success', function (file, resp) {
+        (resp.created || []).forEach(addCard);
+        (resp.errors || []).forEach(err => alert(`${err.name}: ${err.message}`));
+        this.removeFile(file);
+      });
+      this.on('error', function (file, msg) {
+        alert(typeof msg === 'string' ? msg : (msg.error || 'Upload failed'));
+        this.removeFile(file);
+      });
+    },
+  });
+
+  // ── URL modal ──
+  const modal = document.getElementById('am-modal');
+  const urlInput = document.getElementById('am-url-input');
+  document.getElementById('am-add-url-btn').addEventListener('click', () => {
+    urlInput.value = ''; modal.classList.add('open'); urlInput.focus();
+  });
+  document.getElementById('am-modal-cancel').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+  document.getElementById('am-modal-save').addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if (!url) { urlInput.focus(); return; }
+    const body = new FormData();
+    body.append('content_type_id', CT);
+    body.append('object_id', OBJ);
+    body.append('purpose', PURPOSE);
+    body.append('url', url);
+    fetch(ADDURL_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { alert(d.error); return; }
+        (d.created || []).forEach(addCard);
+        modal.classList.remove('open');
+      });
+  });
+})();
+</script>

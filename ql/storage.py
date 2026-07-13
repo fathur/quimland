@@ -2,7 +2,8 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 
 
-def get_receipt_storage():
+def _get_secure_storage():
+    """Return the configured backend (R2 or local secure filesystem)."""
     backend = getattr(settings, 'STORAGE_BACKEND', 'local')
     if backend == 'r2':
         from storages.backends.s3boto3 import S3Boto3Storage
@@ -26,3 +27,11 @@ def get_receipt_storage():
         location=settings.SECURE_MEDIA_ROOT,
         base_url='/admin/media/',
     )
+
+
+def get_receipt_storage():
+    return _get_secure_storage()
+
+
+def get_asset_storage():
+    return _get_secure_storage()

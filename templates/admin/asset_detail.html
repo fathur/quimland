@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:ql_asset_changelist' %}">{% translate 'Assets' %}</a>
+  &rsaquo; {{ asset }}
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  .ad-wrap { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .ad-preview { flex:1 1 420px; }
+  .ad-preview img { max-width:100%; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.15); }
+  .ad-badge { display:inline-block; font-weight:700; font-size:22px; color:#fff; background:#6b7280; padding:40px 48px; border-radius:12px; }
+  .ad-side { flex:1 1 300px; }
+  .ad-side table { width:100%; border-collapse:collapse; }
+  .ad-side th, .ad-side td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--hairline-color); font-size:13px; vertical-align:top; }
+  .ad-side th { width:40%; color:var(--body-quiet-color); font-weight:600; }
+</style>
+
+<div class="ad-wrap">
+  <div class="ad-preview">
+    {% if asset.url %}
+      <p><a class="button default" href="{{ asset.url }}" target="_blank" rel="noopener">{% translate 'Open external link' %} ↗</a></p>
+      <p style="word-break:break-all;color:var(--body-quiet-color);">{{ asset.url }}</p>
+    {% elif is_image %}
+      <a href="{{ asset.file.url }}" target="_blank" rel="noopener"><img src="{{ asset.file.url }}" alt=""></a>
+    {% else %}
+      <div class="ad-badge">{{ label }}</div>
+      <p style="margin-top:16px;"><a class="button default" href="{{ asset.file.url }}" target="_blank" rel="noopener">{% translate 'Download file' %} ↓</a></p>
+    {% endif %}
+  </div>
+
+  <div class="ad-side">
+    <div class="module">
+      <h2>{% translate 'Details' %}</h2>
+      <table>
+        <tr><th>{% translate 'Name' %}</th><td>{{ asset.original_name|default:"—" }}</td></tr>
+        <tr><th>{% translate 'Type' %}</th><td>{{ asset.mime_type|default:"—" }}</td></tr>
+        <tr><th>{% translate 'Size' %}</th><td>{{ size_text|default:"—" }}</td></tr>
+        <tr><th>{% translate 'Purpose' %}</th><td>{{ asset.purpose|default:"—" }}</td></tr>
+        <tr><th>{% translate 'Attached to' %}</th><td>{{ asset.content_object|default:"—" }}</td></tr>
+        <tr><th>{% translate 'Uploaded' %}</th><td>{{ asset.created_at }}</td></tr>
+      </table>
+    </div>
+
+    {% if meta_rows %}
+    <div class="module">
+      <h2>{% translate 'Metadata' %}</h2>
+      <table>
+        {% for key, value in meta_rows %}
+        <tr><th>{{ key }}</th><td>{{ value }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -116,3 +116,7 @@ R2_ENDPOINT_URL     = os.environ.get('R2_ENDPOINT_URL', '')   # https://<account
 R2_ACCESS_KEY_ID    = os.environ.get('R2_ACCESS_KEY_ID', '')
 R2_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY', '')
 R2_CUSTOM_DOMAIN    = os.environ.get('R2_CUSTOM_DOMAIN', '')  # optional public domain, e.g. cdn.example.com
+
+# Max size (bytes) for a directly-uploaded Asset file. Larger files must be
+# referenced by URL instead. Default: 10 MiB.
+ASSET_MAX_UPLOAD_SIZE = int(os.environ.get('ASSET_MAX_UPLOAD_SIZE', 10 * 1024 * 1024))

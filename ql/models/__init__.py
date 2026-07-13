@@ -16,6 +16,7 @@ from .item_routine import ItemRoutine
 from .project import Project
 from .due_note import DueNote, DueNoteProof
 from .wallet import Wallet
+from .asset import Asset
 
 __all__ = [
     'Fund',
@@ -40,4 +41,5 @@ __all__ = [
     'DueNote',
     'DueNoteProof',
     'Wallet',
+    'Asset',
 ]

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django import forms
 from django.contrib import admin, messages
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Sum
 from django.forms.models import BaseInlineFormSet
 from django.utils.html import format_html
@@ -366,6 +367,10 @@ class BaseTransactionAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
     def save_formset(self, request, form, formset, change):  # noqa: ARG002
+        if formset.model is not TransactionItem:
+            # e.g. the Asset attachment formset — use default handling.
+            super().save_formset(request, form, formset, change)
+            return
         _auto_dir = self._forced_direction if self._forced_direction != Transaction.Direction.TRANSFER else None
         instances = formset.save(commit=False)
         for instance in instances:
@@ -432,6 +437,9 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
         return form
 
     def save_formset(self, request, form, formset, change):
+        if formset.model is not TransactionItem:
+            super(BaseTransactionAdmin, self).save_formset(request, form, formset, change)
+            return
         instances = formset.save(commit=False)
         for instance in instances:
             instance.direction = Transaction.Direction.IN
@@ -454,9 +462,10 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
 
 @admin.register(ExpenseTransaction)
 class ExpenseTransactionAdmin(BaseTransactionAdmin):
-    _forced_direction = Transaction.Direction.OUT
-    inlines           = [ExpenseTransactionItemInline]
-    list_display      = ['id', 'pic', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
+    _forced_direction   = Transaction.Direction.OUT
+    inlines             = [ExpenseTransactionItemInline]
+    list_display        = ['id', 'pic', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
+    change_form_template = 'admin/ql/expensetransaction/change_form.html'
 
     @admin.display(description='PIC', ordering='user')
     def pic(self, obj):
@@ -466,6 +475,18 @@ class ExpenseTransactionAdmin(BaseTransactionAdmin):
         form = super().get_form(request, obj, **kwargs)
         form.base_fields['user'].label = 'PIC'
         return form
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        # Proofs attach to the concrete Transaction content type, so the same
+        # asset manager works for any owning model in the future.
+        ct = ContentType.objects.get_for_model(Transaction)
+        extra_context = {
+            **(extra_context or {}),
+            'asset_content_type_id': ct.id,
+            'asset_object_id': object_id,
+            'asset_purpose': 'expense_proof',
+        }
+        return super().change_view(request, object_id, form_url, extra_context)
 
 
 @admin.register(TransferTransaction)
