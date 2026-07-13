@@ -3,16 +3,14 @@
 {% for choice in choices %}
 <form method="get" style="padding:0 8px 8px;">
   {# Preserve all other active filters #}
-  {% for k, v in request.GET.items %}
-    {% if k != choice.gte_param and k != choice.lte_param and k != 'p' %}
-      <input type="hidden" name="{{ k }}" value="{{ v }}">
-    {% endif %}
+  {% for k, v in choice.other_params %}
+    <input type="hidden" name="{{ k }}" value="{{ v }}">
   {% endfor %}
   <label style="display:block;font-size:12px;margin-bottom:2px;">{% translate 'From' %}</label>
-  <input type="date" name="{{ choice.gte_param }}" value="{{ choice.date_from }}"
+  <input type="datetime-local" name="{{ choice.gte_param }}" value="{{ choice.date_from }}"
          style="width:100%;padding:4px 6px;box-sizing:border-box;margin-bottom:8px;">
   <label style="display:block;font-size:12px;margin-bottom:2px;">{% translate 'To' %}</label>
-  <input type="date" name="{{ choice.lte_param }}" value="{{ choice.date_to }}"
+  <input type="datetime-local" name="{{ choice.lte_param }}" value="{{ choice.date_to }}"
          style="width:100%;padding:4px 6px;box-sizing:border-box;margin-bottom:10px;">
   <div style="display:flex;gap:6px;">
     <button type="submit" class="button" style="flex:1;font-size:12px;">{% translate 'Apply' %}</button>
