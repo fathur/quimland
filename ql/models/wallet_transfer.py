@@ -43,3 +43,7 @@ class WalletTransfer(TimestampMixin):
                 ).update(transfer=self)
         else:
             super().save(*args, **kwargs)
+
+
+    def __str__(self):
+        return f'Transfer #{self.pk} | {self.from_wallet} → {self.to_wallet} | {self.nominal:,}'
