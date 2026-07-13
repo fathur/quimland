@@ -114,11 +114,12 @@ _TRANSACTIONS_APP = {
             'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
         },
         {
-            'name': 'Transfers',
-            'object_name': 'TransferTransaction',
-            'admin_url': '/admin/ql/transfertransaction/',
-            'add_url': '/admin/ql/transfertransaction/add/',
-            'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
+            'name': 'All Transactions',
+            'object_name': 'AllTransaction',
+            'admin_url': '/admin/ql/alltransaction/',
+            'add_url': None,
+            'view_only': True,
+            'perms': {'add': False, 'change': False, 'delete': False, 'view': True},
         },
     ],
 }
@@ -129,7 +130,7 @@ _original_each_context = admin.site.__class__.each_context
 def _each_context(self, request):
     ctx = _original_each_context(self, request)
     filtered_apps = []
-    proxy_labels = {'incometransaction', 'expensetransaction', 'transfertransaction'}
+    proxy_labels = {'incometransaction', 'expensetransaction', 'transfertransaction', 'alltransaction'}
     for app in ctx.get('available_apps', []):
         if app.get('app_label') == 'ql':
             models = [m for m in app['models'] if m['object_name'].lower() not in proxy_labels]

@@ -80,3 +80,10 @@ class TransferTransaction(Transaction):
         proxy = True
         verbose_name        = 'Transfer'
         verbose_name_plural = 'Transfers'
+
+
+class AllTransaction(Transaction):
+    class Meta:
+        proxy = True
+        verbose_name        = 'Transaction'
+        verbose_name_plural = 'Transactions'

@@ -1,38 +1,55 @@
-from django import forms
+from decimal import Decimal
+
 from django.contrib import admin
+from django.db.models import Sum
 
-from ql.models import Transaction, TransactionItem, TransferTransaction
-from .base import BaseTransactionAdmin, FundGroupedSelect
-
-
-class TransferTransactionItemForm(forms.ModelForm):
-    class Meta:
-        model   = TransactionItem
-        fields  = ['fund', 'direction', 'nominal']
-        widgets = {'fund': FundGroupedSelect}
-
-    def clean(self):
-        cleaned_data = super().clean()
-        fund      = cleaned_data.get('fund')
-        direction = cleaned_data.get('direction')
-
-        if not fund:
-            return cleaned_data
-
-        if not direction:
-            self.add_error('direction', 'Required for transfer items.')
-
-        return cleaned_data
+from ql.models import AllTransaction, Transaction
+from ql.utils import fmt_rupiah
+from .base import OccurredAtRangeFilter
 
 
-class TransferTransactionItemInline(admin.TabularInline):
-    model  = TransactionItem
-    form   = TransferTransactionItemForm
-    extra  = 0
-    fields = ['fund', 'direction', 'nominal']
+class AllTransactionAdmin(admin.ModelAdmin):
+    list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'note_short']
+    list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
+    search_fields       = ['user__username', 'user__first_name', 'user__last_name', 'note']
+    ordering            = ['-occurred_at', '-created_at']
+    readonly_fields     = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note',
+                           'creator', 'created_at', 'updated_at']
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request)
+            .filter(direction__in=[Transaction.Direction.IN, Transaction.Direction.OUT])
+            .filter(transfer__isnull=True)
+        )
+
+    def has_add_permission(self, request):  # noqa: ARG002
+        return False
+
+    def has_change_permission(self, request, obj=None):  # noqa: ARG002
+        return False
+
+    def has_delete_permission(self, request, obj=None):  # noqa: ARG002
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        response = super().changelist_view(request, extra_context)
+        try:
+            qs = response.context_data['cl'].queryset
+            total = qs.aggregate(total=Sum('nominal'))['total'] or Decimal('0')
+            response.context_data['nominal_total'] = fmt_rupiah(total)
+            response.context_data['nominal_total_count'] = qs.count()
+        except (AttributeError, KeyError):
+            pass
+        return response
+
+    @admin.display(description='Nominal', ordering='nominal')
+    def nominal_display(self, obj):
+        return fmt_rupiah(obj.nominal)
+
+    @admin.display(description='Note')
+    def note_short(self, obj):
+        return (obj.note[:60] + '…') if len(obj.note) > 60 else obj.note
 
 
-@admin.register(TransferTransaction)
-class TransferTransactionAdmin(BaseTransactionAdmin):
-    _forced_direction = Transaction.Direction.TRANSFER
-    inlines           = [TransferTransactionItemInline]
+admin.site.register(AllTransaction, AllTransactionAdmin)
