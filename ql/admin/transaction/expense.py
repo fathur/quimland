@@ -52,7 +52,7 @@ class ExpenseTransactionItemInline(admin.TabularInline):
 class ExpenseTransactionAdmin(BaseTransactionAdmin):
     _forced_direction    = Transaction.Direction.OUT
     inlines              = [ExpenseTransactionItemInline]
-    list_display         = ['id', 'occurred_at', 'wallet', 'direction', 'nominal_display', 'pic', 'receipt_icon', 'note_short']
+    list_display         = ['id', 'occurred_at', 'wallet', 'nominal_display', 'pic', 'receipt_icon', 'note_short']
     change_form_template = 'admin/ql/expensetransaction/change_form.html'
 
     @admin.display(description='PIC', ordering='user')
