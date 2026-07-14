@@ -2,6 +2,10 @@ from decimal import Decimal
 
 from django.contrib import admin
 from django.db.models import Q, Sum
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.urls import path
+from django.utils import timezone
 from django.utils.html import format_html
 
 from ql.models import AllTransaction, Transaction
@@ -19,6 +23,42 @@ class AllTransactionAdmin(admin.ModelAdmin):
 
     class Media:
         css = {'all': ['admin/css/transaction_highlight.css']}
+
+    def get_urls(self):
+        return [
+            path('export-pdf/', self.admin_site.admin_view(self.export_pdf_view), name='ql_alltransaction_export_pdf'),
+        ] + super().get_urls()
+
+    def export_pdf_view(self, request):
+        import weasyprint
+
+        cl  = self.get_changelist_instance(request)
+        qs  = cl.get_queryset(request).select_related('user', 'user__properties', 'wallet')
+
+        agg = qs.aggregate(
+            income=Sum('nominal', filter=Q(direction=Transaction.Direction.IN)),
+            expense=Sum('nominal', filter=Q(direction=Transaction.Direction.OUT)),
+        )
+        income  = agg['income']  or Decimal('0')
+        expense = agg['expense'] or Decimal('0')
+        balance = income - expense
+
+        html = render_to_string('admin/ql/alltransaction/export_pdf.html', {
+            'transactions':    qs,
+            'income_total':    fmt_rupiah(income),
+            'expense_total':   fmt_rupiah(expense),
+            'balance_total':   fmt_rupiah(balance),
+            'balance_negative': balance < 0,
+            'exported_at':     timezone.localtime(timezone.now()),
+            'exported_by':     request.user,
+            'count':           qs.count(),
+        })
+
+        pdf = weasyprint.HTML(string=html).write_pdf()
+        filename = f"transactions-{timezone.localdate()}.pdf"
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
     def get_queryset(self, request):
         return (

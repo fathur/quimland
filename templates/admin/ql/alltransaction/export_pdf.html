@@ -1,0 +1,198 @@
+{% load ql_filters %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm;
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8px;
+      color: #9ca3af;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    color: #1f2937;
+    line-height: 1.4;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #1e3a5f;
+    padding-bottom: 7px;
+    margin-bottom: 12px;
+  }
+  .header-left h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e3a5f;
+    letter-spacing: -0.3px;
+  }
+  .header-left p {
+    font-size: 9px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+    font-size: 9px;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+
+  /* ── Summary cards ── */
+  .summary {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .card {
+    flex: 1;
+    border-radius: 5px;
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+  }
+  .card-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #6b7280;
+    margin-bottom: 3px;
+  }
+  .card-value {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .card--income  { background: #eff6ff; border-color: #bfdbfe; }
+  .card--income .card-value  { color: #1d4ed8; }
+  .card--expense { background: #fef2f2; border-color: #fecaca; }
+  .card--expense .card-value { color: #b91c1c; }
+  .card--balance { background: #f0fdf4; border-color: #bbf7d0; }
+  .card--balance .card-value { color: #15803d; }
+  .card--balance.negative { background: #fef2f2; border-color: #fecaca; }
+  .card--balance.negative .card-value { color: #b91c1c; }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 9px;
+  }
+  thead tr {
+    background: #1e3a5f;
+    color: #ffffff;
+  }
+  thead th {
+    padding: 5px 6px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  thead th.right { text-align: right; }
+
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:nth-child(odd)  { background: #ffffff; }
+  tbody tr.highlight-warning { background: #fef9c3; }
+  tbody tr.highlight-danger  { background: #fee2e2; }
+
+  tbody td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  tbody td.right  { text-align: right; }
+  tbody td       { color: #111827; }
+  tbody td.muted  { color: #6b7280; }
+  tbody td.note   { max-width: 120px; word-break: break-word; }
+
+  .dir-in  { color: #1d4ed8; font-weight: 700; }
+  .dir-out { color: #b91c1c; font-weight: 700; }
+
+  /* ── Footer note ── */
+  .footer-note {
+    margin-top: 12px;
+    font-size: 8px;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Transaction Report</h1>
+    <p>{{ count }} transaction{{ count|pluralize }}</p>
+  </div>
+  <div class="header-right">
+    <div>Exported on {{ exported_at|date:"d M Y, H:i" }}</div>
+    <div>By {{ exported_by.get_full_name|default:exported_by.username }}</div>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="card card--income">
+    <div class="card-label">Income</div>
+    <div class="card-value">{{ income_total }}</div>
+  </div>
+  <div class="card card--expense">
+    <div class="card-label">Expense</div>
+    <div class="card-value">{{ expense_total }}</div>
+  </div>
+  <div class="card card--balance{% if balance_negative %} negative{% endif %}">
+    <div class="card-label">Balance</div>
+    <div class="card-value">{{ balance_total }}</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Date &amp; Time</th>
+      <th>Dir</th>
+      <th>Wallet</th>
+      <th>User</th>
+      <th class="right">Nominal</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for tx in transactions %}
+    <tr{% if tx.highlight %} class="highlight-{{ tx.highlight }}"{% endif %}>
+      <td class="muted">{{ tx.id }}</td>
+      <td style="white-space:nowrap;">{{ tx.occurred_at|date:"d M Y H:i:s" }}</td>
+      <td>
+        {% if tx.direction == "IN" %}<span class="dir-in">IN</span>
+        {% else %}<span class="dir-out">OUT</span>{% endif %}
+      </td>
+      <td>{{ tx.wallet|default:"—" }}</td>
+      <td>{{ tx.user.get_full_name|default:tx.user.username }}{% with home=tx.user.properties.home_number %}{% if home %} ({{ home }}){% endif %}{% endwith %}</td>
+      <td class="right">{{ tx.nominal|rupiah }}</td>
+      <td class="note">{{ tx.note|truncatechars:60 }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="text-align:center;padding:16px;color:#9ca3af;">No transactions found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="footer-note">Generated by Quimland &mdash; {{ exported_at|date:"d M Y, H:i" }}</div>
+
+</body>
+</html>
