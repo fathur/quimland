@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib import admin
 from django.db.models import Q, Sum
+from django.utils.html import format_html
 
 from ql.models import AllTransaction, Transaction
 from ql.utils import fmt_rupiah
@@ -9,12 +10,15 @@ from .base import OccurredAtRangeFilter
 
 
 class AllTransactionAdmin(admin.ModelAdmin):
-    list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'note_short']
+    list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'note_short', 'highlight_row']
     list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
     search_fields       = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     readonly_fields     = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note',
-                           'creator', 'created_at', 'updated_at']
+                           'highlight', 'creator', 'created_at', 'updated_at']
+
+    class Media:
+        css = {'all': ['admin/css/transaction_highlight.css']}
 
     def get_queryset(self, request):
         return (
@@ -51,6 +55,12 @@ class AllTransactionAdmin(admin.ModelAdmin):
         except (AttributeError, KeyError):
             pass
         return response
+
+    @admin.display(description='')
+    def highlight_row(self, obj):
+        if obj.highlight:
+            return format_html('<span class="row-hl row-hl--{}" hidden></span>', obj.highlight)
+        return ''
 
     @admin.display(description='Nominal', ordering='nominal')
     def nominal_display(self, obj):

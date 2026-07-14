@@ -43,6 +43,13 @@ class Transaction(TimestampMixin):
         null=True, blank=True, editable=False,
         related_name='legs',
     )
+    class Highlight(models.TextChoices):
+        NONE    = '',        'None'
+        WARNING = 'warning', 'Warning'
+        DANGER  = 'danger',  'Danger'
+
+    highlight = models.CharField(max_length=10, choices=Highlight, blank=True, default='')
+
     # Polymorphic attachments (e.g. shopping proof for expenses). Reverse side
     # of Asset's GenericForeignKey; lets a transaction hold many proof files
     # and cascade-deletes them with the transaction.

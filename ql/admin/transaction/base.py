@@ -45,7 +45,8 @@ class TransactionAdminForm(forms.ModelForm):
 
     class Meta:
         model   = Transaction
-        exclude = ['receipt', 'direction']
+        exclude  = ['receipt', 'direction']
+        widgets  = {'highlight': forms.RadioSelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -74,6 +75,9 @@ class BaseTransactionAdmin(admin.ModelAdmin):
             # .filter(transfer__isnull=True)
         )
 
+    class Media:
+        css = {'all': ['admin/css/transaction_highlight.css']}
+
     def get_fields(self, request, obj=None):
         fields = ['nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image']
         if obj and obj.receipt:
@@ -93,7 +97,9 @@ class BaseTransactionAdmin(admin.ModelAdmin):
             ('Receipt', {'fields': receipt_fields}),
         ]
         if obj:
-            fieldsets.append(('Audit', {'fields': ['creator', 'created_at', 'updated_at'], 'classes': ['collapse']}))
+            fieldsets.append(('Audit', {'fields': ['highlight', 'creator', 'created_at', 'updated_at'], 'classes': ['collapse']}))
+        else:
+            fieldsets.append(('Highlight', {'fields': ['highlight'], 'classes': ['collapse']}))
         return fieldsets
 
     def save_model(self, request, obj, form, change):
@@ -165,6 +171,12 @@ class BaseTransactionAdmin(admin.ModelAdmin):
             obj.delete()
         formset.save_m2m()
         self._check_nominal_mismatch(request, form.instance)
+
+    @admin.display(description='')
+    def highlight_row(self, obj):
+        if obj.highlight:
+            return format_html('<span class="row-hl row-hl--{}" hidden></span>', obj.highlight)
+        return ''
 
     @admin.display(description='Nominal', ordering='nominal')
     def nominal_display(self, obj):

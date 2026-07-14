@@ -1,0 +1,43 @@
+/* Light mode */
+#result_list tbody tr:has(.row-hl--warning) {
+    background-color: #fef9c3;
+}
+#result_list tbody tr:has(.row-hl--warning):hover {
+    background-color: #fef08a;
+}
+#result_list tbody tr:has(.row-hl--danger) {
+    background-color: #fee2e2;
+}
+#result_list tbody tr:has(.row-hl--danger):hover {
+    background-color: #fecaca;
+}
+
+/* Dark mode — system preference */
+@media (prefers-color-scheme: dark) {
+    #result_list tbody tr:has(.row-hl--warning) {
+        background-color: rgba(202, 138, 4, 0.3);
+    }
+    #result_list tbody tr:has(.row-hl--warning):hover {
+        background-color: rgba(202, 138, 4, 0.45);
+    }
+    #result_list tbody tr:has(.row-hl--danger) {
+        background-color: rgba(185, 28, 28, 0.4);
+    }
+    #result_list tbody tr:has(.row-hl--danger):hover {
+        background-color: rgba(185, 28, 28, 0.55);
+    }
+}
+
+/* Dark mode — Django admin manual toggle */
+[data-theme="dark"] #result_list tbody tr:has(.row-hl--warning) {
+    background-color: rgba(202, 138, 4, 0.3);
+}
+[data-theme="dark"] #result_list tbody tr:has(.row-hl--warning):hover {
+    background-color: rgba(202, 138, 4, 0.45);
+}
+[data-theme="dark"] #result_list tbody tr:has(.row-hl--danger) {
+    background-color: rgba(185, 28, 28, 0.4);
+}
+[data-theme="dark"] #result_list tbody tr:has(.row-hl--danger):hover {
+    background-color: rgba(185, 28, 28, 0.55);
+}

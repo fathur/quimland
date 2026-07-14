@@ -161,7 +161,9 @@ class IncomeTransactionItemInline(admin.TabularInline):
 class IncomeTransactionAdmin(BaseTransactionAdmin):
     _forced_direction = Transaction.Direction.IN
     inlines           = [IncomeTransactionItemInline]
-    list_display      = ['id', 'occurred_at', 'wallet', 'nominal_display', 'resident', 'receipt_icon', 'note_short']
+    list_display      = ['id', 'occurred_at', 'wallet', 'nominal_display', 'resident', 'receipt_icon', 'note_short', 'highlight_row']
+
+
 
     @admin.display(description='Resident', ordering='user')
     def resident(self, obj):
