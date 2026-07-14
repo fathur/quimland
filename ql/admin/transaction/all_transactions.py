@@ -8,6 +8,8 @@ from django.urls import path
 from django.utils import timezone
 from django.utils.html import format_html
 
+from django.contrib.contenttypes.models import ContentType
+
 from ql.models import AllTransaction, Transaction
 from ql.utils import fmt_rupiah
 from .base import OccurredAtRangeFilter
@@ -66,6 +68,17 @@ class AllTransactionAdmin(admin.ModelAdmin):
             .filter(direction__in=[Transaction.Direction.IN, Transaction.Direction.OUT])
             # .filter(transfer__isnull=True)
         )
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        obj = self.get_object(request, object_id)
+        ct  = ContentType.objects.get_for_model(Transaction)
+        extra_context = {
+            **(extra_context or {}),
+            'asset_content_type_id': ct.id,
+            'asset_object_id':       object_id,
+            'receipt_url': obj.receipt.image.url if obj and obj.receipt and obj.receipt.image else None,
+        }
+        return super().change_view(request, object_id, form_url, extra_context)
 
     def has_add_permission(self, request):  # noqa: ARG002
         return False
