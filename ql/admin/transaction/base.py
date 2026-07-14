@@ -75,6 +75,11 @@ class BaseTransactionAdmin(admin.ModelAdmin):
             # .filter(transfer__isnull=True)
         )
 
+    def has_change_permission(self, request, obj=None):
+        if obj is not None and obj.transfer_id:
+            return False
+        return super().has_change_permission(request, obj)
+
     class Media:
         css = {'all': ['admin/css/transaction_highlight.css']}
 
