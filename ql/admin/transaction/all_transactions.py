@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import admin
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.urls import path
@@ -89,6 +89,30 @@ class AllTransactionAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):  # noqa: ARG002
         return False
 
+    def _imbalance_data(self):
+        mismatched = list(
+            Transaction.objects
+            .filter(transfer__isnull=True)
+            .annotate(total_items=Sum('items__nominal'))
+            .filter(~Q(nominal=F('total_items')) | Q(total_items__isnull=True))
+            .select_related('wallet', 'user')
+            .order_by('-occurred_at')
+        )
+        contaminated = list(
+            Transaction.objects
+            .filter(transfer__isnull=False)
+            .annotate(total_items=Sum('items__nominal'))
+            .filter(total_items__isnull=False)
+            .select_related('wallet', 'user')
+            .order_by('-occurred_at')
+        )
+        return {
+            'imbalance_mismatched':           mismatched,
+            'imbalance_mismatched_count':     len(mismatched),
+            'imbalance_contaminated':         contaminated,
+            'imbalance_contaminated_count':   len(contaminated),
+        }
+
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         try:
@@ -105,6 +129,7 @@ class AllTransactionAdmin(admin.ModelAdmin):
             response.context_data['balance_total'] = fmt_rupiah(balance)
             response.context_data['balance_negative'] = balance < 0
             response.context_data['nominal_total_count'] = qs.count()
+            response.context_data.update(self._imbalance_data())
         except (AttributeError, KeyError):
             pass
         return response
