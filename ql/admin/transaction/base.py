@@ -61,7 +61,7 @@ class BaseTransactionAdmin(admin.ModelAdmin):
     form                = TransactionAdminForm
     list_display        = ['id', 'user', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
     list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
-    search_fields       = ['user__username', 'user__first_name', 'user__last_name', 'note']
+    search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
     readonly_fields     = ['creator', 'created_at', 'updated_at', 'receipt_preview']
