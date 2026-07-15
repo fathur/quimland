@@ -35,3 +35,7 @@ def get_receipt_storage():
 
 def get_asset_storage():
     return _get_secure_storage()
+
+
+def get_report_storage():
+    return _get_secure_storage()

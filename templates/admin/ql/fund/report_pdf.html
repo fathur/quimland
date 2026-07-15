@@ -1,0 +1,497 @@
+{% load ql_filters %}<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 30mm 18mm 22mm;
+    @top-left {
+      content: element(pageHeaderLeft);
+    }
+    @top-right {
+      content: element(pageHeaderRight);
+    }
+    @bottom-left {
+      content: element(pageFooter);
+    }
+    @bottom-right {
+      content: "Halaman " counter(page) " dari " counter(pages);
+      font-size: 8px;
+      color: #9aa0a6;
+    }
+  }
+  @page :first {
+    margin: 0;
+    @top-left { content: none; }
+    @top-right { content: none; }
+    @bottom-left { content: none; }
+    @bottom-right { content: none; }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10.5px;
+    color: #1c2b23;
+    line-height: 1.55;
+  }
+
+  /* ══════════════════════════ Cover page ══════════════════════════ */
+  .cover {
+    page: cover;
+    page-break-after: always;
+    height: 297mm;
+    width: 210mm;
+    background: linear-gradient(160deg, #143125 0%, #1c4433 45%, #2f6b4f 100%);
+    color: #eaf4ee;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 26mm 20mm;
+  }
+  .cover-kicker {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #b9d8c4;
+    font-weight: 600;
+  }
+  .cover-brand {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #eaf4ee;
+    margin-top: 4px;
+  }
+  .cover-main { margin-top: auto; margin-bottom: auto; }
+  .cover-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    max-width: 130mm;
+  }
+  .cover-fund-name {
+    font-size: 40px;
+    font-weight: 600;
+    color: #b9d8c4;
+    margin-top: 10px;
+  }
+  .cover-status {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: rgba(234, 244, 238, 0.14);
+    border: 1px solid rgba(234, 244, 238, 0.35);
+  }
+  .cover-meta {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid rgba(234, 244, 238, 0.25);
+    padding-top: 14px;
+    font-size: 9px;
+    color: #b9d8c4;
+  }
+  .cover-meta div div:first-child {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 8px;
+    color: #8fbfa1;
+    margin-bottom: 3px;
+  }
+  .cover-meta div div:last-child {
+    color: #eaf4ee;
+    font-weight: 600;
+    font-size: 10.5px;
+  }
+
+  /* ══════════════════════════ Running header (defined once, repeated by @page) ══════════════════════════ */
+  #page-header-left {
+    position: running(pageHeaderLeft);
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #1c4433;
+  }
+  #page-header-left span {
+    font-weight: 400;
+    color: #5a7666;
+  }
+  #page-header-right {
+    position: running(pageHeaderRight);
+    font-size: 8.5px;
+    color: #5a7666;
+    text-align: right;
+  }
+
+  /* ══════════════════════════ Running footer (defined once, repeated by @page) ══════════════════════════ */
+  #page-footer {
+    position: running(pageFooter);
+    font-size: 8px;
+    color: #8fae9c;
+  }
+  #page-footer span {
+    display: block;
+  }
+
+  /* ══════════════════════════ Content pages ══════════════════════════ */
+  .content { padding-top: 0; }
+
+  .section { margin-bottom: 22px; }
+  .section:first-of-type { margin-top: 4px; }
+
+  .section-num {
+    display: inline-block;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #2f6b4f;
+    color: #eaf4ee;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 20px;
+    margin-right: 8px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1c4433;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #dcece1;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+  .section-subtitle {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #2f6b4f;
+    margin: 14px 0 6px;
+    page-break-after: avoid;
+  }
+  .section p {
+    margin-bottom: 8px;
+    text-align: justify;
+    color: #385646;
+  }
+  .section p:last-child { margin-bottom: 0; }
+
+  .placeholder-note {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: #f0f6f2;
+    border-left: 3px solid #8fbfa1;
+    border-radius: 4px;
+    font-size: 8.5px;
+    color: #5a7666;
+    font-style: italic;
+    page-break-inside: avoid;
+  }
+
+  /* Dummy financial table */
+  table.fin {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 9.5px;
+    page-break-inside: avoid;
+  }
+  table.fin caption {
+    text-align: left;
+    font-size: 9px;
+    font-weight: 700;
+    color: #1c4433;
+    margin-bottom: 6px;
+  }
+  table.fin thead tr { background: #2f6b4f; color: #eaf4ee; }
+  table.fin thead th {
+    padding: 7px 9px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  table.fin thead th.right { text-align: right; }
+  table.fin tbody tr:nth-child(even) { background: #f0f6f2; }
+  table.fin tbody td { padding: 6px 9px; border-bottom: 1px solid #e3ece6; color: #1c2b23; }
+  table.fin tbody td.right { text-align: right; font-variant-numeric: tabular-nums; }
+  table.fin tfoot td {
+    padding: 8px 9px;
+    font-weight: 700;
+    border-top: 2px solid #2f6b4f;
+    color: #1c4433;
+  }
+  table.fin tfoot td.right { text-align: right; }
+
+  /* Signature block */
+  .signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    gap: 20px;
+    page-break-inside: avoid;
+  }
+  .signature {
+    flex: 1;
+    text-align: center;
+    font-size: 9px;
+    color: #5a7666;
+  }
+  .signature-line {
+    margin-top: 42px;
+    border-top: 1px solid #b9d8c4;
+    padding-top: 5px;
+    font-weight: 600;
+    color: #1c2b23;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ Cover ══════════════════════════ -->
+<div class="cover">
+  <div>
+    <div class="cover-brand">Quim Land Residence</div>
+  </div>
+
+  <div class="cover-main">
+    <div class="cover-title">Laporan Keuangan</div>
+    <div class="cover-fund-name">{{ fund.name }}</div>
+  </div>
+
+  <div class="cover-meta">
+    <div>
+      <div>Di-trigger Oleh</div>
+      <div>{{ generated_by.get_full_name|default:generated_by.username }}</div>
+    </div>
+    <div>
+      <div>Tanggal Pembuatan</div>
+      <div>{{ generated_at|date:"d F Y, H:i" }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ Running header/footer, rendered once, repeated on every content page by @page ══════════════════════════ -->
+<div id="page-header-left">{{ fund.name }} <span>&middot; Laporan Keuangan</span></div>
+<div id="page-header-right"></div>
+<div id="page-footer">
+  <span>Dokumen ini dibuat secara otomatis oleh sistem Quim Land Residence</span>
+  <span>Dibuat pada {{ generated_at|date:"d M Y, H:i" }}, dan di trigger oleh {{ generated_by.get_full_name|default:generated_by.username }}</span>
+</div>
+
+<!-- ══════════════════════════ Content ══════════════════════════ -->
+<div class="content">
+
+  <!-- ── 1. Pendahuluan ── -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">1</span>Pendahuluan</div>
+
+    <p>
+      Dokumen ini disusun sebagai laporan resmi atas penutupan dana
+      <strong>{{ fund.name }}</strong>. Laporan ini bertujuan untuk memberikan
+      gambaran menyeluruh mengenai pengelolaan dana selama periode berjalan,
+      mencakup ringkasan penerimaan, pengeluaran, serta status akhir saldo
+      pada saat dana dinyatakan ditutup.
+    </p>
+    <p>
+      Penyusunan laporan ini merupakan bagian dari tata kelola keuangan yang
+      transparan dan akuntabel, sehingga seluruh pihak terkait dapat
+      memperoleh informasi yang jelas mengenai penggunaan dana yang telah
+      dikumpulkan, serta dapat menilai kesesuaian antara rencana awal
+      penggalangan dana dengan realisasi yang telah dilaksanakan.
+    </p>
+
+    <div class="section-subtitle">1.1 Latar Belakang</div>
+    <p>
+      Dana ini dibentuk untuk menghimpun kontribusi warga guna membiayai
+      kegiatan atau kebutuhan bersama yang telah disepakati sebelumnya.
+      Selama masa aktifnya, dana dikelola oleh pengurus yang bertanggung
+      jawab atas pencatatan setiap penerimaan dan pengeluaran, serta
+      memastikan penggunaan dana sesuai dengan tujuan awal pembentukannya.
+    </p>
+    <p>
+      Setelah seluruh rangkaian kegiatan atau kebutuhan yang menjadi tujuan
+      pembentukan dana selesai dilaksanakan, dana kemudian dinyatakan
+      ditutup. Penutupan ini menandai berakhirnya siklus pengelolaan dan
+      menjadi dasar bagi disusunnya laporan pertanggungjawaban ini.
+    </p>
+
+    <div class="section-subtitle">1.2 Tujuan Penyusunan Laporan</div>
+    <p>
+      Laporan ini disusun dengan tujuan untuk: (1) memberikan informasi yang
+      akurat mengenai posisi keuangan dana pada saat penutupan; (2) menjadi
+      bahan pertanggungjawaban pengurus kepada seluruh kontributor dan pihak
+      yang berkepentingan; dan (3) menjadi arsip dokumentasi yang dapat
+      dijadikan rujukan di kemudian hari apabila diperlukan.
+    </p>
+
+    <div class="section-subtitle">1.3 Ruang Lingkup</div>
+    <p>
+      Ruang lingkup laporan ini mencakup seluruh transaksi yang tercatat
+      sejak dana dibentuk hingga dinyatakan ditutup, termasuk namun tidak
+      terbatas pada penerimaan kontribusi, realisasi pengeluaran per
+      kategori, serta rekapitulasi saldo akhir. Laporan ini tidak mencakup
+      proyeksi atau rencana penggunaan dana di luar periode pengelolaan
+      yang telah berjalan.
+    </p>
+
+    <div class="placeholder-note">
+      Catatan: bagian ini berisi konten sementara (dummy) untuk keperluan
+      pratinjau tata letak. Narasi pendahuluan akan disesuaikan dengan data
+      dana aktual pada versi mendatang.
+    </div>
+  </div>
+
+  <!-- ── 2. Laporan Keuangan ── -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">2</span>Laporan Keuangan</div>
+
+    <p>
+      Bagian ini menyajikan gambaran arus kas dana selama periode
+      pengelolaan, mulai dari total dana yang berhasil dihimpun, realisasi
+      pengeluaran per kategori, hingga rekapitulasi saldo akhir yang
+      tersisa pada saat dana dinyatakan ditutup.
+    </p>
+
+    <div class="section-subtitle">2.1 Ringkasan Umum</div>
+    <table class="fin">
+      <thead>
+        <tr>
+          <th>Kategori</th>
+          <th class="right">Jumlah</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Total Dana Terkumpul</td><td class="right">Rp 0</td></tr>
+        <tr><td>Total Realisasi Pengeluaran</td><td class="right">Rp 0</td></tr>
+        <tr><td>Sisa Saldo Sebelum Penutupan</td><td class="right">Rp 0</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>Saldo Akhir</td><td class="right">Rp 0</td></tr>
+      </tfoot>
+    </table>
+
+    <div class="section-subtitle">2.2 Rincian Penerimaan per Bulan</div>
+    <p>
+      Tabel berikut merinci penerimaan kontribusi yang tercatat pada
+      setiap periode bulanan selama dana ini aktif dikelola.
+    </p>
+    <table class="fin">
+      <thead>
+        <tr>
+          <th>Periode</th>
+          <th class="right">Jumlah Kontributor</th>
+          <th class="right">Total Penerimaan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Bulan 1</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Bulan 2</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Bulan 3</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Bulan 4</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Bulan 5</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Bulan 6</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>Total</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+      </tfoot>
+    </table>
+
+    <div class="section-subtitle">2.3 Rincian Pengeluaran per Kategori</div>
+    <p>
+      Realisasi pengeluaran dikelompokkan berdasarkan kategori penggunaan
+      untuk memudahkan telaah kesesuaian antara pengeluaran dengan tujuan
+      awal pembentukan dana.
+    </p>
+    <table class="fin">
+      <thead>
+        <tr>
+          <th>Kategori Pengeluaran</th>
+          <th class="right">Jumlah Transaksi</th>
+          <th class="right">Total Pengeluaran</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Kebutuhan Operasional</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Bahan &amp; Perlengkapan</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Jasa &amp; Tenaga Kerja</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Administrasi</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+        <tr><td>Lain-lain</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>Total</td><td class="right">0</td><td class="right">Rp 0</td></tr>
+      </tfoot>
+    </table>
+
+    <p>
+      Seluruh transaksi yang tercatat telah melalui proses verifikasi oleh
+      pengurus sebelum dibukukan. Bukti pendukung untuk setiap transaksi,
+      apabila tersedia, disimpan secara terpisah sebagai lampiran dan dapat
+      diakses melalui sistem pencatatan internal.
+    </p>
+
+    <div class="placeholder-note">
+      Catatan: seluruh nominal dan rincian pada tabel-tabel di atas adalah
+      data contoh (placeholder) dan belum diambil dari basis data transaksi.
+      Nilai aktual akan ditampilkan setelah proses perhitungan data
+      terintegrasi.
+    </div>
+  </div>
+
+  <!-- ── 3. Kesimpulan ── -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">3</span>Kesimpulan</div>
+
+    <p>
+      Berdasarkan uraian pada bagian sebelumnya, pengelolaan dana
+      <strong>{{ fund.name }}</strong> telah dilaksanakan sesuai dengan
+      tujuan penggalangan dana yang telah disepakati bersama, dan dana ini
+      resmi dinyatakan ditutup pada tanggal laporan ini diterbitkan.
+    </p>
+    <p>
+      Seluruh penerimaan dan pengeluaran telah dicatat dan
+      dipertanggungjawabkan sesuai dengan prinsip transparansi dan
+      akuntabilitas yang menjadi acuan dalam pengelolaan dana bersama.
+      Tidak terdapat catatan khusus yang memerlukan tindak lanjut lebih
+      jauh terkait pengelolaan dana ini.
+    </p>
+
+    <div class="section-subtitle">3.1 Rekomendasi</div>
+    <p>
+      Untuk pengelolaan dana serupa di masa mendatang, disarankan agar
+      proses pencatatan dilakukan secara berkala dan konsisten, serta
+      laporan pertanggungjawaban disusun segera setelah dana dinyatakan
+      ditutup guna menjaga relevansi dan akurasi informasi yang disajikan.
+    </p>
+
+    <div class="section-subtitle">3.2 Penutup</div>
+    <p>
+      Demikian laporan ini disusun sebagai bentuk pertanggungjawaban atas
+      pengelolaan dana <strong>{{ fund.name }}</strong>. Laporan ini
+      diharapkan dapat menjadi dokumentasi resmi dan bahan
+      pertanggungjawaban kepada seluruh pihak yang berkepentingan.
+    </p>
+
+    <div class="signatures">
+      <div class="signature">
+        <div class="signature-line">Ketua</div>
+      </div>
+      <div class="signature">
+        <div class="signature-line">Bendahara</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
