@@ -5,7 +5,7 @@
   <li>
     <a href="export-pdf/?{{ request.GET.urlencode }}"
        class="button"
-       style="background:var(--object-tools-bg,#417690);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-size:13px;">
+       style="background:var(--object-tools-bg,#417690);color:#fff;padding:4px 12px;border-radius:4px;text-decoration:none;font-size:0.8125rem;">
       Export PDF
     </a>
   </li>
@@ -15,20 +15,20 @@
 {% block result_list %}
   {% if balance_total %}
   <div style="margin:16px 0;padding:14px 18px;background:var(--darkened-bg);border:1px solid var(--hairline-color);border-radius:8px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
-    <span style="font-size:13px;color:var(--body-quiet-color);">
+    <span style="font-size:0.8125rem;color:var(--body-quiet-color);">
       {% blocktranslate with count=nominal_total_count %}Total ({{ count }} transactions){% endblocktranslate %}
     </span>
     <span style="display:flex;align-items:baseline;gap:8px;">
-      <span style="font-size:13px;color:var(--body-quiet-color);">{% translate 'Income' %}</span>
-      <span style="font-size:18px;font-weight:700;letter-spacing:.01em;color:var(--object-tools-bg,#417690);">{{ income_total }}</span>
+      <span style="font-size:0.8125rem;color:var(--body-quiet-color);">{% translate 'Income' %}</span>
+      <span style="font-size:1.125rem;font-weight:700;letter-spacing:.01em;color:var(--object-tools-bg,#417690);">{{ income_total }}</span>
     </span>
     <span style="display:flex;align-items:baseline;gap:8px;">
-      <span style="font-size:13px;color:var(--body-quiet-color);">{% translate 'Expense' %}</span>
-      <span style="font-size:18px;font-weight:700;letter-spacing:.01em;color:var(--error-fg,#ba2121);">{{ expense_total }}</span>
+      <span style="font-size:0.8125rem;color:var(--body-quiet-color);">{% translate 'Expense' %}</span>
+      <span style="font-size:1.125rem;font-weight:700;letter-spacing:.01em;color:var(--error-fg,#ba2121);">{{ expense_total }}</span>
     </span>
     <span style="display:flex;align-items:baseline;gap:8px;margin-left:auto;">
-      <span style="font-size:13px;color:var(--body-quiet-color);">{% translate 'Balance' %}</span>
-      <span style="font-size:18px;font-weight:700;letter-spacing:.01em;{% if balance_negative %}color:var(--error-fg,#ba2121);{% endif %}">{{ balance_total }}</span>
+      <span style="font-size:0.8125rem;color:var(--body-quiet-color);">{% translate 'Balance' %}</span>
+      <span style="font-size:1.125rem;font-weight:700;letter-spacing:.01em;{% if balance_negative %}color:var(--error-fg,#ba2121);{% endif %}">{{ balance_total }}</span>
     </span>
   </div>
   {% endif %}
@@ -37,20 +37,20 @@
 
   {% if balance_total %}
   <div style="margin:16px 0;padding:14px 18px;background:var(--darkened-bg);border:1px solid var(--hairline-color);border-radius:8px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
-    <span style="font-size:13px;color:var(--body-quiet-color);">
+    <span style="font-size:0.8125rem;color:var(--body-quiet-color);">
       {% blocktranslate with count=nominal_total_count %}Total ({{ count }} transactions){% endblocktranslate %}
     </span>
     <span style="display:flex;align-items:baseline;gap:8px;">
-      <span style="font-size:13px;color:var(--body-quiet-color);">{% translate 'Income' %}</span>
-      <span style="font-size:18px;font-weight:700;letter-spacing:.01em;color:var(--object-tools-bg,#417690);">{{ income_total }}</span>
+      <span style="font-size:0.8125rem;color:var(--body-quiet-color);">{% translate 'Income' %}</span>
+      <span style="font-size:1.125rem;font-weight:700;letter-spacing:.01em;color:var(--object-tools-bg,#417690);">{{ income_total }}</span>
     </span>
     <span style="display:flex;align-items:baseline;gap:8px;">
-      <span style="font-size:13px;color:var(--body-quiet-color);">{% translate 'Expense' %}</span>
-      <span style="font-size:18px;font-weight:700;letter-spacing:.01em;color:var(--error-fg,#ba2121);">{{ expense_total }}</span>
+      <span style="font-size:0.8125rem;color:var(--body-quiet-color);">{% translate 'Expense' %}</span>
+      <span style="font-size:1.125rem;font-weight:700;letter-spacing:.01em;color:var(--error-fg,#ba2121);">{{ expense_total }}</span>
     </span>
     <span style="display:flex;align-items:baseline;gap:8px;margin-left:auto;">
-      <span style="font-size:13px;color:var(--body-quiet-color);">{% translate 'Balance' %}</span>
-      <span style="font-size:18px;font-weight:700;letter-spacing:.01em;{% if balance_negative %}color:var(--error-fg,#ba2121);{% endif %}">{{ balance_total }}</span>
+      <span style="font-size:0.8125rem;color:var(--body-quiet-color);">{% translate 'Balance' %}</span>
+      <span style="font-size:1.125rem;font-weight:700;letter-spacing:.01em;{% if balance_negative %}color:var(--error-fg,#ba2121);{% endif %}">{{ balance_total }}</span>
     </span>
   </div>
   {% endif %}
@@ -58,7 +58,7 @@
   {% if imbalance_mismatched_count or imbalance_contaminated_count %}
   {% with total_issues=imbalance_mismatched_count|add:imbalance_contaminated_count %}
   <details class="module" style="margin-top:24px;">
-    <summary style="padding:8px 12px;cursor:pointer;font-weight:600;font-size:13px;list-style:none;display:flex;align-items:center;gap:8px;color:var(--error-fg,#ba2121);">
+    <summary style="padding:8px 12px;cursor:pointer;font-weight:600;font-size:0.8125rem;list-style:none;display:flex;align-items:center;gap:8px;color:var(--error-fg,#ba2121);">
       <span id="imbalance-arrow" style="display:inline-block;transition:transform .15s;">&#9654;</span>
       {% blocktranslate with n=total_issues %}Imbalance Check — {{ n }} issue(s) found{% endblocktranslate %}
     </summary>
@@ -70,31 +70,31 @@
 
     {% if imbalance_mismatched %}
     <div style="padding:12px 14px 0;">
-      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--body-quiet-color);margin-bottom:8px;">
+      <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--body-quiet-color);margin-bottom:8px;">
         {% blocktranslate with n=imbalance_mismatched_count %}Imbalanced transactions ({{ n }}){% endblocktranslate %}
       </h3>
       <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">ID</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Date</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Dir</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Wallet</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">User</th>
-            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Nominal</th>
-            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Sum Items</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">ID</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Date</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Dir</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Wallet</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">User</th>
+            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Nominal</th>
+            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Sum Items</th>
           </tr>
         </thead>
         <tbody>
           {% for tx in imbalance_mismatched %}
           <tr>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;"><a href="{{ tx.id }}/change/">{{ tx.id }}</a></td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;white-space:nowrap;">{{ tx.occurred_at|date:"d M Y" }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">{{ tx.direction }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">{{ tx.wallet|default:"—" }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">{{ tx.user.get_full_name|default:tx.user.username }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;text-align:right;font-family:monospace;">{{ tx.nominal }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;text-align:right;font-family:monospace;color:var(--error-fg,#ba2121);">
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;"><a href="{{ tx.id }}/change/">{{ tx.id }}</a></td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;white-space:nowrap;">{{ tx.occurred_at|date:"d M Y" }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">{{ tx.direction }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">{{ tx.wallet|default:"—" }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">{{ tx.user.get_full_name|default:tx.user.username }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;text-align:right;font-family:monospace;">{{ tx.nominal }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;text-align:right;font-family:monospace;color:var(--error-fg,#ba2121);">
               {% if tx.total_items is not None %}{{ tx.total_items }}{% else %}<em>no items</em>{% endif %}
             </td>
           </tr>
@@ -106,33 +106,33 @@
 
     {% if imbalance_contaminated %}
     <div style="padding:12px 14px;">
-      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--body-quiet-color);margin-bottom:8px;">
+      <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--body-quiet-color);margin-bottom:8px;">
         {% blocktranslate with n=imbalance_contaminated_count %}Transfer legs with items attached ({{ n }}){% endblocktranslate %}
       </h3>
       <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">ID</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Date</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Dir</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Transfer #</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Wallet</th>
-            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">User</th>
-            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Nominal</th>
-            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:11px;">Sum Items</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">ID</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Date</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Dir</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Transfer #</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Wallet</th>
+            <th style="text-align:left;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">User</th>
+            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Nominal</th>
+            <th style="text-align:right;padding:6px 8px;background:var(--darkened-bg);border:1px solid var(--hairline-color);font-size:0.6875rem;">Sum Items</th>
           </tr>
         </thead>
         <tbody>
           {% for tx in imbalance_contaminated %}
           <tr>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;"><a href="{{ tx.id }}/change/">{{ tx.id }}</a></td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;white-space:nowrap;">{{ tx.occurred_at|date:"d M Y" }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">{{ tx.direction }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">#{{ tx.transfer_id }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">{{ tx.wallet|default:"—" }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;">{{ tx.user.get_full_name|default:tx.user.username }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;text-align:right;font-family:monospace;">{{ tx.nominal }}</td>
-            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:12px;text-align:right;font-family:monospace;color:var(--error-fg,#ba2121);">{{ tx.total_items }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;"><a href="{{ tx.id }}/change/">{{ tx.id }}</a></td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;white-space:nowrap;">{{ tx.occurred_at|date:"d M Y" }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">{{ tx.direction }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">#{{ tx.transfer_id }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">{{ tx.wallet|default:"—" }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;">{{ tx.user.get_full_name|default:tx.user.username }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;text-align:right;font-family:monospace;">{{ tx.nominal }}</td>
+            <td style="padding:5px 8px;border:1px solid var(--hairline-color);font-size:0.75rem;text-align:right;font-family:monospace;color:var(--error-fg,#ba2121);">{{ tx.total_items }}</td>
           </tr>
           {% endfor %}
         </tbody>

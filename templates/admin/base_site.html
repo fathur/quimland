@@ -15,105 +15,172 @@
 {% block extrastyle %}
 {{ block.super }}
 <style>
-/* ── Green theme · light ─────────────────────────────────────── */
+/*
+ * Shrink the type scale. Django admin sizes everything in rem
+ * against the root <html> font-size (default 16px browser base,
+ * body itself is 0.875rem = 14px on top of that). Scaling the
+ * root down scales every rem-based rule — h1, h2, p, table cells,
+ * breadcrumbs, buttons — by the same factor, so the proportions
+ * Django already designed (h1:body, label:input, etc.) are kept
+ * intact; nothing needs per-element overrides.
+ */
+html { font-size: 87.5%; } /* 16px → 14px root; body 0.875rem → 12.25px */
+
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  Sage-Forest · eye-comfort green theme
+ *  Single-hue scale (~155°). Large surfaces desaturated, accents
+ *  saturated. No pure #fff / #000. All text pairs verified ≥4.5:1.
+ *
+ *  50  #f0f6f2   500 #3d8362  (primary interactive)
+ *  100 #dcece1   600 #2f6b4f  (header / secondary · 6.3:1 on white)
+ *  200 #b9d8c4   700 #245540
+ *  300 #8fbfa1   800 #1c4433
+ *  400 #5fa07e   900 #143125
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Light · restful paper-green, never stark white ──────────── */
 html[data-theme="light"],
 :root {
-  --primary:    #74c69d;
-  --secondary:  #2d6a4f;
-  --accent:     #d8f3dc;
-  --primary-fg: #fff;
+  --primary:    #3d8362;
+  --secondary:  #2f6b4f;
+  --accent:     #dcece1;
+  --primary-fg: #ffffff;
 
-  --header-color:           #d8f3dc;
-  --header-branding-color:  #d8f3dc;
-  --header-bg:              var(--secondary);
-  --header-link-color:      var(--primary-fg);
+  --body-fg:           #1c2b23;
+  --body-bg:           #f4f7f5;   /* soft green-white cuts glare */
+  --body-quiet-color:  #5a7666;
+  --body-medium-color: #385646;
+  --body-loud-color:   #143125;
 
-  --breadcrumbs-bg:       #1b4332;
-  --breadcrumbs-fg:       #b7e4c7;
-  --breadcrumbs-link-fg:  #f0faf4;
+  --header-color:           #eaf4ee;
+  --header-branding-color:  #eaf4ee;
+  --header-bg:              #2f6b4f;
+  --header-link-color:      #ffffff;
 
-  --link-fg:          #2d6a4f;
-  --link-hover-color: #1b4332;
-  --link-selected-fg: #40916c;
+  --breadcrumbs-bg:       #245540;
+  --breadcrumbs-fg:       #b9d8c4;
+  --breadcrumbs-link-fg:  #eaf4ee;
 
-  --selected-bg:  #d8f3dc;
-  --selected-row: #b7e4c7;
+  --link-fg:          #2f6b4f;
+  --link-hover-color: #1c4433;
+  --link-selected-fg: #3d8362;
 
-  --button-bg:               var(--secondary);
-  --button-hover-bg:         #1b4332;
-  --default-button-bg:       #1b4332;
-  --default-button-hover-bg: var(--secondary);
+  --hairline-color: #e3ece6;
+  --border-color:   #d3e0d8;
+
+  --selected-bg:  #dcece1;
+  --selected-row: #eaf4ee;
+
+  --button-bg:               #3d8362;
+  --button-fg:               #ffffff;
+  --button-hover-bg:         #2f6b4f;
+  --default-button-bg:       #2f6b4f;
+  --default-button-hover-bg: #245540;
+
+  --object-tools-bg:         #245540;
+  --object-tools-hover-bg:   #1c4433;
 }
 
-/* ── Green theme · dark ──────────────────────────────────────── */
+/*
+ * ── Dark · graphite canvas, green as accent only ─────────────
+ *  Surfaces are near-neutral charcoal (a whisper of green, hue
+ *  ~160° at ~4% sat) so the UI reads calm, not "themed". Green
+ *  saturates only on interactive bits: links, buttons, brand,
+ *  selection. Text held to ~88% white to avoid halation.
+ *
+ *  bg #16181a · panel #1b1e21 · sunk #101113 · border #30343a
+ *  accent 400 #6cbf94 · 500 #3d8362 · 600 #2f6b4f
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary:    #1a3a2a;
-    --secondary:  #2d6a4f;
-    --primary-fg: #f0faf4;
+    --primary:    #23282b;          /* module caption bars — neutral */
+    --secondary:  #2f6b4f;          /* green accent */
+    --primary-fg: #eef0f1;
 
-    --body-fg:           #d8eee0;
-    --body-bg:           #0f1a12;
-    --body-quiet-color:  #8fbfa0;
-    --body-medium-color: #b0d4bc;
-    --body-loud-color:   #f0faf4;
+    --body-fg:           #dfe1e3;   /* ~88% neutral white */
+    --body-bg:           #16181a;   /* graphite, barely-there green */
+    --body-quiet-color:  #9aa0a6;
+    --body-medium-color: #c0c4c8;
+    --body-loud-color:   #f2f4f5;
 
-    --breadcrumbs-bg:      #162b20;
-    --breadcrumbs-link-fg: #d8eee0;
+    --header-color:           #9aa0a6;
+    --header-branding-color:  #6cbf94;   /* only the brand is green */
+    --header-bg:              #1b1e21;
+    --header-link-color:      #dfe1e3;
 
-    --link-fg:          #74c69d;
-    --link-hover-color: #95d5b2;
-    --link-selected-fg: #52b788;
+    --breadcrumbs-bg:      #101113;
+    --breadcrumbs-fg:      #9aa0a6;
+    --breadcrumbs-link-fg: #6cbf94;
 
-    --hairline-color: #1a2e20;
-    --border-color:   #253d2c;
+    --link-fg:          #6cbf94;
+    --link-hover-color: #8fd3ad;
+    --link-selected-fg: #5fa07e;
 
-    --darkened-bg: #141f17;
-    --selected-bg: #1a3a2a;
-    --selected-row: #163521;
+    --hairline-color: #26292d;
+    --border-color:   #30343a;
 
-    --button-hover-bg:         #40916c;
-    --default-button-bg:       #2d6a4f;
-    --default-button-hover-bg: #40916c;
+    --darkened-bg: #101113;
+    --selected-bg: #223228;         /* muted green-grey highlight */
+    --selected-row: #1a2420;
 
-    --close-button-bg:       #2a3e30;
-    --close-button-hover-bg: #3a5040;
+    --button-bg:               #3d8362;
+    --button-hover-bg:         #4c9873;
+    --default-button-bg:       #2f6b4f;
+    --default-button-hover-bg: #3d8362;
+
+    --object-tools-bg:         #3d8362;
+    --object-tools-hover-bg:   #4c9873;
+
+    --close-button-bg:       #2b2f33;   /* neutral grey */
+    --close-button-hover-bg: #3a3f44;
 
     color-scheme: dark;
   }
 }
 
 html[data-theme="dark"] {
-  --primary:    #1a3a2a;
-  --secondary:  #2d6a4f;
-  --primary-fg: #f0faf4;
+  --primary:    #23282b;
+  --secondary:  #2f6b4f;
+  --primary-fg: #eef0f1;
 
-  --body-fg:           #d8eee0;
-  --body-bg:           #0f1a12;
-  --body-quiet-color:  #8fbfa0;
-  --body-medium-color: #b0d4bc;
-  --body-loud-color:   #f0faf4;
+  --body-fg:           #dfe1e3;
+  --body-bg:           #16181a;
+  --body-quiet-color:  #9aa0a6;
+  --body-medium-color: #c0c4c8;
+  --body-loud-color:   #f2f4f5;
 
-  --breadcrumbs-bg:      #162b20;
-  --breadcrumbs-link-fg: #d8eee0;
+  --header-color:           #9aa0a6;
+  --header-branding-color:  #6cbf94;
+  --header-bg:              #1b1e21;
+  --header-link-color:      #dfe1e3;
 
-  --link-fg:          #74c69d;
-  --link-hover-color: #95d5b2;
-  --link-selected-fg: #52b788;
+  --breadcrumbs-bg:      #101113;
+  --breadcrumbs-fg:      #9aa0a6;
+  --breadcrumbs-link-fg: #6cbf94;
 
-  --hairline-color: #1a2e20;
-  --border-color:   #253d2c;
+  --link-fg:          #6cbf94;
+  --link-hover-color: #8fd3ad;
+  --link-selected-fg: #5fa07e;
 
-  --darkened-bg: #141f17;
-  --selected-bg: #1a3a2a;
-  --selected-row: #163521;
+  --hairline-color: #26292d;
+  --border-color:   #30343a;
 
-  --button-hover-bg:         #40916c;
-  --default-button-bg:       #2d6a4f;
-  --default-button-hover-bg: #40916c;
+  --darkened-bg: #101113;
+  --selected-bg: #223228;
+  --selected-row: #1a2420;
 
-  --close-button-bg:       #2a3e30;
-  --close-button-hover-bg: #3a5040;
+  --button-bg:               #3d8362;
+  --button-hover-bg:         #4c9873;
+  --default-button-bg:       #2f6b4f;
+  --default-button-hover-bg: #3d8362;
+
+  --object-tools-bg:         #3d8362;
+  --object-tools-hover-bg:   #4c9873;
+
+  --close-button-bg:       #2b2f33;
+  --close-button-hover-bg: #3a3f44;
 
   color-scheme: dark;
 }
@@ -147,7 +214,7 @@ html[data-theme="dark"] {
     padding: 8px 4px 10px;
     color: rgba(255,255,255,.8);
     text-decoration: none;
-    font-size: 10px;
+    font-size: 0.625rem;
     line-height: 1;
     transition: color .15s, background .15s;
   }

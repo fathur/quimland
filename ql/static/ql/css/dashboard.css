@@ -15,14 +15,14 @@
   background: var(--darkened-bg); border: 1px solid var(--hairline-color);
   border-radius: 10px;
 }
-.ql-bar-title { font-size: 18px; font-weight: 700; margin-right: auto; }
-.ql-bar-flag  { font-size: 12px; color: var(--body-quiet-color); margin-left: auto; }
+.ql-bar-title { font-size: 1.125rem; font-weight: 700; margin-right: auto; }
+.ql-bar-flag  { font-size: 0.75rem; color: var(--body-quiet-color); margin-left: auto; }
 .ql-bar-flag strong { color: var(--body-fg); }
 
 /* ---- Form fields inside bars ---- */
 .ql-field { display: flex; flex-direction: column; gap: 5px; }
 .ql-field label {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .04em;
   color: var(--body-quiet-color); font-weight: 600;
 }
 .ql-bar select,
@@ -59,33 +59,33 @@
 
 /* Card label / value / sub-label */
 .ql-card-label {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .03em;
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .03em;
   color: var(--body-quiet-color);
 }
 .ql-card-value {
-  font-size: 20px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums;
+  font-size: 1.25rem; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums;
 }
 .ql-card-value.neg { color: #b91c1c; }
-.ql-card-sub  { font-size: 12px; color: var(--body-quiet-color); margin-top: 4px; }
+.ql-card-sub  { font-size: 0.75rem; color: var(--body-quiet-color); margin-top: 4px; }
 
 /* Larger value variant (used in payments dashboard cards) */
-.ql-card-title { margin: 0 0 12px; font-size: 14px; text-transform: uppercase; letter-spacing: .03em; }
+.ql-card-title { margin: 0 0 12px; font-size: 0.875rem; text-transform: uppercase; letter-spacing: .03em; }
 .ql-card-stats { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 12px; }
-.ql-card-stat .n { font-size: 22px; font-weight: 700; line-height: 1; }
-.ql-card-stat .l { font-size: 12px; color: var(--body-quiet-color); }
-.ql-card-money  { font-size: 13px; color: var(--body-quiet-color); }
+.ql-card-stat .n { font-size: 1.375rem; font-weight: 700; line-height: 1; }
+.ql-card-stat .l { font-size: 0.75rem; color: var(--body-quiet-color); }
+.ql-card-money  { font-size: 0.8125rem; color: var(--body-quiet-color); }
 .ql-card-money strong { color: var(--body-fg); }
 
 /* ---- Progress bar ---- */
 .ql-progress { margin: 6px 0 22px; }
 .ql-bar-track { height: 10px; border-radius: 999px; background: var(--darkened-bg); overflow: hidden; }
 .ql-bar-track > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
-.ql-progress-cap { font-size: 12px; color: var(--body-quiet-color); margin-top: 6px; }
+.ql-progress-cap { font-size: 0.75rem; color: var(--body-quiet-color); margin-top: 6px; }
 
 /* ---- Status badges ---- */
 .ql-badge {
   display: inline-block; padding: 3px 10px; border-radius: 999px;
-  font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap;
+  font-size: 0.75rem; font-weight: 700; line-height: 1.6; white-space: nowrap;
 }
 /* Payment statuses */
 .ql-badge.paid    { background: #dcfce7; color: #166534; }
@@ -110,10 +110,10 @@
 /* ---- Small inline tags ---- */
 .ql-tag {
   display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px;
-  font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; vertical-align: middle;
+  font-size: 0.6875rem; font-weight: 600; background: #e0e7ff; color: #3730a3; vertical-align: middle;
 }
 .ql-pill {
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
   padding: 2px 9px; border-radius: 999px;
 }
 .ql-pill.open   { background: #dcfce7; color: #166534; }
@@ -129,7 +129,7 @@
   border: 1px solid var(--border-color); background: var(--body-bg); color: var(--body-fg);
 }
 .ql-toolbar input[type=search] { flex: 1; min-width: 180px; }
-.ql-toolbar-count { font-size: 13px; color: var(--body-quiet-color); margin-left: auto; }
+.ql-toolbar-count { font-size: 0.8125rem; color: var(--body-quiet-color); margin-left: auto; }
 
 /* ---- Data table ---- */
 .ql-scroll  { overflow-x: auto; }
@@ -138,14 +138,14 @@
   padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--hairline-color);
 }
 .ql-table thead th {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .03em;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: .03em;
   color: var(--body-quiet-color); white-space: nowrap;
 }
 .ql-table thead th.sortable { cursor: pointer; user-select: none; }
 .ql-table thead th.num,
-.ql-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+.ql-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.8125rem; }
 .ql-table tbody tr:hover { background: var(--darkened-bg); }
-.ql-table .arrow { opacity: .4; font-size: 10px; }
+.ql-table .arrow { opacity: .4; font-size: 0.625rem; }
 .ql-table th[aria-sort="ascending"] .arrow,
 .ql-table th[aria-sort="descending"] .arrow { opacity: 1; }
 

@@ -38,7 +38,7 @@
 }
 .rs-dropzone.dz-drag-hover { border-color: var(--primary, #79aec8); background: var(--selected-bg, #e4e4e4); }
 .rs-dropzone .dz-message { color: var(--body-quiet-color, #666); pointer-events: none; margin: 0; }
-.rs-dropzone .rs-upload-icon { font-size: 34px; display: block; margin-bottom: 6px; }
+.rs-dropzone .rs-upload-icon { font-size: 2.125rem; display: block; margin-bottom: 6px; }
 /* Suppress Dropzone's default preview chrome — we render our own. */
 #dz-previews-hidden { display: none; }
 
@@ -49,7 +49,7 @@
   border-radius: 4px; cursor: zoom-in; background: #fff; display: block; margin: 0 auto;
 }
 .rs-preview-meta {
-  margin-top: 8px; font-size: 12px; color: var(--body-quiet-color, #666);
+  margin-top: 8px; font-size: 0.75rem; color: var(--body-quiet-color, #666);
   display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
 }
 
@@ -63,7 +63,7 @@
 
   /* Shrink the dropzone vertically */
   .rs-dropzone { min-height: 80px; padding: 12px; }
-  .rs-dropzone .rs-upload-icon { font-size: 24px; margin-bottom: 4px; }
+  .rs-dropzone .rs-upload-icon { font-size: 1.5rem; margin-bottom: 4px; }
 
   /* Full-width form controls */
   .rs-shell select,
@@ -93,7 +93,7 @@
 .rs-readout { width: 100%; border-collapse: collapse; }
 .rs-readout th, .rs-readout td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--hairline-color, #eee); vertical-align: top; }
 .rs-readout th {
-  width: 120px; font-size: 12px; text-transform: uppercase; letter-spacing: .03em;
+  width: 120px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .03em;
   color: var(--body-quiet-color, #666); font-weight: 600; white-space: nowrap;
 }
 .rs-readout td { font-weight: 600; }
@@ -105,7 +105,7 @@
   display: inline-flex; align-items: center; padding: 5px 12px;
   border: 1px solid var(--border-color, #ccc); border-radius: 4px;
   background: var(--button-bg, var(--body-bg, #fff)); color: var(--body-fg, #333);
-  font-size: 13px; cursor: pointer; line-height: 1.4;
+  font-size: 0.8125rem; cursor: pointer; line-height: 1.4;
 }
 .rs-user-chip:hover { border-color: var(--primary, #79aec8); }
 .rs-user-chip.selected { background: var(--primary, #79aec8); border-color: var(--primary, #79aec8); color: var(--button-fg, #fff); font-weight: 600; }
@@ -117,7 +117,7 @@
   border-radius: 50%; animation: rs-spin .7s linear infinite; vertical-align: middle;
 }
 @keyframes rs-spin { to { transform: rotate(360deg); } }
-.rs-loading { display: flex; align-items: center; gap: 10px; color: var(--body-quiet-color, #666); font-size: 13px; padding: 14px; }
+.rs-loading { display: flex; align-items: center; gap: 10px; color: var(--body-quiet-color, #666); font-size: 0.8125rem; padding: 14px; }
 
 /* Errorlist reset for our JS-populated lists */
 .rs-shell .errorlist { margin: 4px 0 0; padding: 0; }
@@ -148,7 +148,7 @@
     <div class="dz-message">
       <span class="rs-upload-icon">📄</span>
       <strong>{% translate 'Drop receipt image here' %}</strong><br>
-      <span style="font-size:13px;">{% translate 'or click to browse — JPG, PNG, WEBP. Drop a new image to replace.' %}</span>
+      <span style="font-size:0.8125rem;">{% translate 'or click to browse — JPG, PNG, WEBP. Drop a new image to replace.' %}</span>
     </div>
   </div>
   <div id="dz-previews-hidden"></div>

@@ -14,21 +14,21 @@
 
   .txn-header { display:flex; align-items:baseline; gap:12px; margin-bottom:18px; }
   .txn-header h1 { margin:0; }
-  .txn-header .sub { font-size:14px; color:var(--body-quiet-color); }
+  .txn-header .sub { font-size:0.875rem; color:var(--body-quiet-color); }
 
   /* Legend */
-  .txn-legend { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:18px; font-size:13px; }
+  .txn-legend { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:18px; font-size:0.8125rem; }
   .txn-legend-item { display:flex; align-items:center; gap:5px; }
   .badge { display:inline-flex; align-items:center; justify-content:center;
            min-width:52px; padding:2px 6px; border-radius:4px;
-           font-size:11px; font-weight:700; line-height:1.4;
+           font-size:0.6875rem; font-weight:700; line-height:1.4;
            white-space:nowrap; text-decoration:none !important; }
   .badge.unpaid { background:#ef4444; color:#fff; }
   .badge.unpaid.noted { background:#f59e0b; color:#fff; }  /* amber = unpaid but explained */
 
   /* Matrix table */
   .txn-scroll { overflow-x:auto; }
-  .txn-table { border-collapse:collapse; white-space:nowrap; font-size:13px; }
+  .txn-table { border-collapse:collapse; white-space:nowrap; font-size:0.8125rem; }
   .txn-table th, .txn-table td {
     padding:6px 10px;
     border:1px solid var(--hairline-color);
@@ -37,7 +37,7 @@
   }
   .txn-table th {
     background:var(--darkened-bg);
-    font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--body-quiet-color);
+    font-size:0.6875rem; text-transform:uppercase; letter-spacing:.03em; color:var(--body-quiet-color);
     position:sticky; top:0; z-index:2;
   }
   .txn-table td.name-col, .txn-table td.home-col {
@@ -67,7 +67,7 @@
   {% if sort and sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
   <input type="search" name="q" value="{{ q }}"
          placeholder="{% translate 'Search name or home number…' %}"
-         style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:13px;min-width:260px;">
+         style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:0.8125rem;min-width:260px;">
   <button type="submit" class="button default">{% translate 'Search' %}</button>
   {% if q %}<a href="?{% if sort != 'name' %}sort={{ sort }}{% endif %}" class="button">{% translate 'Clear' %}</a>{% endif %}
 </form>
@@ -75,13 +75,13 @@
 {# ── Legend ── #}
 {% comment %} <div class="module" style="padding:12px 16px;margin-bottom:18px;">
   <div class="txn-legend">
-    <strong style="font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin-right:4px;">{% translate 'Legend' %}:</strong>
+    <strong style="font-size:0.75rem;text-transform:uppercase;letter-spacing:.03em;margin-right:4px;">{% translate 'Legend' %}:</strong>
     {% for fund in funds %}
     <span class="txn-legend-item" style="border-left:3px solid var(--hairline-color);padding-left:12px;gap:6px;">
       <span class="badge" style="background:{{ fund.color }};color:#fff;">15</span>
       <span class="badge" style="background:#fff;border:2px solid {{ fund.color }};color:{{ fund.color }};">8</span>
       <strong>{{ fund.name }}</strong>
-      <span style="color:var(--body-quiet-color);font-size:11px;">(paid / partial)</span>
+      <span style="color:var(--body-quiet-color);font-size:0.6875rem;">(paid / partial)</span>
     </span>
     {% endfor %}
     <span style="border-left:3px solid var(--hairline-color);padding-left:12px;display:flex;gap:8px;align-items:center;">
@@ -89,7 +89,7 @@
       <span class="txn-legend-item" style="color:var(--body-quiet-color);">{% translate '(empty = no tariff)' %}</span>
     </span>
   </div>
-  <div style="font-size:12px;color:var(--body-quiet-color);margin-top:6px;">
+  <div style="font-size:0.75rem;color:var(--body-quiet-color);margin-top:6px;">
     {% blocktranslate with n=funds|length %}Each cell shows {{ n }} column(s) of badges — one per routine fund, left to right matching the order above. The badge number is the day of the month the payment was recorded. Multiple badges appear when a fund was paid in separate transactions. Click a cell to view that user's transactions for that month.{% endblocktranslate %}
   </div>
 </div> {% endcomment %}
