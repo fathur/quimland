@@ -19,11 +19,6 @@ class Migration(migrations.Migration):
             field=models.DateTimeField(blank=True, default=None, null=True),
         ),
         migrations.AddField(
-            model_name='contact',
-            name='deleted_at',
-            field=models.DateTimeField(blank=True, default=None, null=True),
-        ),
-        migrations.AddField(
             model_name='duenote',
             name='deleted_at',
             field=models.DateTimeField(blank=True, default=None, null=True),
