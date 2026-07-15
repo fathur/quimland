@@ -4,6 +4,63 @@ from django.contrib import admin
 from django.utils import timezone
 
 
+class SoftDeleteFilter(admin.SimpleListFilter):
+    """
+    Three-way filter: Active (default) / All / Deleted.
+    Requires the admin's get_queryset to return objects.with_deleted().
+    """
+    title = 'status'
+    parameter_name = 'deleted'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('active',  'Active'),
+            ('all',     'All'),
+            ('deleted', 'Deleted'),
+        ]
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == 'deleted':
+            return queryset.filter(deleted_at__isnull=False)
+        if v == 'all':
+            return queryset
+        return queryset.filter(deleted_at__isnull=True)
+
+    def choices(self, changelist):
+        for lookup, title in self.lookup_choices:
+            is_default = self.value() is None and lookup == 'active'
+            yield {
+                'selected':     self.value() == str(lookup) or is_default,
+                'query_string': changelist.get_query_string({self.parameter_name: lookup}),
+                'display':      title,
+            }
+
+
+class SoftDeleteAdminMixin:
+    """
+    Mix into any ModelAdmin whose model extends TimestampMixin to expose
+    soft-deleted records via SoftDeleteFilter.
+
+    Usage:
+        class MyAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+            list_filter = [SoftDeleteFilter, ...]
+            actions = ['restore_selected', ...]
+
+            @admin.action(description='Restore selected')
+            def restore_selected(self, request, queryset):
+                restored = queryset.restore()
+                self.message_user(request, f'{restored} record(s) restored.')
+    """
+
+    def get_queryset(self, request):
+        qs = self.model.objects.with_deleted()
+        ordering = self.get_ordering(request)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
+
+
 def make_date_range_filter(field_name, title=None):
     """
     Return a SimpleListFilter subclass that filters a DateTimeField by a from/to

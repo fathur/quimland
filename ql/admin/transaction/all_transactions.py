@@ -13,15 +13,16 @@ from django.contrib.contenttypes.models import ContentType
 from ql.models import AllTransaction, Transaction
 from ql.utils import fmt_rupiah
 from .base import OccurredAtRangeFilter
+from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter
 
 
-class AllTransactionAdmin(admin.ModelAdmin):
+class AllTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'qris_icon', 'note_short', 'highlight_row']
-    list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
+    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', 'user']
     search_fields       = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     readonly_fields     = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note',
-                           'highlight', 'creator', 'created_at', 'updated_at']
+                           'highlight', 'creator', 'created_at', 'updated_at', 'deleted_at']
 
     class Media:
         css = {'all': ['admin/css/transaction_highlight.css']}
@@ -63,10 +64,10 @@ class AllTransactionAdmin(admin.ModelAdmin):
         return response
 
     def get_queryset(self, request):
+        # super() → SoftDeleteAdminMixin.get_queryset → with_deleted() base
         return (
             super().get_queryset(request)
             .filter(direction__in=[Transaction.Direction.IN, Transaction.Direction.OUT])
-            # .filter(transfer__isnull=True)
         )
 
     def change_view(self, request, object_id, form_url='', extra_context=None):

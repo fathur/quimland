@@ -7,7 +7,7 @@ from django.utils.html import format_html, mark_safe
 
 from ql.models import Fund, Receipt, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
-from ..filters import make_date_range_filter
+from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter, make_date_range_filter
 
 OccurredAtRangeFilter = make_date_range_filter('occurred_at', 'occurred at')
 
@@ -57,18 +57,23 @@ class TransactionAdminForm(forms.ModelForm):
                 pass
 
 
-class BaseTransactionAdmin(admin.ModelAdmin):
+class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     form                = TransactionAdminForm
     list_display        = ['id', 'user', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
-    list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
+    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', 'user']
     search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
-    readonly_fields     = ['creator', 'created_at', 'updated_at', 'receipt_preview']
+    readonly_fields     = ['creator', 'created_at', 'updated_at', 'deleted_at', 'receipt_preview']
 
     _forced_direction = None
 
-    actions = ['mark_qris', 'unmark_qris']
+    actions = ['mark_qris', 'unmark_qris', 'restore_selected']
+
+    @admin.action(description='Restore selected')
+    def restore_selected(self, request, queryset):
+        restored = queryset.restore()
+        self.message_user(request, f'{restored} record(s) restored.')
 
     @admin.action(description='Mark selected as QRIS')
     def mark_qris(self, request, queryset):
@@ -100,11 +105,8 @@ class BaseTransactionAdmin(admin.ModelAdmin):
         )
 
     def get_queryset(self, request):
-        return (
-            super().get_queryset(request)
-            .filter(direction=self._forced_direction)
-            # .filter(transfer__isnull=True)
-        )
+        # super() → SoftDeleteAdminMixin.get_queryset → with_deleted() base
+        return super().get_queryset(request).filter(direction=self._forced_direction)
 
     def has_change_permission(self, request, obj=None):
         if obj is not None and obj.transfer_id:
@@ -133,7 +135,7 @@ class BaseTransactionAdmin(admin.ModelAdmin):
             ('Receipt', {'fields': receipt_fields}),
         ]
         if obj:
-            fieldsets.append(('Audit', {'fields': ['highlight', 'creator', 'created_at', 'updated_at'], 'classes': ['collapse']}))
+            fieldsets.append(('Audit', {'fields': ['highlight', 'creator', 'created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))
         else:
             fieldsets.append(('Highlight', {'fields': ['highlight'], 'classes': ['collapse']}))
         return fieldsets
