@@ -161,7 +161,7 @@ class IncomeTransactionItemInline(admin.TabularInline):
 class IncomeTransactionAdmin(BaseTransactionAdmin):
     _forced_direction = Transaction.Direction.IN
     inlines           = [IncomeTransactionItemInline]
-    list_display      = ['id', 'occurred_at', 'wallet', 'nominal_display', 'resident', 'receipt_icon', 'note_short', 'highlight_row']
+    list_display      = ['id', 'occurred_at', 'wallet', 'nominal_display', 'resident', 'qris_icon', 'receipt_icon', 'note_short', 'highlight_row']
 
 
 

@@ -55,6 +55,8 @@ class Transaction(TimestampMixin):
     # and cascade-deletes them with the transaction.
     assets = GenericRelation('Asset', related_query_name='transaction')
 
+    is_qris = models.BooleanField(default=False)
+
     class Meta:
         db_table = 'transactions'
         ordering = ['-created_at']

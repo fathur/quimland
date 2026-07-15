@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Sum
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 
 from ql.models import Fund, Receipt, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
@@ -67,6 +67,37 @@ class BaseTransactionAdmin(admin.ModelAdmin):
     readonly_fields     = ['creator', 'created_at', 'updated_at', 'receipt_preview']
 
     _forced_direction = None
+
+    actions = ['mark_qris', 'unmark_qris']
+
+    @admin.action(description='Mark selected as QRIS')
+    def mark_qris(self, request, queryset):
+        updated = queryset.update(is_qris=True)
+        self.message_user(request, f'{updated} transaction(s) marked as QRIS.')
+
+    @admin.action(description='Unmark selected as QRIS')
+    def unmark_qris(self, request, queryset):
+        updated = queryset.update(is_qris=False)
+        self.message_user(request, f'{updated} transaction(s) unmarked as QRIS.')
+
+    @admin.display(description='QRIS', ordering='is_qris')
+    def qris_icon(self, obj):
+        if not obj.is_qris:
+            return ''
+        return mark_safe(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+            ' stroke-linejoin="round" width="16" height="16"'
+            ' title="QRIS" style="vertical-align:middle;color:var(--body-fg)">'
+            '<rect x="3" y="3" width="7" height="7" rx="1"/>'
+            '<rect x="14" y="3" width="7" height="7" rx="1"/>'
+            '<rect x="3" y="14" width="7" height="7" rx="1"/>'
+            '<rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>'
+            '</svg>'
+        )
 
     def get_queryset(self, request):
         return (

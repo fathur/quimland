@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.urls import path
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -16,7 +16,7 @@ from .base import OccurredAtRangeFilter
 
 
 class AllTransactionAdmin(admin.ModelAdmin):
-    list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'note_short', 'highlight_row']
+    list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'qris_icon', 'note_short', 'highlight_row']
     list_filter         = [OccurredAtRangeFilter, 'wallet', 'user']
     search_fields       = ['user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
@@ -133,6 +133,25 @@ class AllTransactionAdmin(admin.ModelAdmin):
         except (AttributeError, KeyError):
             pass
         return response
+
+    @admin.display(description='QRIS', ordering='is_qris')
+    def qris_icon(self, obj):
+        if not obj.is_qris:
+            return ''
+        return mark_safe(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+            ' stroke-linejoin="round" width="16" height="16"'
+            ' title="QRIS" style="vertical-align:middle;color:var(--body-fg)">'
+            '<rect x="3" y="3" width="7" height="7" rx="1"/>'
+            '<rect x="14" y="3" width="7" height="7" rx="1"/>'
+            '<rect x="3" y="14" width="7" height="7" rx="1"/>'
+            '<rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>'
+            '</svg>'
+        )
 
     @admin.display(description='')
     def highlight_row(self, obj):
