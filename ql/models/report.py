@@ -14,6 +14,7 @@ def _report_upload_to(instance, filename):
 class Report(TimestampMixin):
     class Status(models.TextChoices):
         PROCESSING = 'PROCESSING', 'Processing'
+        DRAFT      = 'DRAFT',      'Draft'
         DONE       = 'DONE',       'Done'
 
     fund = models.ForeignKey(
@@ -27,7 +28,7 @@ class Report(TimestampMixin):
 
     file = models.FileField(
         upload_to=_report_upload_to, storage=get_report_storage,
-        blank=True, help_text='The generated report file (PDF, Excel, etc.)',
+        blank=True, help_text='The generated PDF, rendered from content.',
     )
 
     creator = models.ForeignKey(
@@ -38,7 +39,9 @@ class Report(TimestampMixin):
     )
 
     status = models.CharField(max_length=10, choices=Status, default=Status.PROCESSING)
-    completed_at = models.DateTimeField(null=True, blank=True, help_text='When generation finished.')
+    completed_at = models.DateTimeField(null=True, blank=True, help_text='When the PDF was generated from content.')
+
+    content = models.TextField(blank=True, default='', help_text='Report body in Markdown. Editable before PDF generation.')
 
     class Meta:
         db_table = 'reports'

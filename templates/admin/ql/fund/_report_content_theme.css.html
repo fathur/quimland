@@ -1,0 +1,192 @@
+/* ══════════════════════════ Content — rendered from Markdown ══════════════════════════ */
+/* Every heading level h1–h6 auto-numbers via CSS counters, so however
+   the user structures their Markdown, numbering stays consistent.
+   Shared by the PDF template and the browser preview so both match. */
+.content {
+  counter-reset: h1c;
+}
+
+.content h1 {
+  counter-increment: h1c;
+  counter-reset: h2c;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c4433;
+  display: flex;
+  align-items: center;
+  margin: 22px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #dcece1;
+  page-break-after: avoid;
+  page-break-inside: avoid;
+}
+.content h1:first-child { margin-top: 4px; }
+.content h1::before {
+  content: counter(h1c);
+  display: inline-block;
+  flex: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #2f6b4f;
+  color: #eaf4ee;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 20px;
+  margin-right: 8px;
+}
+
+.content h2 {
+  counter-increment: h2c;
+  counter-reset: h3c;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #2f6b4f;
+  margin: 14px 0 6px;
+  page-break-after: avoid;
+}
+.content h2::before { content: counter(h1c) "." counter(h2c) " "; }
+
+.content h3 {
+  counter-increment: h3c;
+  counter-reset: h4c;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #385646;
+  margin: 12px 0 5px;
+  page-break-after: avoid;
+}
+.content h3::before { content: counter(h1c) "." counter(h2c) "." counter(h3c) " "; }
+
+.content h4 {
+  counter-increment: h4c;
+  counter-reset: h5c;
+  font-size: 9px;
+  font-weight: 700;
+  font-style: italic;
+  color: #385646;
+  margin: 10px 0 4px;
+  page-break-after: avoid;
+}
+.content h4::before { content: counter(h1c) "." counter(h2c) "." counter(h3c) "." counter(h4c) " "; }
+
+.content h5 {
+  counter-increment: h5c;
+  counter-reset: h6c;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #5a7666;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin: 8px 0 4px;
+  page-break-after: avoid;
+}
+.content h5::before { content: counter(h1c) "." counter(h2c) "." counter(h3c) "." counter(h4c) "." counter(h5c) " "; }
+
+.content h6 {
+  counter-increment: h6c;
+  font-size: 8px;
+  font-weight: 700;
+  color: #8fae9c;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin: 8px 0 4px;
+  page-break-after: avoid;
+}
+.content h6::before { content: counter(h1c) "." counter(h2c) "." counter(h3c) "." counter(h4c) "." counter(h5c) "." counter(h6c) " "; }
+
+.content p {
+  margin-bottom: 8px;
+  text-align: justify;
+  color: #385646;
+}
+.content strong { color: #1c2b23; }
+
+.content ul, .content ol {
+  margin: 0 0 10px 20px;
+  color: #385646;
+}
+.content li { margin-bottom: 4px; }
+
+.content blockquote {
+  margin: 10px 0;
+  padding: 8px 10px;
+  background: #f0f6f2;
+  border-left: 3px solid #8fbfa1;
+  border-radius: 4px;
+  font-size: 8.5px;
+  color: #5a7666;
+  font-style: italic;
+  page-break-inside: avoid;
+}
+.content blockquote p { margin: 0; }
+
+.content pre {
+  background: #f0f6f2;
+  border: 1px solid #dcece1;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 8.5px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.content code {
+  font-family: "Courier New", Courier, monospace;
+  background: #f0f6f2;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 8.5px;
+}
+.content pre code { background: none; padding: 0; }
+
+.content hr {
+  border: none;
+  border-top: 1px solid #dcece1;
+  margin: 16px 0;
+}
+
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 9.5px;
+  page-break-inside: avoid;
+}
+.content thead tr { background: #2f6b4f; color: #eaf4ee; }
+.content thead th {
+  padding: 7px 9px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.content tbody tr:nth-child(even) { background: #f0f6f2; }
+.content td, .content th {
+  padding: 6px 9px;
+  border-bottom: 1px solid #e3ece6;
+  color: #1c2b23;
+}
+
+/* Signature block — fixed chrome, not part of editable Markdown content */
+.signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  gap: 20px;
+  page-break-inside: avoid;
+}
+.signature {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  color: #5a7666;
+}
+.signature-line {
+  margin-top: 42px;
+  border-top: 1px solid #b9d8c4;
+  padding-top: 5px;
+  font-weight: 600;
+  color: #1c2b23;
+}

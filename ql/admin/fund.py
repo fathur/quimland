@@ -5,37 +5,9 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from ql.models import CashEntry, Fund, FundDue, Report
+from ql.models import CashEntry, Fund, FundDue
+from ql.reports import generate_fund_report_draft
 from ql.utils import fmt_rupiah
-
-
-def _generate_fund_report(fund, user):
-    """Render the fund's closing report to PDF (sync) and persist it as a Report row."""
-    import weasyprint
-    from django.core.files.base import ContentFile
-    from django.template.loader import render_to_string
-    from django.utils import timezone
-
-    generated_at = timezone.now()
-    html = render_to_string('admin/ql/fund/report_pdf.html', {
-        'fund': fund,
-        'generated_at': generated_at,
-        'generated_by': user,
-    })
-    pdf_bytes = weasyprint.HTML(string=html).write_pdf()
-
-    report = Report.objects.create(
-        fund=fund,
-        title=f'Laporan Keuangan — {fund.name} ({generated_at:%d %b %Y})',
-        creator=user,
-        status=Report.Status.PROCESSING,
-    )
-    filename = f'laporan-{fund.pk}-{generated_at:%Y%m%d-%H%M%S}.pdf'
-    report.file.save(filename, ContentFile(pdf_bytes), save=False)
-    report.status = Report.Status.DONE
-    report.completed_at = timezone.now()
-    report.save()
-    return report
 
 
 class CashEntryInline(admin.TabularInline):
@@ -76,11 +48,11 @@ class FundAdmin(admin.ModelAdmin):
         if fund.status != Fund.Status.CLOSED:
             self.message_user(request, f'"{fund.name}" belum ditutup. Laporan hanya dapat dibuat untuk dana yang sudah ditutup.', level=messages.ERROR)
             return redirect('admin:ql_fund_changelist')
-        report = _generate_fund_report(fund, request.user)
-        self.message_user(request, f'Laporan untuk "{fund.name}" berhasil dibuat.')
-        return redirect(report.file.url)
+        report = generate_fund_report_draft(fund, request.user)
+        self.message_user(request, f'Draf laporan untuk "{fund.name}" berhasil dibuat. Silakan tinjau dan sunting kontennya.')
+        return redirect('admin:ql_report_change', report.pk)
 
-    @admin.action(description='Generate report (closed funds only)')
+    @admin.action(description='Generate report draft (closed funds only)')
     def generate_report_action(self, request, queryset):
         if not self.has_view_permission(request):
             self.message_user(request, 'You do not have permission to generate reports.', level=messages.ERROR)
@@ -90,10 +62,10 @@ class FundAdmin(admin.ModelAdmin):
             if fund.status != Fund.Status.CLOSED:
                 skipped += 1
                 continue
-            _generate_fund_report(fund, request.user)
+            generate_fund_report_draft(fund, request.user)
             generated += 1
         if generated:
-            self.message_user(request, f'{generated} laporan berhasil dibuat.')
+            self.message_user(request, f'{generated} draf laporan berhasil dibuat.')
         if skipped:
             self.message_user(request, f'{skipped} dana dilewati karena belum ditutup.', level=messages.WARNING)
 
@@ -102,7 +74,7 @@ class FundAdmin(admin.ModelAdmin):
         if obj.status != Fund.Status.CLOSED:
             return mark_safe('<span style="color:var(--body-quiet-color);font-size:11px;">—</span>')
         url = reverse('admin:ql_fund_generate_report', args=[obj.pk])
-        return format_html('<a class="button" href="{}">Generate report</a>', url)
+        return format_html('<a class="button" href="{}">Generate report draft</a>', url)
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'color':

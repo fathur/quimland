@@ -9,6 +9,21 @@ def fmt_rupiah(amount):
     return f'Rp {formatted}'
 
 
+def render_report_markdown(content):
+    """Convert report Markdown content to HTML.
+
+    Shared by the browser preview and the PDF template so both always
+    render from the exact same pipeline — what the user previews is
+    guaranteed to match the generated PDF.
+    """
+    import markdown
+
+    return markdown.markdown(
+        content or '',
+        extensions=['tables', 'fenced_code', 'sane_lists'],
+    )
+
+
 def compress_image_field(image_field, max_dim=1920, quality=85):
     """Compress and resize an ImageField in-place before the model is saved."""
     from PIL import Image
