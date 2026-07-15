@@ -70,8 +70,20 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
     actions = ['mark_qris', 'unmark_qris', 'restore_selected']
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not self.has_change_permission(request):
+            for name in ('mark_qris', 'unmark_qris', 'restore_selected'):
+                actions.pop(name, None)
+        if not self.has_delete_permission(request):
+            actions.pop('delete_selected', None)
+        return actions
+
     @admin.action(description='Restore selected')
     def restore_selected(self, request, queryset):
+        if not self.has_change_permission(request):
+            self.message_user(request, 'You do not have permission to restore records.', level='error')
+            return
         restored = queryset.restore()
         self.message_user(request, f'{restored} record(s) restored.')
 
