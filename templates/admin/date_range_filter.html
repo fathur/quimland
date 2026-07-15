@@ -13,9 +13,9 @@
   <input type="datetime-local" name="{{ choice.lte_param }}" value="{{ choice.date_to }}"
          style="width:100%;padding:4px 6px;box-sizing:border-box;margin-bottom:10px;">
   <div style="display:flex;gap:6px;">
-    <button type="submit" class="button" style="flex:1;font-size:0.75rem;">{% translate 'Apply' %}</button>
+    <button type="submit" class="button" style="flex:1;font-size:0.75rem; padding: 6px 10px;">{% translate 'Apply' %}</button>
     {% if choice.date_from or choice.date_to %}
-      <a href="{{ choice.query_string }}" class="button" style="flex:1;font-size:0.75rem;text-align:center;">{% translate 'Clear' %}</a>
+      <a href="{{ choice.query_string }}" class="button" style="flex:1;font-size:0.75rem;text-align:center;  padding: 6px 10px; text-decoration: none; color: var(--button-fg)">{% translate 'Clear' %}</a>
     {% endif %}
   </div>
 </form>

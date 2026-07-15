@@ -30,11 +30,11 @@ def _get_urls():
             admin.site.admin_view(wallet_dashboard_view),
             name='wallet_dashboard',
         ),
-        path(
-            'earmarked-dashboard/',
-            admin.site.admin_view(earmarked_dashboard_view),
-            name='earmarked_dashboard',
-        ),
+        # path(
+        #     'earmarked-dashboard/',
+        #     admin.site.admin_view(earmarked_dashboard_view),
+        #     name='earmarked_dashboard',
+        # ),
     ] + _original_get_urls()
 
 
@@ -74,14 +74,14 @@ _DASHBOARD_APP = {
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
         },
-        {
-            'name': 'Earmarked funds',
-            'object_name': 'EarmarkedDashboard',
-            'admin_url': '/admin/earmarked-dashboard/',
-            'add_url': None,
-            'view_only': True,
-            'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
-        },
+        # {
+        #     'name': 'Earmarked funds',
+        #     'object_name': 'EarmarkedDashboard',
+        #     'admin_url': '/admin/earmarked-dashboard/',
+        #     'add_url': None,
+        #     'view_only': True,
+        #     'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+        # },
         {
             'name': 'Scan Receipt',
             'object_name': 'ReceiptScan',
