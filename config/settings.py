@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'admin_auto_filters',
     # 'mcp_server',
+    'mptt',
     'ql',
     'sorl.thumbnail',
     'django_extensions'

@@ -118,7 +118,11 @@ def fund_money_map(as_of=None):
     {fund_id: {'collected': Decimal, 'spent': Decimal, 'balance': Decimal}}
     Pass as_of (aware datetime) to restrict to transactions up to that point.
     """
-    qs = TransactionItem.objects.annotate(eff_dir=Coalesce('direction', 'transaction__direction'))
+    qs = (
+        TransactionItem.objects
+        .filter(transaction__deleted_at__isnull=True, fund__deleted_at__isnull=True)
+        .annotate(eff_dir=Coalesce('direction', 'transaction__direction'))
+    )
     if as_of:
         qs = qs.filter(transaction__occurred_at__lte=as_of)
     rows = qs.values('fund_id', 'eff_dir').annotate(total=Sum('nominal'))

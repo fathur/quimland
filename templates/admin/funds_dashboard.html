@@ -141,15 +141,21 @@
 
           <div>
             <div class="ql-fund-balance {% if card.balance_negative %}neg{% endif %}">{{ card.balance_display }}</div>
-            <div class="ql-fund-balance-label">{% translate 'Balance (collected − spent)' %}</div>
+            <div class="ql-fund-balance-label">
+              {% if card.is_child %}{% translate 'Spent' %}{% else %}{% translate 'Balance (collected − spent)' %}{% endif %}
+            </div>
           </div>
 
           <div class="ql-fund-figs">
-            <span>{% translate 'Collected' %}<strong>{{ card.collected_display }}</strong></span>
+            {% if card.is_child %}
+              <span>{% translate 'Parent' %}<strong>{{ card.fund.parent.name }}</strong></span>
+            {% else %}
+              <span>{% translate 'Collected' %}<strong>{{ card.collected_display }}</strong></span>
+            {% endif %}
             <span>{% translate 'Spent' %}<strong>{{ card.spent_display }}</strong></span>
           </div>
 
-          {% if card.is_earmarked %}
+          {% if card.is_earmarked and not card.is_child %}
             {% if card.progress_pct is not None %}
               <div class="ql-progress" style="margin: 4px 0 0;">
                 <div class="ql-bar-track"><span style="width: {{ card.progress_pct }}%; background: {{ card.fund.color|default:'#417690' }};"></span></div>

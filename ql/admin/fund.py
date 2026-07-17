@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from mptt.admin import MPTTModelAdmin
 
 from ql.models import CashEntry, Fund, FundDue
 from ql.reports import generate_fund_report_draft
@@ -24,12 +25,21 @@ class FundDueInline(admin.TabularInline):
 
 
 @admin.register(Fund)
-class FundAdmin(admin.ModelAdmin):
-    list_display = ['name', 'color_swatch', 'kind', 'status', 'target_amount_display', 'generate_report_link', 'created_at']
+class FundAdmin(MPTTModelAdmin):
+    list_display = ['name', 'color_swatch', 'kind', 'parent', 'status', 'target_amount_display', 'created_at']
     list_filter = ['kind', 'status']
     search_fields = ['name']
     actions = ['generate_report_action']
+    readonly_fields = ['created_at', 'updated_at', 'deleted_at']
     # inlines = [CashEntryInline, FundDueInline]
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {'fields': ['parent', 'name', 'color', 'kind', 'description', 'target_amount', 'status']}),
+        ]
+        if obj:
+            fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))
+        return fieldsets
 
     def get_urls(self):
         return [

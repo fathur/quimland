@@ -1,9 +1,29 @@
 from django.db import models
+from mptt.managers import TreeManager
+from mptt.models import MPTTModel, TreeForeignKey
+from mptt.querysets import TreeQuerySet
 
-from .base import TimestampMixin
+from .base import SoftDeleteQuerySet, TimestampMixin
 
 
-class Fund(TimestampMixin):
+class FundQuerySet(SoftDeleteQuerySet, TreeQuerySet):
+    pass
+
+
+class FundTreeManager(TreeManager.from_queryset(FundQuerySet)):
+    """Tree-aware manager that also hides soft-deleted funds by default."""
+
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).filter(deleted_at__isnull=True)
+
+    def with_deleted(self):
+        return super().get_queryset()
+
+    def deleted_only(self):
+        return super().get_queryset().filter(deleted_at__isnull=False)
+
+
+class Fund(MPTTModel, TimestampMixin):
     class Kind(models.TextChoices):
         # GENERAL   = 'GENERAL',   'General (Kas RT)'
         # GARBAGE   = 'GARBAGE',   'Garbage (pass-through)'
@@ -14,7 +34,7 @@ class Fund(TimestampMixin):
         OPEN   = 'OPEN',   'Open'
         CLOSED = 'CLOSED', 'Closed'
 
-    parent        = models.ForeignKey(
+    parent        = TreeForeignKey(
         'self', on_delete=models.PROTECT,
         null=True, blank=True,
         related_name='children',
@@ -26,6 +46,11 @@ class Fund(TimestampMixin):
     description   = models.TextField(blank=True, default='')
     target_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     status        = models.CharField(max_length=10, choices=Status, default=Status.OPEN)
+
+    objects = FundTreeManager()
+
+    class MPTTMeta:
+        order_insertion_by = ['name']
 
     class Meta:
         db_table = 'funds'

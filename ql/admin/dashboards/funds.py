@@ -15,28 +15,48 @@ def funds_dashboard_view(request):
     money = fund_money_map(as_of=as_of)
     zero  = Decimal('0')
 
-    funds = list(Fund.objects.order_by('-status', 'name'))
+    funds = list(Fund.objects.select_related('parent').order_by('-status', 'name'))
+
+    def spent_rollup(fund):
+        """Own spent plus every descendant's spent (child funds share the parent pool),
+        found via the nested-set lft/rght range rather than walking parent/child links."""
+        return sum(
+            (
+                money.get(f.id, {'spent': zero})['spent']
+                for f in funds
+                if f.tree_id == fund.tree_id and fund.lft <= f.lft <= fund.rght
+            ),
+            zero,
+        )
 
     total_balance = zero
     groups = {}
     for fund in funds:
         m         = money.get(fund.id, {'collected': zero, 'spent': zero, 'balance': zero})
         collected = m['collected']
-        balance   = m['balance']
-        total_balance += balance
+        total_balance += m['balance']
+
+        is_child     = fund.parent_id is not None
+        rolled_spent = spent_rollup(fund)
 
         card = {
             'fund': fund,
             'is_open': fund.status == Fund.Status.OPEN,
             'is_earmarked': fund.kind == Fund.Kind.EARMARKED,
+            'is_child': is_child,
             'collected_display': fmt_rupiah(collected),
-            'spent_display': fmt_rupiah(m['spent']),
-            'balance_display': fmt_rupiah(balance),
-            'balance_negative': balance < 0,
+            'spent_display': fmt_rupiah(rolled_spent),
             'target_display': fmt_rupiah(fund.target_amount) if fund.target_amount else None,
             'progress_pct': None,
         }
-        if fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
+        if is_child:
+            card['balance_display']  = fmt_rupiah(rolled_spent)
+            card['balance_negative'] = False
+        else:
+            balance = collected - rolled_spent
+            card['balance_display']  = fmt_rupiah(balance)
+            card['balance_negative'] = balance < 0
+        if not is_child and fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
             card['progress_pct'] = int(min(collected / fund.target_amount, 1) * 100)
 
         groups.setdefault(fund.kind, []).append(card)
