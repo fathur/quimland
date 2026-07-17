@@ -17,7 +17,7 @@ class TransactionItem(TimestampMixin):
     # Descriptive fields used by OUT items; left blank for IN.
     name        = models.CharField(max_length=255, blank=True, default='')
     price       = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
-    quantity    = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    quantity    = models.PositiveIntegerField(null=True, blank=True)
     # Tags this leg as a loan disbursement or repayment.
     loan        = models.ForeignKey(
         'Loan', on_delete=models.SET_NULL,
