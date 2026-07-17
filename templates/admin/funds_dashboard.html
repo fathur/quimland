@@ -132,7 +132,7 @@
 
           <div class="ql-fund-card-head">
             <h3 class="ql-fund-card-name">
-              <a href="{% url 'admin:ql_fund_change' card.fund.id %}">{{ card.fund.name }}</a>
+              <a href="{% url 'admin:ql_transactionitem_changelist' %}?fund__id__exact={{ card.fund.id }}">{{ card.fund.name }}</a>
             </h3>
             <span class="ql-pill {% if card.is_open %}open{% else %}closed{% endif %}">
               {{ card.fund.get_status_display }}

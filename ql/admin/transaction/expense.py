@@ -12,11 +12,18 @@ class ExpenseTransactionItemForm(forms.ModelForm):
         fields  = ['fund', 'name', 'price', 'quantity', 'nominal']
         widgets = {'fund': FundGroupedSelect}
 
+    class Media:
+        js = ['ql/js/expense_item_nominal.js']
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['quantity'].required = False
         self.fields['nominal'].required = False
         self.fields['fund'].label = 'Source of fund'
+        # Derived from price × quantity (see clean()); JS keeps it in sync live,
+        # readonly (not disabled) so the browser still submits it for the
+        # legacy-row fallback below.
+        self.fields['nominal'].widget.attrs['readonly'] = 'readonly'
 
     def clean(self):
         cleaned_data = super().clean()
@@ -32,11 +39,10 @@ class ExpenseTransactionItemForm(forms.ModelForm):
             quantity = 1
             cleaned_data['quantity'] = quantity
 
-        if nominal is None and price is not None and quantity is not None:
+        if price is not None:
             cleaned_data['nominal'] = price * quantity
-
-        if cleaned_data.get('nominal') is None:
-            self.add_error('nominal', 'Enter nominal, or fill both price and quantity.')
+        elif nominal is None:
+            self.add_error('price', 'Enter a price to calculate nominal.')
 
         return cleaned_data
 

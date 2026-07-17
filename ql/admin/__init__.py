@@ -15,6 +15,7 @@ from . import (
     loan,
     project,
     transaction,
+    transaction_item,
     due_note,
     wallet,
     asset,
