@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django import forms
 from django.contrib import admin, messages
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils.html import format_html, mark_safe
 
 from ql.models import Fund, Receipt, Transaction, TransactionItem
@@ -16,8 +16,17 @@ class FundGroupedSelect(forms.Select):
     """Select widget that groups <option>s by Fund.kind using <optgroup>."""
 
     def optgroups(self, name, value, attrs=None):  # noqa: ARG002
+        # Only open funds are offered for new selections, but a line item that
+        # already points at a since-closed fund keeps showing it — otherwise
+        # saving the form would silently reassign it to whatever option the
+        # browser defaults to.
+        selected_ids = {v for v in value if v}
+        funds = Fund.objects.filter(
+            Q(status=Fund.Status.OPEN) | Q(pk__in=selected_ids)
+        ).order_by('kind', 'name')
+
         groups = {}
-        for fund in Fund.objects.order_by('kind', 'name'):
+        for fund in funds:
             label = fund.get_kind_display()
             groups.setdefault(label, []).append((fund.pk, str(fund)))
 
