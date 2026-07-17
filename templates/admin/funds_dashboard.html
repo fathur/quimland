@@ -88,7 +88,7 @@
 
   .ql-fund-figs { display: flex; gap: 18px; font-size: 0.75rem; color: var(--body-quiet-color); }
   .ql-fund-figs strong { display: block; color: var(--body-fg); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
-  .ql-fund-figs-parent { margin-left: auto; text-align: right; }
+  .ql-fund-figs-parent { text-align: left; font-size: 0.75rem;}
 
   .ql-progress-group { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; margin: 4px 0 0; }
   .ql-progress-group .ql-progress { margin: 0; }
@@ -172,14 +172,7 @@
               <span>{% translate 'Target' %}<strong>{{ card.target_display }}</strong></span>
             {% endif %}
 
-            {% if card.is_child %}
-              <span class="ql-fund-figs-parent">
-                {% comment %} {% translate 'Parent' %} {% endcomment %}
-                <span style="display: block;">
-                  The funding taken from <strong style="display: inline">{{ card.fund.parent.name }}</strong>
-                </span>
-              </span>
-            {% endif %}
+            
           </div>
 
           {% if card.has_progress %}
@@ -202,6 +195,15 @@
                 </div>
               {% endif %}
             </div>
+          {% endif %}
+
+          {% if card.is_child %}
+            <span class="ql-fund-figs-parent">
+              {% comment %} {% translate 'Parent' %} {% endcomment %}
+              <span style="display: block;">
+                The funding taken from <strong style="display: inline">{{ card.fund.parent.name }}</strong>
+              </span>
+            </span>
           {% endif %}
 
         </div>
