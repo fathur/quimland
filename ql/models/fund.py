@@ -85,7 +85,7 @@ class Fund(MPTTModel, TimestampMixin):
             occupancy_status=UserProperty.OccupancyStatus.OCCUPIED
         ).values_list('user_id', flat=True)
 
-        amount = self.target_amount / len(occupied_user_ids) if occupied_user_ids else 0
+        amount = self.target_amount / len(occupied_user_ids) if occupied_user_ids and self.target_amount is not None else 0
 
         FundDue.objects.bulk_create([
             FundDue(fund=self, user_id=uid, expected_amount=amount)
