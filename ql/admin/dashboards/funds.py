@@ -17,12 +17,13 @@ def funds_dashboard_view(request):
 
     funds = list(Fund.objects.select_related('parent').order_by('-status', 'name'))
 
-    def spent_rollup(fund):
-        """Own spent plus every descendant's spent (child funds share the parent pool),
-        found via the nested-set lft/rght range rather than walking parent/child links."""
+    def rollup(fund, key):
+        """Own collected/spent plus every descendant's (child funds share the parent
+        pool), found via the nested-set lft/rght range rather than walking parent/child
+        links."""
         return sum(
             (
-                money.get(f.id, {'spent': zero})['spent']
+                money.get(f.id, {key: zero})[key]
                 for f in funds
                 if f.tree_id == fund.tree_id and fund.lft <= f.lft <= fund.rght
             ),
@@ -32,32 +33,34 @@ def funds_dashboard_view(request):
     total_balance = zero
     groups = {}
     for fund in funds:
-        m         = money.get(fund.id, {'collected': zero, 'spent': zero, 'balance': zero})
-        collected = m['collected']
+        m = money.get(fund.id, {'collected': zero, 'spent': zero, 'balance': zero})
         total_balance += m['balance']
 
-        is_child     = fund.parent_id is not None
-        rolled_spent = spent_rollup(fund)
+        is_child          = fund.parent_id is not None
+        rolled_collected  = rollup(fund, 'collected')
+        rolled_spent      = rollup(fund, 'spent')
 
         card = {
             'fund': fund,
             'is_open': fund.status == Fund.Status.OPEN,
             'is_earmarked': fund.kind == Fund.Kind.EARMARKED,
             'is_child': is_child,
-            'collected_display': fmt_rupiah(collected),
+            'collected_display': fmt_rupiah(rolled_collected),
             'spent_display': fmt_rupiah(rolled_spent),
             'target_display': fmt_rupiah(fund.target_amount) if fund.target_amount else None,
             'progress_pct': None,
         }
         if is_child:
+            # A child isn't ring-fenced, so it has no balance of its own — the
+            # shared pool's balance lives at the parent. Surface spent instead.
             card['balance_display']  = fmt_rupiah(rolled_spent)
             card['balance_negative'] = False
         else:
-            balance = collected - rolled_spent
+            balance = rolled_collected - rolled_spent
             card['balance_display']  = fmt_rupiah(balance)
             card['balance_negative'] = balance < 0
         if not is_child and fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
-            card['progress_pct'] = int(min(collected / fund.target_amount, 1) * 100)
+            card['progress_pct'] = int(min(rolled_collected / fund.target_amount, 1) * 100)
 
         groups.setdefault(fund.kind, []).append(card)
 

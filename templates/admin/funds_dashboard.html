@@ -88,6 +88,7 @@
 
   .ql-fund-figs { display: flex; gap: 18px; font-size: 0.75rem; color: var(--body-quiet-color); }
   .ql-fund-figs strong { display: block; color: var(--body-fg); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .ql-fund-figs-parent { margin-left: auto; text-align: right; }
 
   .ql-fund-progress-cap { font-size: 0.6875rem; color: var(--body-quiet-color); margin-top: 5px; }
 </style>
@@ -147,12 +148,15 @@
           </div>
 
           <div class="ql-fund-figs">
-            {% if card.is_child %}
-              <span>{% translate 'Parent' %}<strong>{{ card.fund.parent.name }}</strong></span>
-            {% else %}
-              <span>{% translate 'Collected' %}<strong>{{ card.collected_display }}</strong></span>
+            <span>{% translate 'Collected' %}<strong>{{ card.collected_display }}</strong></span>
+
+            {% if not card.is_child %}
+              <span>{% translate 'Spent' %}<strong>{{ card.spent_display }}</strong></span>
             {% endif %}
-            <span>{% translate 'Spent' %}<strong>{{ card.spent_display }}</strong></span>
+
+            {% if card.is_child %}
+              <span class="ql-fund-figs-parent">{% translate 'Parent' %}<strong>{{ card.fund.parent.name }}</strong></span>
+            {% endif %}
           </div>
 
           {% if card.is_earmarked and not card.is_child %}
