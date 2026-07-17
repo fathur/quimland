@@ -49,6 +49,8 @@ class TransactionItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @admin.display(description='Price', ordering='price')
     def price_display(self, obj):
+        if obj.price is None:
+            return '-'
         return fmt_rupiah(obj.price)
 
  
