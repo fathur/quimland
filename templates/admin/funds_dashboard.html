@@ -90,7 +90,21 @@
   .ql-fund-figs strong { display: block; color: var(--body-fg); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
   .ql-fund-figs-parent { margin-left: auto; text-align: right; }
 
-  .ql-fund-progress-cap { font-size: 0.6875rem; color: var(--body-quiet-color); margin-top: 5px; }
+  .ql-progress-group { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; margin: 4px 0 0; }
+  .ql-progress-group .ql-progress { margin: 0; }
+  .ql-progress-group .ql-bar-track { border-radius: 0; }
+
+  .ql-bar-track { position: relative; height: 15px; }
+  .ql-bar-track > span.over { background: #dc2626 !important; }
+  .ql-fund-progress-label {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: inline-flex; align-items: center; max-width: calc(100% - 8px);
+    font-size: 0.6rem; color: var(--body-fg);
+    background: color-mix(in srgb, var(--body-bg) 75%, transparent);
+    border-radius: 999px; padding: 1px 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
+  }
 </style>
 {% endblock %}
 
@@ -154,27 +168,40 @@
               <span>{% translate 'Spent' %}<strong>{{ card.spent_display }}</strong></span>
             {% endif %}
 
+            {% if card.target_display %}
+              <span>{% translate 'Target' %}<strong>{{ card.target_display }}</strong></span>
+            {% endif %}
+
             {% if card.is_child %}
               <span class="ql-fund-figs-parent">
-                {% translate 'Parent' %}
+                {% comment %} {% translate 'Parent' %} {% endcomment %}
                 <span style="display: block;">
-                  This fund taken from <strong style="display: inline">{{ card.fund.parent.name }}</strong>
+                  The funding taken from <strong style="display: inline">{{ card.fund.parent.name }}</strong>
                 </span>
               </span>
             {% endif %}
           </div>
 
-          {% if card.is_earmarked and not card.is_child %}
-            {% if card.progress_pct is not None %}
-              <div class="ql-progress" style="margin: 4px 0 0;">
-                <div class="ql-bar-track"><span style="width: {{ card.progress_pct }}%; background: {{ card.fund.color|default:'#417690' }};"></span></div>
-                <div class="ql-fund-progress-cap">
-                  {{ card.progress_pct }}% {% translate 'of target' %} · {{ card.collected_display }} / {{ card.target_display }}
+          {% if card.has_progress %}
+            <div class="ql-progress-group">
+              {% if not card.is_child and card.progress_pct is not None %}
+                <div class="ql-progress">
+                  <div class="ql-bar-track">
+                    <span style="width: {{ card.progress_pct }}%; background: {{ card.fund.color|default:'#417690' }};"></span>
+                    <div class="ql-fund-progress-label">{{ card.progress_pct }}% {% translate 'Collected' %} · {{ card.collected_display }}</div>
+                  </div>
                 </div>
-              </div>
-            {% else %}
-              <div class="ql-fund-progress-cap">{% translate 'No target set' %}</div>
-            {% endif %}
+              {% endif %}
+
+              {% if card.spend_progress_pct is not None %}
+                <div class="ql-progress">
+                  <div class="ql-bar-track">
+                    <span class="{% if card.spend_over_target %}over{% endif %}" style="width: {{ card.spend_bar_pct }}%; background: #6b7280;"></span>
+                    <div class="ql-fund-progress-label">{{ card.spend_progress_pct }}% {% translate 'Spent' %} · {{ card.spent_display }}</div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
           {% endif %}
 
         </div>

@@ -49,6 +49,8 @@ def funds_dashboard_view(request):
             'spent_display': fmt_rupiah(rolled_spent),
             'target_display': fmt_rupiah(fund.target_amount) if fund.target_amount else None,
             'progress_pct': None,
+            'spend_progress_pct': None,
+            'has_progress': False,
         }
         if is_child:
             # A child isn't ring-fenced, so it has no balance of its own — the
@@ -59,8 +61,14 @@ def funds_dashboard_view(request):
             balance = rolled_collected - rolled_spent
             card['balance_display']  = fmt_rupiah(balance)
             card['balance_negative'] = balance < 0
-        if not is_child and fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
-            card['progress_pct'] = int(min(rolled_collected / fund.target_amount, 1) * 100)
+        if fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
+            if not is_child:
+                card['progress_pct'] = int(min(rolled_collected / fund.target_amount, 1) * 100)
+            spend_pct                  = int(rolled_spent / fund.target_amount * 100)
+            card['spend_progress_pct'] = spend_pct
+            card['spend_bar_pct']      = min(spend_pct, 100)
+            card['spend_over_target']  = rolled_spent > fund.target_amount
+            card['has_progress']       = True
 
         groups.setdefault(fund.kind, []).append(card)
 
