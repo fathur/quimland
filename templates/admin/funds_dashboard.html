@@ -155,7 +155,12 @@
             {% endif %}
 
             {% if card.is_child %}
-              <span class="ql-fund-figs-parent">{% translate 'Parent' %}<strong>{{ card.fund.parent.name }}</strong></span>
+              <span class="ql-fund-figs-parent">
+                {% translate 'Parent' %}
+                <span style="display: block;">
+                  This fund taken from <strong style="display: inline">{{ card.fund.parent.name }}</strong>
+                </span>
+              </span>
             {% endif %}
           </div>
 
