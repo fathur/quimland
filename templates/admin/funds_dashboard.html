@@ -162,9 +162,9 @@
           </div>
 
           <div class="ql-fund-figs">
-            {% if card.rolled_collected %}
+            {% comment %} {% if card.rolled_collected %} {% endcomment %}
             <span>{% translate 'Collected' %}<strong>{{ card.collected_display }}</strong></span>
-            {% endif %}
+            {% comment %} {% endif %} {% endcomment %}
 
             {% if not card.is_child %}
               <span>{% translate 'Spent' %}<strong>{{ card.spent_display }}</strong></span>
