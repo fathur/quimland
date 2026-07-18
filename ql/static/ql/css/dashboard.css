@@ -79,7 +79,7 @@
 /* ---- Progress bar ---- */
 .ql-progress { margin: 6px 0 22px; }
 .ql-bar-track { height: 10px; border-radius: 999px; background: var(--darkened-bg); overflow: hidden; }
-.ql-bar-track > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.ql-bar-track > span { display: block; height: 100%; background: var(--primary); }
 .ql-progress-cap { font-size: 0.75rem; color: var(--body-quiet-color); margin-top: 6px; }
 
 /* ---- Status badges ---- */
