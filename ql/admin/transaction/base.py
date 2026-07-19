@@ -138,11 +138,11 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
         css = {'all': ['admin/css/transaction_highlight.css']}
 
     def get_fields(self, request, obj=None):
-        fields = ['nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image']
+        fields = ['nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image', 'transfer']
         if obj and obj.receipt:
             fields.append('receipt_preview')
         if obj:
-            fields += ['creator', 'created_at', 'updated_at']
+            fields += ['creator', 'created_at', 'updated_at', 'deleted_at']
         return fields
 
     def get_fieldsets(self, request, obj=None):
@@ -150,7 +150,7 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
         receipt_fields = ['receipt_image']
         if obj and obj.receipt:
             receipt_fields.insert(0, 'receipt_preview')
-        other_fields = [f for f in fields if f not in ('receipt_image', 'receipt_preview', 'creator', 'created_at', 'updated_at')]
+        other_fields = [f for f in fields if f not in ('receipt_image', 'receipt_preview', 'creator', 'created_at', 'updated_at', 'deleted_at')]
         fieldsets = [
             (None, {'fields': other_fields}),
             ('Receipt', {'fields': receipt_fields}),

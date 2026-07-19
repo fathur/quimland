@@ -67,7 +67,8 @@ class ExpenseTransactionAdmin(BaseTransactionAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        form.base_fields['user'].label = 'PIC'
+        if form and 'user' in form.base_fields:
+            form.base_fields['user'].label = 'PIC'
         return form
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
