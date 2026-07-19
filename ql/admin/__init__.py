@@ -1,7 +1,7 @@
 from . import (
     fund,
-    salary_rate,
-    setting,
+    # salary_rate,
+    # setting,
     tariff,
     # payment_batch,
     # payment,
