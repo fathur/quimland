@@ -22,10 +22,10 @@ def _get_secure_storage():
             kwargs['custom_domain'] = settings.R2_CUSTOM_DOMAIN
         return S3Boto3Storage(**kwargs)
 
-    # Local: store under SECURE_MEDIA_ROOT, served by the authenticated /admin/media/ view.
+    # Local: store under SECURE_MEDIA_ROOT, served by the authenticated /secure-media/ view.
     return FileSystemStorage(
         location=settings.SECURE_MEDIA_ROOT,
-        base_url='/admin/media/',
+        base_url='/secure-media/',
     )
 
 

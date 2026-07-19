@@ -3,7 +3,7 @@
 (function ($) {
     'use strict';
 
-    const TARIFF_URL = '/admin/ql/paymentbatch/tariff-lookup/';
+    const TARIFF_URL = '/ql/paymentbatch/tariff-lookup/';
 
     function getUserId() {
         return $('#id_user').val();
