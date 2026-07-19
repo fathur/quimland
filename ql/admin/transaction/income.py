@@ -171,7 +171,8 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        form.base_fields['user'].label = 'Resident'
+        if form and 'user' in form.base_fields:
+            form.base_fields['user'].label = 'Resident'
         return form
 
     def save_formset(self, request, form, formset, change):
