@@ -9,13 +9,26 @@ class AssetAdmin(admin.ModelAdmin):
     list_display    = ['id', 'original_name', 'mime_type', 'size_display', 'owner', 'purpose', 'created_at']
     list_filter     = ['mime_type', 'purpose', 'content_type', 'created_at']
     search_fields   = ['original_name', 'url']
-    readonly_fields = ['mime_type', 'size', 'original_name', 'metadata', 'preview', 'created_at', 'updated_at']
+    readonly_fields = ['content_type', 'object_id', 'mime_type', 'size', 'original_name', 'metadata', 'preview', 'created_at', 'updated_at', 'deleted_at']
     fields = [
         'content_type', 'object_id', 'purpose',
         'file', 'url',
         'original_name', 'mime_type', 'size', 'metadata', 'preview',
-        'created_at', 'updated_at',
+        'created_at', 'updated_at', 'deleted_at',
     ]
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {'fields': [
+                'content_type', 'object_id', 'purpose',
+                'file', 'url',
+                'original_name', 'mime_type', 'size', 'metadata', 'preview',
+                # 'created_at', 'updated_at',
+            ]}),
+        ]
+        if obj:
+            fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))
+        return fieldsets
 
     @admin.display(description='Size')
     def size_display(self, obj):

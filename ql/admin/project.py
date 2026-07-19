@@ -10,12 +10,12 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display    = ['id', 'fund', 'pic', 'pic_fee_display', 'created_at']
     search_fields   = ['fund__name', 'pic__username', 'pic__first_name', 'pic__last_name']
     autocomplete_fields = ['fund', 'pic']
-    readonly_fields = ['loans_summary', 'created_at', 'updated_at']
+    readonly_fields = ['loans_summary', 'created_at', 'updated_at', 'deleted_at']
 
     fieldsets = [
         (None, {'fields': ['fund', 'pic', 'pic_fee']}),
         ('Loans', {'fields': ['loans_summary']}),
-        ('Audit', {'fields': ['created_at', 'updated_at'], 'classes': ['collapse']}),
+        ('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}),
     ]
 
     @admin.display(description='PIC Fee', ordering='pic_fee')

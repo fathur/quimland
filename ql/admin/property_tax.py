@@ -9,9 +9,18 @@ class PropertyTaxAdmin(admin.ModelAdmin):
     list_display = ['user', 'nop', 'land_area_display', 'building_area_display', 'attachment_icon']
     search_fields = ['user__first_name', 'user__last_name', 'user__username', 'nop']
     autocomplete_fields = ['user']
+    readonly_fields = ['created_at', 'updated_at', 'deleted_at']
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user__properties')
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {'fields': ['user', 'nop', 'land_area', 'building_area', 'attachment']}),
+        ]
+        if obj:
+            fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))
+        return fieldsets
 
     @admin.display(description='Land Area (m²)', ordering='land_area')
     def land_area_display(self, obj):

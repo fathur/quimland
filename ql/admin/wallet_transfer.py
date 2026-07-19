@@ -25,7 +25,7 @@ class TransferLegInline(admin.TabularInline):
 
 @admin.register(WalletTransfer)
 class WalletTransferAdmin(admin.ModelAdmin):
-    list_display    = ['id', 'from_wallet', 'to_wallet', 'nominal_display', 'occurred_at', 'note_short']
+    list_display    = ['id', 'occurred_at', 'from_wallet', 'to_wallet', 'nominal_display', 'note_short']
     list_filter     = ['from_wallet', 'to_wallet']
     search_fields   = ['from_wallet__name', 'to_wallet__name', 'note']
     ordering        = ['-occurred_at', '-created_at']
@@ -37,6 +37,14 @@ class WalletTransferAdmin(admin.ModelAdmin):
         if obj:
             fields += ['creator', 'created_at', 'updated_at']
         return fields
+    
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {'fields': [ 'occurred_at', 'from_wallet', 'to_wallet', 'nominal', 'note']}),
+        ]
+        if obj:
+            fieldsets.append(('Audit', {'fields': ['creator', 'created_at', 'updated_at'], 'classes': ['collapse']}))
+        return fieldsets
 
     def save_model(self, request, obj, form, change):
         if not change:

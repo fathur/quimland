@@ -10,10 +10,27 @@ from django.utils.html import format_html, mark_safe
 
 from django.contrib.contenttypes.models import ContentType
 
-from ql.models import AllTransaction, Transaction
+from ql.models import AllTransaction, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
 from .base import OccurredAtRangeFilter
 from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter
+
+
+class TransactionItemInline(admin.TabularInline):
+    model           = TransactionItem
+    extra           = 0
+    fields          = ['fund', 'name', 'price', 'quantity', 'nominal']
+    readonly_fields = fields
+    can_delete      = False
+
+    def has_add_permission(self, request, obj=None):  # noqa: ARG002
+        return False
+
+    def has_change_permission(self, request, obj=None):  # noqa: ARG002
+        return False
+
+    def has_delete_permission(self, request, obj=None):  # noqa: ARG002
+        return False
 
 
 class AllTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
@@ -23,6 +40,13 @@ class AllTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     ordering            = ['-occurred_at', '-created_at']
     readonly_fields     = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note',
                            'highlight', 'creator', 'created_at', 'updated_at', 'deleted_at']
+    inlines             = [TransactionItemInline]
+
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (None, {'fields': ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note']}),
+            ('Audit', {'fields': ['highlight', 'creator', 'created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}),
+        ]
 
     class Media:
         css = {'all': ['admin/css/transaction_highlight.css']}
