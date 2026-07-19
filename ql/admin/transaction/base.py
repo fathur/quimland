@@ -73,7 +73,7 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
-    readonly_fields     = ['creator', 'created_at', 'updated_at', 'deleted_at', 'receipt_preview']
+    readonly_fields     = ['creator', 'created_at', 'updated_at', 'deleted_at', 'receipt_preview', 'transfer']
 
     _forced_direction = None
 
