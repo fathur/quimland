@@ -13,7 +13,7 @@ class TransactionItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     inline formset, which also keeps ItemRoutine and nominal-mismatch checks
     in sync. Editing here directly would bypass that."""
 
-    list_display         = ['id', 'transaction_link', 'occurred_at', 'fund', 'name', 'direction_display', 'price_display', 'quantity', 'nominal_display']
+    list_display         = ['id', 'transaction_link', 'transaction__user', 'occurred_at', 'fund', 'name', 'direction_display', 'price_display', 'quantity', 'nominal_display']
     list_filter          = [SoftDeleteFilter, 'fund', 'direction']
     search_fields        = ['id', 'name', 'transaction__id', 'transaction__note']
     ordering             = ['-created_at']
