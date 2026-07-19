@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
@@ -26,6 +27,7 @@ class PropertyTaxInline(admin.StackedInline):
     max_num = 1
     can_delete = False
     verbose_name_plural = 'Property Tax (PBB)'
+    exclude = ['deleted_at']
 
 
 class UserPropertyInline(admin.StackedInline):
@@ -33,12 +35,20 @@ class UserPropertyInline(admin.StackedInline):
     extra = 1
     max_num = 1
     can_delete = False
+    exclude = ['deleted_at']
 
 
 class TariffInline(admin.TabularInline):
     model = Tariff
     extra = 1
     fk_name = 'user'
+    exclude = ['deleted_at']
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'note':
+            kwargs['widget'] = forms.Textarea(attrs={'rows': 2, 'cols': 30})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
 
 
 class ExtendedUserAdmin(UserAdmin):
@@ -48,6 +58,7 @@ class ExtendedUserAdmin(UserAdmin):
     list_display_links = ['full_name']
     ordering = ['first_name', 'last_name']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'properties__home_number']
+    readonly_fields = ['last_login', 'date_joined']
 
     class Media:
         css = {'all': ['admin/css/user_changelist.css']}

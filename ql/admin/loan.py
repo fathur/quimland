@@ -11,11 +11,11 @@ class LoanAdmin(admin.ModelAdmin):
     search_fields  = ['fund__name', 'lender__username', 'lender__first_name', 'lender__last_name']
     ordering       = ['-borrowed_at']
     autocomplete_fields = ['fund', 'lender']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'deleted_at']
 
     fieldsets = [
         (None, {'fields': ['fund', 'lender', 'kind', 'principal', 'borrowed_at', 'status', 'note']}),
-        ('Audit', {'fields': ['created_at', 'updated_at'], 'classes': ['collapse']}),
+        ('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}),
     ]
 
     @admin.display(description='Principal', ordering='principal')

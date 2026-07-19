@@ -26,7 +26,7 @@ class FundDueInline(admin.TabularInline):
 
 @admin.register(Fund)
 class FundAdmin(MPTTModelAdmin):
-    list_display = ['name', 'color_swatch', 'kind', 'parent', 'status', 'target_amount_display', 'created_at']
+    list_display = ['name', 'color_swatch', 'kind', 'parent', 'status', 'target_amount_display']
     list_filter = ['kind', 'status']
     search_fields = ['name']
     actions = ['generate_report_action']

@@ -24,11 +24,11 @@ class DueNoteProofInline(admin.TabularInline):
 
 @admin.register(DueNote)
 class DueNoteAdmin(admin.ModelAdmin):
-    list_display  = ['user', 'fund', 'period', 'reason', 'note_short', 'proof_icon', 'creator', 'updated_at']
+    list_display  = ['user', 'fund', 'period', 'reason', 'note_short', 'proof_icon']
     list_filter   = ['reason', 'fund', 'period']
     search_fields = ['user__username', 'user__first_name', 'user__last_name', 'note']
     autocomplete_fields = ['user', 'fund']
-    readonly_fields = ['creator', 'created_at', 'updated_at']
+    readonly_fields = ['creator', 'created_at', 'updated_at', 'deleted_at']
     inlines = [DueNoteProofInline]
 
     def get_queryset(self, request):
@@ -37,8 +37,16 @@ class DueNoteAdmin(admin.ModelAdmin):
     def get_fields(self, request, obj=None):
         fields = ['user', 'fund', 'period', 'reason', 'note']
         if obj:
-            fields += ['creator', 'created_at', 'updated_at']
+            fields += ['creator', 'created_at', 'updated_at', 'deleted_at']
         return fields
+    
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {'fields': ['user', 'fund', 'period', 'reason', 'note']}),
+        ]
+        if obj:
+            fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))
+        return fieldsets
 
     def save_model(self, request, obj, form, change):
         if not obj.creator_id:
