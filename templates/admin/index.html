@@ -10,19 +10,19 @@
 {% block content %}
 <div id="content-main" class="app-list">
 
-  {# Dashboard quick-links section (not a real registered app, inject from available_apps) #}
+  {# Quick-links sections (not real registered apps, injected into available_apps) #}
   {% for app in available_apps %}
-    {% if app.app_label == 'ql_dashboard' %}
-    <div class="app-ql_dashboard module">
+    {% if app.app_label == 'ql_dashboard' or app.app_label == 'ql_transactions' %}
+    <div class="app-{{ app.app_label }} module">
       <table>
         <caption>
           <a href="{{ app.app_url }}" class="section">{{ app.name }}</a>
         </caption>
         <thead class="visually-hidden">
           <tr>
-            <th scope="col">{% translate 'Page' %}</th>
-            <th scope="col"></th>
-            <th scope="col">{% translate 'View' %}</th>
+            <th scope="col">{% translate 'Model name' %}</th>
+            <th scope="col">{% translate 'Add link' %}</th>
+            <th scope="col">{% translate 'Change or view list link' %}</th>
           </tr>
         </thead>
         {% for model in app.models %}
@@ -30,8 +30,16 @@
             <th scope="row">
               <a href="{{ model.admin_url }}">{{ model.name }}</a>
             </th>
-            <td></td>
-            <td><a href="{{ model.admin_url }}" class="viewlink">{% translate 'View' %}</a></td>
+            {% if model.add_url %}
+              <td><a href="{{ model.add_url }}" class="addlink">{% translate 'Add' %}</a></td>
+            {% else %}
+              <td></td>
+            {% endif %}
+            {% if model.view_only %}
+              <td><a href="{{ model.admin_url }}" class="viewlink">{% translate 'View' %}</a></td>
+            {% else %}
+              <td><a href="{{ model.admin_url }}" class="changelink">{% translate 'Change' %}</a></td>
+            {% endif %}
           </tr>
         {% endfor %}
       </table>

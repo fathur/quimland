@@ -47,13 +47,13 @@ admin.site.get_urls = _get_urls
 _DASHBOARD_APP = {
     'name': 'Dashboard',
     'app_label': 'ql_dashboard',
-    'app_url': '/admin/payments-dashboard/',
+    'app_url': '/payments-dashboard/',
     'has_module_perms': True,
     'models': [
         {
             'name': 'Transactions',
             'object_name': 'TransactionsDashboard',
-            'admin_url': '/admin/payments-dashboard/',
+            'admin_url': '/payments-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
@@ -61,7 +61,7 @@ _DASHBOARD_APP = {
         {
             'name': 'Funds overview',
             'object_name': 'FundsDashboard',
-            'admin_url': '/admin/funds-dashboard/',
+            'admin_url': '/funds-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
@@ -69,7 +69,7 @@ _DASHBOARD_APP = {
         {
             'name': 'Wallets overview',
             'object_name': 'WalletDashboard',
-            'admin_url': '/admin/wallet-dashboard/',
+            'admin_url': '/wallet-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
@@ -77,7 +77,7 @@ _DASHBOARD_APP = {
         # {
         #     'name': 'Earmarked funds',
         #     'object_name': 'EarmarkedDashboard',
-        #     'admin_url': '/admin/earmarked-dashboard/',
+        #     'admin_url': '/earmarked-dashboard/',
         #     'add_url': None,
         #     'view_only': True,
         #     'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
@@ -85,7 +85,7 @@ _DASHBOARD_APP = {
         {
             'name': 'Scan Receipt',
             'object_name': 'ReceiptScan',
-            'admin_url': '/admin/receipt-scan/',
+            'admin_url': '/receipt-scan/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
@@ -96,27 +96,27 @@ _DASHBOARD_APP = {
 _TRANSACTIONS_APP = {
     'name': 'Transactions',
     'app_label': 'ql_transactions',
-    'app_url': '/admin/ql/incometransaction/',
+    'app_url': '/ql/incometransaction/',
     'has_module_perms': True,
     'models': [
         {
             'name': 'Income',
             'object_name': 'IncomeTransaction',
-            'admin_url': '/admin/ql/incometransaction/',
-            'add_url': '/admin/ql/incometransaction/add/',
+            'admin_url': '/ql/incometransaction/',
+            'add_url': '/ql/incometransaction/add/',
             'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
         },
         {
             'name': 'Expenses',
             'object_name': 'ExpenseTransaction',
-            'admin_url': '/admin/ql/expensetransaction/',
-            'add_url': '/admin/ql/expensetransaction/add/',
+            'admin_url': '/ql/expensetransaction/',
+            'add_url': '/ql/expensetransaction/add/',
             'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
         },
         {
             'name': 'All Transactions',
             'object_name': 'AllTransaction',
-            'admin_url': '/admin/ql/alltransaction/',
+            'admin_url': '/ql/alltransaction/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': False, 'delete': False, 'view': True},
