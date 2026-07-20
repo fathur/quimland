@@ -243,7 +243,8 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @admin.display(description='Note')
     def note_short(self, obj):
-        return (obj.note[:60] + '…') if len(obj.note) > 60 else obj.note
+        short = (obj.note[:60] + '…') if len(obj.note) > 60 else obj.note
+        return format_html('<span title="{}">{}</span>', obj.note, short)
 
     @admin.display(description='', ordering='receipt')
     def receipt_icon(self, obj):
