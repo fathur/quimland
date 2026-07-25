@@ -130,13 +130,42 @@
             <span class="cell-fund">
               {% for badge in dot.badges %}
               {% if badge.status == 'paid' %}
-              <a class="badge" href="{% url 'admin:ql_incometransaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+
+                {% if perms.ql.change_incometransaction %}
+                <!-- clickable and redirect to income transaction page -->
+                <a class="badge" href="{% url 'admin:ql_incometransaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+
+                {% elif perms.ql.view_alltransaction %}
+                <!-- clickable and redirect to all transaction page -->
+                <a class="badge" href="{% url 'admin:ql_alltransaction_change' badge.transaction_id %}" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+
+                {% else %}
+                <!-- not clickable -->
+                <span class="badge" style="background:{{ dot.fund.color }};color:#fff;" title="{{ dot.fund.name }}: paid — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</span>
+
+                {% endif %}
+
+              
               {% elif badge.status == 'partial' %}
-              <a class="badge" href="{% url 'admin:ql_incometransaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+                {% if perms.ql.change_alltransaction or perms.ql.view_alltransaction %}
+                <a class="badge" href="{% url 'admin:ql_alltransaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+                {% else %}
+                <span class="badge" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</span>
+                {% endif %}
               {% elif badge.note %}
-              <a class="badge unpaid noted" href="{% url 'admin:ql_duenote_change' badge.note.id %}" title="{{ dot.fund.name }} — {{ badge.note.reason_label }}{% if badge.note.note %}: {{ badge.note.note }}{% endif %}{% if badge.note.has_proof %} (proof attached){% endif %}">{% if badge.note.has_proof %}📎{% else %}ⓘ{% endif %}</a>
+                {% if perms.ql.change_duenote or perms.ql.view_duenote %}
+                <a class="badge unpaid noted" href="{% url 'admin:ql_duenote_change' badge.note.id %}" title="{{ dot.fund.name }} — {{ badge.note.reason_label }}{% if badge.note.note %}: {{ badge.note.note }}{% endif %}{% if badge.note.has_proof %} (proof attached){% endif %}">{% if badge.note.has_proof %}📎{% else %}ⓘ{% endif %}</a>
+                {% else %}
+                <span class="badge unpaid noted">
+                  {% if badge.note.has_proof %}📎{% else %}ⓘ{% endif %}
+                </span>
+                {% endif %}
               {% else %}
-              <a class="badge unpaid" href="{% url 'admin:ql_duenote_add' %}?user={{ row.user.id }}&fund={{ dot.fund.id }}&period={{ badge.period }}" title="{{ dot.fund.name }}: unpaid — click to add a reason">—</a>
+                {% if perms.ql.add_duenote %}
+                <a class="badge unpaid" href="{% url 'admin:ql_duenote_add' %}?user={{ row.user.id }}&fund={{ dot.fund.id }}&period={{ badge.period }}" title="{{ dot.fund.name }}: unpaid — click to add a reason">—</a>
+                {% else %}
+                <span class="badge unpaid" title="{{ dot.fund.name }}: unpaid">—</span>
+                {% endif %}
               {% endif %}
               {% endfor %}
             </span>

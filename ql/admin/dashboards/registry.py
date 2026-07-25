@@ -44,36 +44,41 @@ admin.site.get_urls = _get_urls
 # ---------------------------------------------------------------------------
 # Sidebar injection
 # ---------------------------------------------------------------------------
-_DASHBOARD_APP = {
-    'name': 'Dashboard',
-    'app_label': 'ql_dashboard',
-    'app_url': '/payments-dashboard/',
-    'has_module_perms': True,
-    'models': [
-        {
+def _dashboard_app(request):
+    models = []
+    if request.user.has_perm('ql.view_alltransaction'):
+        models.append({
             'name': 'Transactions',
             'object_name': 'TransactionsDashboard',
             'admin_url': '/payments-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
-        },
-        {
+        })
+
+    if request.user.has_perm('ql.view_fund'):
+        models.append({
             'name': 'Funds overview',
             'object_name': 'FundsDashboard',
             'admin_url': '/funds-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
-        },
-        {
+        })
+
+    if request.user.has_perm('ql.view_wallet'):
+        models.append({
             'name': 'Wallets overview',
             'object_name': 'WalletDashboard',
             'admin_url': '/wallet-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
-        },
+        })
+
+    models += [
+        
+    
         # {
         #     'name': 'Earmarked funds',
         #     'object_name': 'EarmarkedDashboard',
@@ -82,47 +87,63 @@ _DASHBOARD_APP = {
         #     'view_only': True,
         #     'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
         # },
-        {
+    ]
+    if request.user.has_perm('ql.add_receipt') and request.user.has_perm('ql.add_incometransaction'):
+        models.append({
             'name': 'Scan Receipt',
             'object_name': 'ReceiptScan',
             'admin_url': '/receipt-scan/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
-        },
-    ],
-}
+        })
+    return {
+        'name': 'Dashboard',
+        'app_label': 'ql_dashboard',
+        'app_url': '/payments-dashboard/',
+        'has_module_perms': True,
+        'models': models,
+    }
 
-_TRANSACTIONS_APP = {
-    'name': 'Transactions',
-    'app_label': 'ql_transactions',
-    'app_url': '/ql/incometransaction/',
-    'has_module_perms': True,
-    'models': [
-        {
-            'name': 'Income',
-            'object_name': 'IncomeTransaction',
-            'admin_url': '/ql/incometransaction/',
-            'add_url': '/ql/incometransaction/add/',
-            'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
-        },
-        {
-            'name': 'Expenses',
-            'object_name': 'ExpenseTransaction',
-            'admin_url': '/ql/expensetransaction/',
-            'add_url': '/ql/expensetransaction/add/',
-            'perms': {'add': True, 'change': True, 'delete': True, 'view': True},
-        },
-        {
-            'name': 'All Transactions',
-            'object_name': 'AllTransaction',
-            'admin_url': '/ql/alltransaction/',
-            'add_url': None,
-            'view_only': True,
-            'perms': {'add': False, 'change': False, 'delete': False, 'view': True},
-        },
-    ],
-}
+
+_TRANSACTIONS_MODELS = [
+    # name, object_name, model_name, view_only
+    ('Income',           'IncomeTransaction',  'incometransaction',  False),
+    ('Expenses',         'ExpenseTransaction', 'expensetransaction', False),
+    ('All Transactions', 'AllTransaction',     'alltransaction',     True),
+]
+
+
+def _model_perms(user, model_name):
+    add    = user.has_perm(f'ql.add_{model_name}')
+    change = user.has_perm(f'ql.change_{model_name}')
+    delete = user.has_perm(f'ql.delete_{model_name}')
+    view   = user.has_perm(f'ql.view_{model_name}') or change
+    return {'add': add, 'change': change, 'delete': delete, 'view': view}
+
+
+def _transactions_app(request):
+    models = []
+    for name, object_name, model_name, view_only in _TRANSACTIONS_MODELS:
+        perms = _model_perms(request.user, model_name)
+        if not any(perms.values()):
+            continue
+        models.append({
+            'name': name,
+            'object_name': object_name,
+            'admin_url': f'/ql/{model_name}/',
+            'add_url': f'/ql/{model_name}/add/' if perms['add'] and not view_only else None,
+            'view_only': view_only,
+            'perms': perms,
+        })
+    return {
+        'name': 'Transactions',
+        'app_label': 'ql_transactions',
+        'app_url': '/ql/incometransaction/',
+        'has_module_perms': bool(models),
+        'models': models,
+    }
+
 
 _original_each_context = admin.site.__class__.each_context
 
@@ -138,7 +159,13 @@ def _each_context(self, request):
                 filtered_apps.append({**app, 'models': models})
         else:
             filtered_apps.append(app)
-    ctx['available_apps'] = [_DASHBOARD_APP, _TRANSACTIONS_APP] + filtered_apps
+
+    injected = [_dashboard_app(request)]
+    transactions_app = _transactions_app(request)
+    if transactions_app['models']:
+        injected.append(transactions_app)
+
+    ctx['available_apps'] = injected + filtered_apps
     return ctx
 
 

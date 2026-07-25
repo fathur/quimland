@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib import admin
+from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.shortcuts import render
@@ -11,6 +12,7 @@ from .data import dot_status, year_note_map, year_paid_map, year_tariff_map
 from ql.models import Fund
 
 
+@permission_required('ql.view_alltransaction', raise_exception=True)
 def payments_dashboard_view(request):
     year   = timezone.localdate().year
     months = [date(year, m, 1) for m in range(1, 13)]
