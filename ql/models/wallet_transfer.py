@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from ql.models.transaction import Transaction
 
@@ -20,6 +21,9 @@ class WalletTransfer(TimestampMixin):
     # cycle that would otherwise block deletion entirely.
     out_transaction = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
     in_transaction  = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
+
+    class Meta:
+        db_table = 'wallet_transfers'
 
     def save(self, *args, **kwargs):
         creating = self.pk is None
@@ -42,8 +46,35 @@ class WalletTransfer(TimestampMixin):
                     pk__in=[self.out_transaction_id, self.in_transaction_id]
                 ).update(transfer=self)
         else:
-            super().save(*args, **kwargs)
+            with transaction.atomic():
+                super().save(*args, **kwargs)
 
+                out_tx = self.out_transaction
+
+                out_tx.occurred_at = self.occurred_at
+                out_tx.wallet = self.from_wallet
+                out_tx.nominal = self.nominal
+                out_tx.note = self.note
+
+                out_tx.save()
+
+                in_tx = self.in_transaction
+
+                in_tx.occurred_at = self.occurred_at
+                in_tx.wallet = self.to_wallet
+                in_tx.nominal = self.nominal
+                in_tx.note = self.note
+
+                in_tx.save()
+
+    def delete(self, using=None, keep_parents=False):
+        with transaction.atomic():
+            now = timezone.now()
+            Transaction.objects.filter(
+                pk__in=[self.out_transaction_id, self.in_transaction_id]
+            ).update(deleted_at=now)
+            WalletTransfer.objects.filter(pk=self.pk).update(deleted_at=now)
+            self.deleted_at = now
 
     def __str__(self):
         return f'Transfer #{self.pk} | {self.from_wallet} → {self.to_wallet} | {self.nominal:,}'
