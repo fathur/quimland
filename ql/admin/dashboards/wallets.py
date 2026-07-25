@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import admin
+from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render
 
 from .data import parse_as_of_dt, wallet_money_map
@@ -8,6 +9,7 @@ from ql.models import Wallet
 from ql.utils import fmt_rupiah
 
 
+@permission_required('ql.view_wallet', raise_exception=True)
 def wallet_dashboard_view(request):
     as_of       = parse_as_of_dt(request.GET.get('as_of', ''))
     as_of_input = as_of.strftime('%Y-%m-%dT%H:%M:%S') if as_of else ''

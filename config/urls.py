@@ -34,3 +34,7 @@ urlpatterns = [
     path('', admin.site.urls),
     # path("", include('mcp_server.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler400 = 'ql.views.error_400'
+handler403 = 'ql.views.error_403'
+handler404 = 'ql.views.error_404'

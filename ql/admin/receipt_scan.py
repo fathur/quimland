@@ -4,6 +4,7 @@ import os
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import admin
+from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.models import User
 from django.db import transaction as db_transaction
 from django.db.models import Q
@@ -37,6 +38,8 @@ RECEIPT_EXTRACTION_PROMPT = (
 
 CLAUDE_MODEL = 'claude-haiku-4-5'
 
+REQUIRED_PERMS = ('ql.add_receipt', 'ql.add_incometransaction')
+
 _MEDIA_TYPES = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
@@ -64,6 +67,7 @@ def _search_users(sender_name):
 # ---------------------------------------------------------------------------
 # Views
 # ---------------------------------------------------------------------------
+@permission_required(REQUIRED_PERMS, raise_exception=True)
 def receipt_scan_page(request):
     users = list(
         User.objects.filter(is_active=True)
@@ -78,6 +82,7 @@ def receipt_scan_page(request):
     return render(request, 'admin/receipt_scan.html', context)
 
 
+@permission_required(REQUIRED_PERMS, raise_exception=True)
 def extract_receipt_view(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -140,6 +145,7 @@ def user_search_view(request):
     ]})
 
 
+@permission_required(REQUIRED_PERMS, raise_exception=True)
 def save_transaction_view(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)

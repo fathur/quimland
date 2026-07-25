@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import admin
+from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render
 
 from .data import fund_money_map, parse_as_of_dt
@@ -8,6 +9,7 @@ from ql.models import Fund
 from ql.utils import fmt_rupiah
 
 
+@permission_required('ql.view_fund', raise_exception=True)
 def funds_dashboard_view(request):
     as_of       = parse_as_of_dt(request.GET.get('as_of', ''))
     as_of_input = as_of.strftime('%Y-%m-%dT%H:%M:%S') if as_of else ''
