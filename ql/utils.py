@@ -1,7 +1,19 @@
 import io
 import os
+import re
 
 from django.core.files.base import ContentFile
+
+
+def normalize_phone(raw):
+    """Digits only, keeping a leading '+' if present. A leading '0' is treated
+    as the Indonesian trunk prefix and rewritten to '+62'. Mirrors UserProperty.clean()."""
+    if raw.startswith('+'):
+        return '+' + re.sub(r'\D', '', raw)
+    digits = re.sub(r'\D', '', raw)
+    if digits.startswith('0'):
+        return '+62' + digits[1:]
+    return digits
 
 
 def fmt_rupiah(amount):

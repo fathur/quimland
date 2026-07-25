@@ -1,7 +1,7 @@
-import re
-
 from django.conf import settings
 from django.db import models
+
+from ql.utils import normalize_phone
 
 from .base import TimestampMixin
 
@@ -22,8 +22,7 @@ class UserProperty(TimestampMixin):
 
     def clean(self):
         if self.phone:
-            prefix = '+' if self.phone.startswith('+') else ''
-            self.phone = prefix + re.sub(r'\D', '', self.phone)
+            self.phone = normalize_phone(self.phone)
 
     def save(self, *args, **kwargs):
         self.clean()

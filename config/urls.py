@@ -20,11 +20,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
+from ql.auth_backends import PhoneOrUsernameAuthForm
 from ql.views import serve_secure_media
 
 admin.site.site_header = 'Quim Land'
 admin.site.site_title  = 'Quim Land'
 admin.site.index_title = 'Quim Land'
+admin.site.login_form  = PhoneOrUsernameAuthForm
 
 urlpatterns = [
     path('secure-media/<path:path>', serve_secure_media, name='secure_media'),
