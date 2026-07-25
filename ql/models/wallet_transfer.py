@@ -22,6 +22,9 @@ class WalletTransfer(TimestampMixin):
     out_transaction = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
     in_transaction  = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
 
+    class Meta:
+        db_table = 'wallet_transfers'
+
     def save(self, *args, **kwargs):
         creating = self.pk is None
         if creating:
