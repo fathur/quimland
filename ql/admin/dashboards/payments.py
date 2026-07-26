@@ -78,7 +78,8 @@ def payments_dashboard_view(request):
                         'note': notes.get((user.id, fund.id, period)),
                     }]
 
-                dots.append({'fund': fund, 'status': status, 'badges': badges})
+                if status != "na":
+                    dots.append({'fund': fund, 'status': status, 'badges': badges})
             month_cells.append({'month': month_date.month, 'dots': dots})
 
         rows.append({
