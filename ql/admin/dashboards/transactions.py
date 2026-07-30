@@ -14,7 +14,7 @@ from ql.utils import fmt_rupiah
 
 
 @permission_required('ql.view_alltransaction', raise_exception=True)
-def payments_dashboard_view(request):
+def transactions_dashboard_view(request):
     year   = timezone.localdate().year
     months = [date(year, m, 1) for m in range(1, 13)]
 
@@ -120,4 +120,4 @@ def payments_dashboard_view(request):
         'q': q,
         'sort': sort,
     }
-    return render(request, 'admin/payments_dashboard.html', context)
+    return render(request, 'admin/transactions_dashboard.html', context)

@@ -3,7 +3,7 @@ from django.urls import path
 
 from .earmarked import earmarked_dashboard_view
 from .funds import funds_dashboard_view
-from .payments import payments_dashboard_view
+from .transactions import transactions_dashboard_view
 from .wallets import wallet_dashboard_view
 
 
@@ -16,9 +16,9 @@ _original_get_urls = admin.site.get_urls
 def _get_urls():
     return [
         path(
-            'payments-dashboard/',
-            admin.site.admin_view(payments_dashboard_view),
-            name='payments_dashboard',
+            'transactions-dashboard/',
+            admin.site.admin_view(transactions_dashboard_view),
+            name='transactions_dashboard',
         ),
         path(
             'funds-dashboard/',
@@ -50,7 +50,7 @@ def _dashboard_app(request):
         models.append({
             'name': 'Transactions',
             'object_name': 'TransactionsDashboard',
-            'admin_url': '/payments-dashboard/',
+            'admin_url': '/transactions-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
@@ -100,7 +100,7 @@ def _dashboard_app(request):
     return {
         'name': 'Dashboard',
         'app_label': 'ql_dashboard',
-        'app_url': '/payments-dashboard/',
+        'app_url': '/transactions-dashboard/',
         'has_module_perms': True,
         'models': models,
     }
