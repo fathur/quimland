@@ -51,6 +51,7 @@ def transactions_dashboard_view(request):
     zero = Decimal('0')
     month_fund_totals = {(fund.id, month_date.strftime('%Y-%m')): zero for fund in funds for month_date in months}
     month_fund_applicable = {(fund.id, month_date.strftime('%Y-%m')): False for fund in funds for month_date in months}
+    month_fund_paid_count = {(fund.id, month_date.strftime('%Y-%m')): 0 for fund in funds for month_date in months}
 
     rows = []
     for user in users_qs:
@@ -70,6 +71,8 @@ def transactions_dashboard_view(request):
                 if status != 'na':
                     month_fund_totals[(fund.id, period)] += total
                     month_fund_applicable[(fund.id, period)] = True
+                    if status == 'paid':
+                        month_fund_paid_count[(fund.id, period)] += 1
 
                 if data and data['entries']:
                     badges = [
@@ -101,7 +104,11 @@ def transactions_dashboard_view(request):
     for month_date in months:
         period = month_date.strftime('%Y-%m')
         fund_totals = [
-            {'fund': fund, 'total_display': fmt_rupiah(month_fund_totals[(fund.id, period)])}
+            {
+                'fund': fund,
+                'total_display': fmt_rupiah(month_fund_totals[(fund.id, period)]),
+                'paid_count': month_fund_paid_count[(fund.id, period)],
+            }
             for fund in funds
             if month_fund_applicable[(fund.id, period)]
         ]

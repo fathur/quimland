@@ -83,6 +83,7 @@
   .txn-total-fund + .txn-total-fund { margin-top:4px; }
   .txn-total-fund .fund-name { font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:.02em; color:var(--body-quiet-color); white-space:nowrap; }
   .txn-total-fund .fund-amount { font-size:0.875rem; font-weight:700; color:var(--body-fg); white-space:nowrap; }
+  .txn-total-fund .fund-count { font-size:0.6875rem; font-weight:400; color:var(--body-quiet-color); white-space:nowrap; }
 </style>
 
 <div class="txn-header">
@@ -153,6 +154,7 @@
           <div class="txn-total-fund" style="border-left-color:{{ ft.fund.color }};">
             <span class="fund-name">{{ ft.fund.name }}</span>
             <span class="fund-amount">{{ ft.total_display }}</span>
+            <span class="fund-count">{% blocktranslate count counter=ft.paid_count %}{{ counter }} person{% plural %}{{ counter }} people{% endblocktranslate %}</span>
           </div>
           {% endfor %}
         </td>
