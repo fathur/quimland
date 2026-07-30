@@ -50,6 +50,7 @@ def payments_dashboard_view(request):
 
     zero = Decimal('0')
     month_fund_totals = {(fund.id, month_date.strftime('%Y-%m')): zero for fund in funds for month_date in months}
+    month_fund_applicable = {(fund.id, month_date.strftime('%Y-%m')): False for fund in funds for month_date in months}
 
     rows = []
     for user in users_qs:
@@ -66,7 +67,9 @@ def payments_dashboard_view(request):
                 total    = data['total'] if data else zero
                 status   = dot_status(total, expected)
 
-                month_fund_totals[(fund.id, period)] += total
+                if status != 'na':
+                    month_fund_totals[(fund.id, period)] += total
+                    month_fund_applicable[(fund.id, period)] = True
 
                 if data and data['entries']:
                     badges = [
@@ -100,6 +103,7 @@ def payments_dashboard_view(request):
         fund_totals = [
             {'fund': fund, 'total_display': fmt_rupiah(month_fund_totals[(fund.id, period)])}
             for fund in funds
+            if month_fund_applicable[(fund.id, period)]
         ]
         summary_cells.append({'month': month_date.month, 'fund_totals': fund_totals})
 
