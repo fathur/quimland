@@ -84,11 +84,74 @@
   .txn-total-fund .fund-name { font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:.02em; color:var(--body-quiet-color); white-space:nowrap; }
   .txn-total-fund .fund-amount { font-size:0.875rem; font-weight:700; color:var(--body-fg); white-space:nowrap; }
   .txn-total-fund .fund-count { font-size:0.6875rem; font-weight:400; color:var(--body-quiet-color); white-space:nowrap; }
+
+  /* Future savings warning */
+  .txn-warning {
+    background:var(--message-warning-bg, #ffc);
+    border:1px solid color-mix(in srgb, var(--message-warning-bg, #ffc) 40%, #8a6d00);
+    border-radius:6px;
+    margin-bottom:18px;
+    color:#3f3300;
+  }
+  .txn-warning summary {
+    cursor:pointer;
+    list-style:none;
+    padding:10px 16px;
+    font-size:0.875rem;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .txn-warning summary::-webkit-details-marker { display:none; }
+  .txn-warning summary::before { content:'▸'; font-weight:700; transition:transform .15s ease; }
+  .txn-warning[open] summary::before { transform:rotate(90deg); }
+  .txn-warning .txn-warning-body {
+    padding:0 16px 14px 16px;
+    font-size:0.8125rem;
+  }
+  .txn-warning-note { margin:0 0 10px 0; color:#5c4a00; }
+  .txn-warning-funds { display:flex; flex-wrap:wrap; gap:10px; }
+  .txn-warning-fund {
+    background:rgba(255,255,255,.5);
+    border-left:3px solid transparent;
+    border-radius:4px;
+    padding:6px 10px;
+    min-width:140px;
+  }
+  .txn-warning-fund .fund-name { display:block; font-size:0.6875rem; text-transform:uppercase; letter-spacing:.02em; color:#5c4a00; }
+  .txn-warning-fund .fund-amount { display:block; font-size:0.9375rem; font-weight:700; }
 </style>
 
 <div class="txn-header">
   <span class="sub">{{ year }} &mdash; {{ total_users }} {% translate 'residents' %}</span>
 </div>
+
+{# ── Future savings warning ── #}
+{% if future_range_display %}
+<details class="txn-warning">
+  <summary>
+    {% blocktranslate with range=future_range_display total=future_savings_total_display %}{{ total }} already collected for {{ range }} is set aside for the future, not available to spend now{% endblocktranslate %}
+  </summary>
+  <div class="txn-warning-body">
+    <p class="txn-warning-note">
+      {% blocktranslate with range=future_range_display %}These amounts were paid in advance for months after the current one ({{ range }}). They belong to future dues and should not be counted as money currently available to spend.{% endblocktranslate %}
+    </p>
+    {% if future_savings %}
+    <div class="txn-warning-funds">
+      {% for fs in future_savings %}
+      <div class="txn-warning-fund" style="border-left-color:{{ fs.fund.color }};">
+        <span class="fund-name">{{ fs.fund.name }}</span>
+        <span class="fund-amount">{{ fs.total_display }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>{% translate 'No advance payments for future months yet.' %}</p>
+    {% endif %}
+  </div>
+</details>
+{% endif %}
 
 {# ── Search ── #}
 <form method="get" style="display:flex;gap:8px;align-items:center;margin-bottom:18px;">

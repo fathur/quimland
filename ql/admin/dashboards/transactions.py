@@ -15,7 +15,9 @@ from ql.utils import fmt_rupiah
 
 @permission_required('ql.view_alltransaction', raise_exception=True)
 def transactions_dashboard_view(request):
-    year   = timezone.localdate().year
+    today        = timezone.localdate()
+    year         = today.year
+    current_month = today.month
     months = [date(year, m, 1) for m in range(1, 13)]
 
     funds      = list(Fund.objects.filter(kind=Fund.Kind.ROUTINE).order_by('name'))
@@ -114,6 +116,33 @@ def transactions_dashboard_view(request):
         ]
         summary_cells.append({'month': month_date.month, 'fund_totals': fund_totals})
 
+    future_months = [m for m in months if m.month > current_month]
+    future_periods = {m.strftime('%Y-%m') for m in future_months}
+    fund_future_totals = {fund.id: zero for fund in funds}
+
+    for (user_id, fund_id, period), data in paid.items():
+        if period not in future_periods or fund_id not in fund_future_totals:
+            continue
+        month_date = date(year, int(period[5:7]), 1)
+        expected   = get_tariff(user_id, fund_id, month_date)
+        if dot_status(data['total'], expected) == 'na':
+            continue
+        fund_future_totals[fund_id] += data['total']
+
+    fund_by_id = {fund.id: fund for fund in funds}
+    future_savings = sorted(
+        (
+            {'fund': fund_by_id[fid], 'total_display': fmt_rupiah(total)}
+            for fid, total in fund_future_totals.items()
+            if total > zero
+        ),
+        key=lambda entry: entry['fund'].name,
+    )
+    future_savings_total_display = fmt_rupiah(sum(fund_future_totals.values(), zero))
+    future_range_display = None
+    if future_months:
+        future_range_display = f'{future_months[0]:%b} – {future_months[-1]:%b} {year}'
+
     context = {
         **admin.site.each_context(request),
         'title': 'Transactions',
@@ -123,7 +152,10 @@ def transactions_dashboard_view(request):
         'rows': rows,
         'summary_cells': summary_cells,
         'total_users': len(rows),
-        'current_month': timezone.localdate().month,
+        'current_month': current_month,
+        'future_savings': future_savings,
+        'future_savings_total_display': future_savings_total_display,
+        'future_range_display': future_range_display,
         'q': q,
         'sort': sort,
     }
