@@ -56,6 +56,33 @@
   .cell-link { display:inline-flex; flex-direction:column; align-items:center; gap:4px; padding:3px 4px; border-radius:6px; text-decoration:none !important; }
   .cell-link:hover { background:var(--selected-bg); }
   .cell-fund { display:flex; flex-direction:column; gap:2px; align-items:center; }
+
+  /* Totals row */
+  .txn-table tr.total-row td {
+    background:color-mix(in srgb, var(--primary) 14%, var(--body-bg));
+    border-top:2px solid var(--primary);
+    border-bottom:2px solid var(--primary);
+  }
+  .txn-table tr.total-row td.name-col,
+  .txn-table tr.total-row td.home-col {
+    background:color-mix(in srgb, var(--primary) 14%, var(--body-bg));
+  }
+  .txn-table tr.total-row td.name-col {
+    color:var(--primary);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-size:0.75rem;
+    font-weight:700;
+  }
+  .txn-total-fund {
+    display:flex; flex-direction:column; gap:2px;
+    border-left:3px solid transparent;
+    padding:2px 0 2px 8px;
+    text-align:left;
+  }
+  .txn-total-fund + .txn-total-fund { margin-top:4px; }
+  .txn-total-fund .fund-name { font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:.02em; color:var(--body-quiet-color); white-space:nowrap; }
+  .txn-total-fund .fund-amount { font-size:0.875rem; font-weight:700; color:var(--body-fg); white-space:nowrap; }
 </style>
 
 <div class="txn-header">
@@ -117,6 +144,20 @@
       </tr>
     </thead>
     <tbody>
+      <tr class="total-row">
+        <td class="name-col">{% translate 'Total' %}</td>
+        <td class="home-col"></td>
+        {% for cell in summary_cells %}
+        <td class="{% if cell.month == current_month %}cur-month{% endif %}">
+          {% for ft in cell.fund_totals %}
+          <div class="txn-total-fund" style="border-left-color:{{ ft.fund.color }};">
+            <span class="fund-name">{{ ft.fund.name }}</span>
+            <span class="fund-amount">{{ ft.total_display }}</span>
+          </div>
+          {% endfor %}
+        </td>
+        {% endfor %}
+      </tr>
       {% for row in rows %}
       <tr>
         <td class="name-col">

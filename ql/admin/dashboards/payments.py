@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from .data import dot_status, year_note_map, year_paid_map, year_tariff_map
 from ql.models import Fund
+from ql.utils import fmt_rupiah
 
 
 @permission_required('ql.view_alltransaction', raise_exception=True)
@@ -48,6 +49,8 @@ def payments_dashboard_view(request):
         users_qs = users_qs.order_by('first_name', 'last_name', 'username')
 
     zero = Decimal('0')
+    month_fund_totals = {(fund.id, month_date.strftime('%Y-%m')): zero for fund in funds for month_date in months}
+
     rows = []
     for user in users_qs:
         prop = getattr(user, 'properties', None)
@@ -62,6 +65,8 @@ def payments_dashboard_view(request):
                 data     = paid.get((user.id, fund.id, period))
                 total    = data['total'] if data else zero
                 status   = dot_status(total, expected)
+
+                month_fund_totals[(fund.id, period)] += total
 
                 if data and data['entries']:
                     badges = [
@@ -89,6 +94,15 @@ def payments_dashboard_view(request):
             'month_cells': month_cells,
         })
 
+    summary_cells = []
+    for month_date in months:
+        period = month_date.strftime('%Y-%m')
+        fund_totals = [
+            {'fund': fund, 'total_display': fmt_rupiah(month_fund_totals[(fund.id, period)])}
+            for fund in funds
+        ]
+        summary_cells.append({'month': month_date.month, 'fund_totals': fund_totals})
+
     context = {
         **admin.site.each_context(request),
         'title': 'Transactions',
@@ -96,6 +110,7 @@ def payments_dashboard_view(request):
         'months': months,
         'funds': funds,
         'rows': rows,
+        'summary_cells': summary_cells,
         'total_users': len(rows),
         'current_month': timezone.localdate().month,
         'q': q,
