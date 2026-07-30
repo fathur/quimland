@@ -14,7 +14,7 @@ from ql.utils import fmt_rupiah
 
 
 @permission_required('ql.view_alltransaction', raise_exception=True)
-def transactions_dashboard_view(request):
+def income_dashboard_view(request):
     today        = timezone.localdate()
     year         = today.year
     current_month = today.month
@@ -145,7 +145,7 @@ def transactions_dashboard_view(request):
 
     context = {
         **admin.site.each_context(request),
-        'title': 'Transactions',
+        'title': 'Income',
         'year': year,
         'months': months,
         'funds': funds,
@@ -159,4 +159,4 @@ def transactions_dashboard_view(request):
         'q': q,
         'sort': sort,
     }
-    return render(request, 'admin/transactions_dashboard.html', context)
+    return render(request, 'admin/income_dashboard.html', context)
