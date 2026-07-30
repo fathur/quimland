@@ -3,9 +3,11 @@ from decimal import Decimal
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Q, Sum
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.html import format_html, mark_safe
 
-from ql.models import Fund, Receipt, Transaction, TransactionItem
+from ql.models import Fund, ItemRoutine, Receipt, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
 from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter, make_date_range_filter
 
@@ -215,6 +217,38 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
         if request.method == 'GET':
             self._check_nominal_mismatch(request, obj)
         return super().change_view(request, object_id, form_url, extra_context)
+
+    def response_change(self, request, obj):
+        if '_duplicate' in request.POST and self.has_add_permission(request):
+            new_obj = self._duplicate_transaction(request, obj)
+            self.message_user(request, f'Duplicated as transaction #{new_obj.pk}.')
+            opts = self.model._meta
+            url = reverse(f'admin:{opts.app_label}_{opts.model_name}_change', args=(new_obj.pk,))
+            return HttpResponseRedirect(url)
+        return super().response_change(request, obj)
+
+    def _duplicate_transaction(self, request, obj):
+        new_obj = Transaction.objects.get(pk=obj.pk)
+        new_obj.pk         = None
+        new_obj.id         = None
+        new_obj._state.adding = True
+        new_obj.creator    = request.user
+        new_obj.receipt    = None
+        new_obj.deleted_at = None
+        new_obj.save()
+
+        for item in TransactionItem.objects.filter(transaction=obj):
+            old_item_pk        = item.pk
+            item.pk            = None
+            item.id            = None
+            item._state.adding = True
+            item.transaction   = new_obj
+            item.save()
+            routine = ItemRoutine.objects.filter(transaction_item_id=old_item_pk).first()
+            if routine:
+                ItemRoutine.objects.create(transaction_item=item, period=routine.period)
+
+        return new_obj
 
     def save_formset(self, request, form, formset, change):  # noqa: ARG002
         if formset.model is not TransactionItem:

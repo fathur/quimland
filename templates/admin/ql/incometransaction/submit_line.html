@@ -1,0 +1,9 @@
+{% extends "admin/submit_line.html" %}
+{% load i18n %}
+
+{% block submit-row %}
+{{ block.super }}
+{% if change and has_add_permission %}
+<input type="submit" value="{% translate 'Duplicate' %}" name="_duplicate">
+{% endif %}
+{% endblock %}
