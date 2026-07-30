@@ -48,7 +48,7 @@ def _dashboard_app(request):
     models = []
     if request.user.has_perm('ql.view_alltransaction'):
         models.append({
-            'name': 'Income',
+            'name': 'Routine Income Overview',
             'object_name': 'IncomeDashboard',
             'admin_url': '/income-dashboard/',
             'add_url': None,
