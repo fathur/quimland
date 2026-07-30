@@ -121,6 +121,10 @@
   }
   .txn-warning-fund .fund-name { display:block; font-size:0.6875rem; text-transform:uppercase; letter-spacing:.02em; color:#5c4a00; }
   .txn-warning-fund .fund-amount { display:block; font-size:0.9375rem; font-weight:700; }
+
+  @media (max-width: 767px) {
+    .txn-warning-detail { display:none; }
+  }
 </style>
 
 <div class="txn-header">
@@ -131,7 +135,7 @@
 {% if future_range_display %}
 <details class="txn-warning">
   <summary>
-    {% blocktranslate with range=future_range_display total=future_savings_total_display %}{{ total }} already collected for {{ range }} is set aside for the future, not available to spend now{% endblocktranslate %}
+    {% blocktranslate with range=future_range_display total=future_savings_total_display %}{{ total }} <span class="txn-warning-detail">already collected for {{ range }} is set aside for the future,</span> not available to spend now{% endblocktranslate %}
   </summary>
   <div class="txn-warning-body">
     <p class="txn-warning-note">
