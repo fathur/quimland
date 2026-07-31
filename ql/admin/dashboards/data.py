@@ -237,6 +237,7 @@ def resident_outstanding(users_qs, today=None):
 
         get_tariff = year_tariff_map(year)
         paid = year_paid_map(year)
+        notes = year_note_map(year)
 
         for user_id in by_user:
             for fund in funds:
@@ -245,6 +246,8 @@ def resident_outstanding(users_qs, today=None):
                     if expected is None:
                         continue
                     period = month_date.strftime('%Y-%m')
+                    if (user_id, fund.id, period) in notes:
+                        continue  # a DueNote marks this period as specially handled — not counted as outstanding
                     data = paid.get((user_id, fund.id, period))
                     total_paid = data['total'] if data else zero
                     outstanding = expected - total_paid
