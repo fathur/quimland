@@ -28,7 +28,8 @@ INSTALLED_APPS = [
     'mptt',
     'ql',
     'sorl.thumbnail',
-    'django_extensions'
+    'django_extensions',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -126,3 +127,9 @@ R2_CUSTOM_DOMAIN    = os.environ.get('R2_CUSTOM_DOMAIN', '')  # optional public 
 # Max size (bytes) for a directly-uploaded Asset file. Larger files must be
 # referenced by URL instead. Default: 10 MiB.
 ASSET_MAX_UPLOAD_SIZE = int(os.environ.get('ASSET_MAX_UPLOAD_SIZE', 10 * 1024 * 1024))
+
+# ---------------------------------------------------------------------------
+# WhatsApp Business API (Meta Cloud API) webhook
+# ---------------------------------------------------------------------------
+WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', '')
+WHATSAPP_APP_SECRET = os.environ.get('WHATSAPP_APP_SECRET', '')

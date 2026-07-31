@@ -21,7 +21,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 from ql.auth_backends import PhoneOrUsernameAuthForm
-from ql.views import serve_secure_media
+from ql.views import serve_secure_media, WhatsAppWebhookView
 
 admin.site.site_header = 'Quim Land'
 admin.site.site_title  = 'Quim Land'
@@ -30,6 +30,8 @@ admin.site.login_form  = PhoneOrUsernameAuthForm
 
 urlpatterns = [
     path('secure-media/<path:path>', serve_secure_media, name='secure_media'),
+
+    path('api/whatsapp/webhook/', WhatsAppWebhookView.as_view(), name='whatsapp_webhook'),
 
     path('', admin.site.urls),
     # path("", include('mcp_server.urls')),
