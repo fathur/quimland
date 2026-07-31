@@ -166,7 +166,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     previewsContainer: '#am-dz-hidden',
     clickable: '#am-dropzone',
     headers: { 'X-CSRFToken': CSRF },
-    acceptedFiles: '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx',
+    acceptedFiles: '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,.xls,.xlsx',
     init: function () {
       this.on('sending', function (file, xhr, formData) {
         formData.append('content_type_id', CT);
