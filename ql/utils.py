@@ -63,6 +63,8 @@ ALLOWED_ASSET_MIME_TYPES = {
     'application/pdf': ['pdf'],
     'image/jpeg': ['jpg', 'jpeg'],
     'image/png': ['png'],
+    'image/heic': ['heic'],
+    'image/heif': ['heif'],
     'application/msword': ['doc'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
     'application/vnd.ms-excel': ['xls'],
@@ -84,13 +86,15 @@ _EXTENSION_TO_MIME = {
     'jpg': 'image/jpeg',
     'jpeg': 'image/jpeg',
     'png': 'image/png',
+    'heic': 'image/heic',
+    'heif': 'image/heif',
     'doc': 'application/msword',
     'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'xls': 'application/vnd.ms-excel',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
-IMAGE_MIME_TYPES = {'image/jpeg', 'image/png'}
+IMAGE_MIME_TYPES = {'image/jpeg', 'image/png', 'image/heic', 'image/heif'}
 
 
 def detect_asset_mime(fileobj, filename=''):
