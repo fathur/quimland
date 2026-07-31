@@ -170,6 +170,43 @@ def wallet_money_map(as_of=None):
     return result
 
 
+def _format_period_ranges(periods):
+    """['2025-01', '2025-02', '2025-04', ...] (ascending) → 'Jan-Feb 2025, Apr 2025'.
+
+    Consecutive months collapse into a single 'Mon-Mon YYYY' range; a gap
+    (a paid month in between) starts a new range. A lone month has no dash.
+    """
+    if not periods:
+        return ''
+
+    def month_index(period):
+        y, m = period.split('-')
+        return int(y) * 12 + int(m)
+
+    runs = []
+    run = [periods[0]]
+    for period in periods[1:]:
+        if month_index(period) == month_index(run[-1]) + 1:
+            run.append(period)
+        else:
+            runs.append(run)
+            run = [period]
+    runs.append(run)
+
+    labels = []
+    for run in runs:
+        start = date(int(run[0][:4]), int(run[0][5:7]), 1)
+        if len(run) == 1:
+            labels.append(start.strftime('%b %Y'))
+        else:
+            end = date(int(run[-1][:4]), int(run[-1][5:7]), 1)
+            if start.year == end.year:
+                labels.append(f'{start.strftime("%b")}-{end.strftime("%b %Y")}')
+            else:
+                labels.append(f'{start.strftime("%b %Y")}-{end.strftime("%b %Y")}')
+    return ', '.join(labels)
+
+
 def resident_outstanding(users_qs, today=None):
     """
     Per-resident outstanding routine dues, from each user's earliest ROUTINE
@@ -177,7 +214,7 @@ def resident_outstanding(users_qs, today=None):
 
     Returns [{
         'user', 'name', 'home_number',
-        'fund_totals': [{'fund', 'total', 'total_display', 'periods': [{'period','label'}]}],
+        'fund_totals': [{'fund', 'total', 'total_display', 'periods_display'}],
         'total', 'total_display',
     }] — only residents with total > 0, sorted by total descending.
     """
@@ -215,7 +252,7 @@ def resident_outstanding(users_qs, today=None):
                         continue
                     bucket = by_user[user_id]['fund_totals'][fund.id]
                     bucket['total'] += outstanding
-                    bucket['periods'].append({'period': period, 'label': month_date.strftime('%b %Y')})
+                    bucket['periods'].append(period)
 
     rows = []
     for entry in by_user.values():
@@ -233,7 +270,7 @@ def resident_outstanding(users_qs, today=None):
                 'fund': fund,
                 'total': bucket['total'],
                 'total_display': fmt_rupiah(bucket['total']),
-                'periods': bucket['periods'],
+                'periods_display': _format_period_ranges(bucket['periods']),
             })
 
         prop = getattr(user, 'properties', None)

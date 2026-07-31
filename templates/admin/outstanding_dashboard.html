@@ -35,7 +35,7 @@
   .sort-link { text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:4px; }
   .sort-link:hover { text-decoration:underline; }
 
-  .fund-owed { display:flex; flex-direction:column; gap:2px; border-left:3px solid transparent; padding:2px 0 2px 8px; }
+  .fund-owed { border-left:3px solid transparent; padding:2px 0 2px 8px; }
   .fund-owed + .fund-owed { margin-top:8px; }
   .fund-owed .fund-name { font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:.02em; color:var(--body-quiet-color); }
   .fund-owed .fund-amount { font-size:0.875rem; font-weight:700; color:var(--body-fg); }
@@ -78,7 +78,7 @@
             {% translate 'Home No.' %}{% if sort == 'home' %} ↑{% elif sort == '-home' %} ↓{% endif %}
           </a>
         </th>
-        {% comment %} <th>{% translate 'Outstanding by fund (unpaid periods)' %}</th> {% endcomment %}
+        <th>{% translate 'Outstanding by fund (unpaid periods)' %}</th>
         <th>
           <a class="sort-link" href="?sort={% if sort == 'total' %}-total{% else %}total{% endif %}{% if q %}&q={{ q }}{% endif %}">
             {% translate 'Total outstanding' %}{% if sort == 'total' %} ↑{% elif sort == '-total' %} ↓{% endif %}
@@ -89,7 +89,7 @@
     <tbody>
       {% if rows %}
       <tr class="total-row">
-        <td colspan="2">{% translate 'Grand total' %}</td>
+        <td colspan="3">{% translate 'Grand total' %}</td>
         <td class="total-col">{{ grand_total_display }}</td>
       </tr>
       {% endif %}
@@ -99,15 +99,15 @@
           <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
         </td>
         <td>{{ row.home_number|default:"—" }}</td>
-        {% comment %} <td>
+        <td>
           {% for ft in row.fund_totals %}
           <div class="fund-owed" style="border-left-color:{{ ft.fund.color }};">
             <span class="fund-name">{{ ft.fund.name }}</span>
             <span class="fund-amount">{{ ft.total_display }}</span>
-            <span class="fund-periods">{% for p in ft.periods %}{{ p.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+            <span class="fund-periods">({{ ft.periods_display }})</span>
           </div>
           {% endfor %}
-        </td> {% endcomment %}
+        </td>
         <td class="total-col">{{ row.total_display }}</td>
       </tr>
       {% empty %}
