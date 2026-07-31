@@ -68,7 +68,69 @@ class TransactionAdminForm(forms.ModelForm):
                 pass
 
 
-class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+class TransactionIconsMixin:
+    """Shared QRIS/reconciled/receipt status icons for transaction admins."""
+
+    @admin.display(description='Reconciled', ordering='is_reconciled')
+    def reconciled_icon(self, obj):
+        if not obj.is_reconciled:
+            return ''
+        return mark_safe(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+            ' stroke="#2563eb" stroke-width="2.5" stroke-linecap="round"'
+            ' stroke-linejoin="round" width="16" height="16"'
+            ' title="Reconciled" style="vertical-align:middle;">'
+            '<path d="M20 6 9 17l-5-5"/>'
+            '</svg>'
+        )
+
+    @admin.display(description='QRIS', ordering='is_qris')
+    def qris_icon(self, obj):
+        if not obj.is_qris:
+            return ''
+        return mark_safe(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+            ' stroke-linejoin="round" width="16" height="16"'
+            ' title="QRIS" style="vertical-align:middle;color:var(--body-fg)">'
+            '<rect x="3" y="3" width="7" height="7" rx="1"/>'
+            '<rect x="14" y="3" width="7" height="7" rx="1"/>'
+            '<rect x="3" y="14" width="7" height="7" rx="1"/>'
+            '<rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"/>'
+            '<path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>'
+            '</svg>'
+        )
+
+    @admin.display(description='', ordering='receipt')
+    def receipt_icon(self, obj):
+        if not obj.receipt or not obj.receipt.image:
+            return '—'
+        return format_html(
+            '<a href="{}" target="_blank" title="View receipt">'
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+            ' stroke-linejoin="round" width="16" height="16"'
+            ' style="vertical-align:middle;color:var(--body-fg)">'
+            '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19'
+            ' a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'
+            '</svg>'
+            '</a>',
+            obj.receipt.image.url,
+        )
+
+    @admin.display(description='')
+    def status_icons(self, obj):
+        return format_html(
+            '<div style="display:flex;gap:8px;align-items:center;justify-content:center;">{}{}{}</div>',
+            mark_safe(self.qris_icon(obj)),
+            mark_safe(self.reconciled_icon(obj)),
+            mark_safe(self.receipt_icon(obj)),
+        )
+
+
+class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     form                = TransactionAdminForm
     list_display        = ['id', 'user', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
     list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', 'user']
@@ -79,12 +141,12 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
     _forced_direction = None
 
-    actions = ['mark_qris', 'unmark_qris', 'restore_selected']
+    actions = ['mark_qris', 'unmark_qris', 'mark_reconciled', 'unmark_reconciled', 'restore_selected']
 
     def get_actions(self, request):
         actions = super().get_actions(request)
         if not self.has_change_permission(request):
-            for name in ('mark_qris', 'unmark_qris', 'restore_selected'):
+            for name in ('mark_qris', 'unmark_qris', 'mark_reconciled', 'unmark_reconciled', 'restore_selected'):
                 actions.pop(name, None)
         if not self.has_delete_permission(request):
             actions.pop('delete_selected', None)
@@ -108,24 +170,15 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
         updated = queryset.update(is_qris=False)
         self.message_user(request, f'{updated} transaction(s) unmarked as QRIS.')
 
-    @admin.display(description='QRIS', ordering='is_qris')
-    def qris_icon(self, obj):
-        if not obj.is_qris:
-            return ''
-        return mark_safe(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
-            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
-            ' stroke-linejoin="round" width="16" height="16"'
-            ' title="QRIS" style="vertical-align:middle;color:var(--body-fg)">'
-            '<rect x="3" y="3" width="7" height="7" rx="1"/>'
-            '<rect x="14" y="3" width="7" height="7" rx="1"/>'
-            '<rect x="3" y="14" width="7" height="7" rx="1"/>'
-            '<rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
-            '<rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"/>'
-            '<rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"/>'
-            '<path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>'
-            '</svg>'
-        )
+    @admin.action(description='Mark selected as reconciled')
+    def mark_reconciled(self, request, queryset):
+        updated = queryset.update(is_reconciled=True)
+        self.message_user(request, f'{updated} transaction(s) marked as reconciled.')
+
+    @admin.action(description='Unmark selected as reconciled')
+    def unmark_reconciled(self, request, queryset):
+        updated = queryset.update(is_reconciled=False)
+        self.message_user(request, f'{updated} transaction(s) unmarked as reconciled.')
 
     def get_queryset(self, request):
         # super() → SoftDeleteAdminMixin.get_queryset → with_deleted() base
@@ -279,23 +332,6 @@ class BaseTransactionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     def note_short(self, obj):
         short = (obj.note[:60] + '…') if len(obj.note) > 60 else obj.note
         return format_html('<span title="{}">{}</span>', obj.note, short)
-
-    @admin.display(description='', ordering='receipt')
-    def receipt_icon(self, obj):
-        if not obj.receipt or not obj.receipt.image:
-            return '—'
-        return format_html(
-            '<a href="{}" target="_blank" title="View receipt">'
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
-            ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
-            ' stroke-linejoin="round" width="16" height="16"'
-            ' style="vertical-align:middle;color:var(--body-fg)">'
-            '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19'
-            ' a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'
-            '</svg>'
-            '</a>',
-            obj.receipt.image.url,
-        )
 
     @admin.display(description='Receipt preview')
     def receipt_preview(self, obj):

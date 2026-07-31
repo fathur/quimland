@@ -55,7 +55,12 @@ class Transaction(TimestampMixin):
     # and cascade-deletes them with the transaction.
     assets = GenericRelation('Asset', related_query_name='transaction')
 
+    # Whether this transaction was made via QRIS (QR code payment). 
     is_qris = models.BooleanField(default=False)
+
+    # Whether this transaction has been reconciled with the bank statement. 
+    # A transaction can be reconciled but still have a warning highlight.
+    is_reconciled = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'transactions'

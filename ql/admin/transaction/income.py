@@ -161,18 +161,24 @@ class IncomeTransactionItemInline(admin.TabularInline):
 class IncomeTransactionAdmin(BaseTransactionAdmin):
     _forced_direction = Transaction.Direction.IN
     inlines           = [IncomeTransactionItemInline]
-    list_display      = ['id', 'occurred_at', 'wallet', 'nominal_display', 'resident', 'qris_icon', 'receipt_icon', 'note_short', 'highlight_row', 'creator']
+    list_display      = ['id', 'occurred_at', 'resident', 'wallet_display', 'nominal_display', 'status_icons', 'note_short', 'highlight_row', 'creator']
 
 
 
-    @admin.display(description='Resident', ordering='user')
+    @admin.display(description='From Resident', ordering='user')
     def resident(self, obj):
         return obj.user
+
+    @admin.display(description='To Wallet', ordering='wallet')
+    def wallet_display(self, obj):
+        return obj.wallet
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         if form and 'user' in form.base_fields:
-            form.base_fields['user'].label = 'Resident'
+            form.base_fields['user'].label = 'From Resident'
+        if form and 'wallet' in form.base_fields:
+            form.base_fields['wallet'].label = 'To Wallet'
         return form
 
     def save_formset(self, request, form, formset, change):

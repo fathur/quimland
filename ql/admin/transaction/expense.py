@@ -58,17 +58,24 @@ class ExpenseTransactionItemInline(admin.TabularInline):
 class ExpenseTransactionAdmin(BaseTransactionAdmin):
     _forced_direction    = Transaction.Direction.OUT
     inlines              = [ExpenseTransactionItemInline]
-    list_display         = ['id', 'occurred_at', 'wallet', 'nominal_display', 'pic', 'qris_icon', 'receipt_icon', 'note_short', 'highlight_row', 'creator']
+    list_display         = ['id', 'occurred_at', 'wallet_display', 'nominal_display', 'pic', 'status_icons', 'note_short', 'highlight_row', 'creator']
     change_form_template = 'admin/ql/expensetransaction/change_form.html'
 
     @admin.display(description='PIC', ordering='user')
     def pic(self, obj):
         return obj.user
 
+    @admin.display(description='From Wallet', ordering='wallet')
+    def wallet_display(self, obj):
+        return obj.wallet
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         if form and 'user' in form.base_fields:
             form.base_fields['user'].label = 'PIC'
+            form.base_fields['user'].help_text = 'Person In Charge — the resident responsible for this expense.'
+        if form and 'wallet' in form.base_fields:
+            form.base_fields['wallet'].label = 'From Wallet'
         return form
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
