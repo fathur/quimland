@@ -6,6 +6,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ql.models import DueNote, Fund, ItemRoutine, Tariff, Transaction, TransactionItem
+from ql.utils import fmt_rupiah
 
 
 def year_tariff_map(year):
@@ -167,6 +168,86 @@ def wallet_money_map(as_of=None):
     for bucket in result.values():
         bucket['balance'] = bucket['in'] - bucket['out']
     return result
+
+
+def resident_outstanding(users_qs, today=None):
+    """
+    Per-resident outstanding routine dues, from each user's earliest ROUTINE
+    tariff up through the current month (inclusive), across all years.
+
+    Returns [{
+        'user', 'name', 'home_number',
+        'fund_totals': [{'fund', 'total', 'total_display', 'periods': [{'period','label'}]}],
+        'total', 'total_display',
+    }] — only residents with total > 0, sorted by total descending.
+    """
+    today = today or timezone.localdate()
+
+    funds = list(Fund.objects.filter(kind=Fund.Kind.ROUTINE).order_by('name'))
+    if not funds:
+        return [], []
+
+    earliest = Tariff.objects.filter(fund__kind=Fund.Kind.ROUTINE).order_by('start_from').values_list('start_from', flat=True).first()
+    if earliest is None:
+        return [], funds
+
+    zero = Decimal('0')
+    by_user = {user.id: {'user': user, 'fund_totals': {fund.id: {'total': zero, 'periods': []} for fund in funds}} for user in users_qs}
+
+    for year in range(earliest.year, today.year + 1):
+        last_month = today.month if year == today.year else 12
+        months = [date(year, m, 1) for m in range(1, last_month + 1)]
+
+        get_tariff = year_tariff_map(year)
+        paid = year_paid_map(year)
+
+        for user_id in by_user:
+            for fund in funds:
+                for month_date in months:
+                    expected = get_tariff(user_id, fund.id, month_date)
+                    if expected is None:
+                        continue
+                    period = month_date.strftime('%Y-%m')
+                    data = paid.get((user_id, fund.id, period))
+                    total_paid = data['total'] if data else zero
+                    outstanding = expected - total_paid
+                    if outstanding <= zero:
+                        continue
+                    bucket = by_user[user_id]['fund_totals'][fund.id]
+                    bucket['total'] += outstanding
+                    bucket['periods'].append({'period': period, 'label': month_date.strftime('%b %Y')})
+
+    rows = []
+    for entry in by_user.values():
+        user = entry['user']
+        total = sum((b['total'] for b in entry['fund_totals'].values()), zero)
+        if total <= zero:
+            continue
+
+        fund_totals = []
+        for fund in funds:
+            bucket = entry['fund_totals'][fund.id]
+            if bucket['total'] <= zero:
+                continue
+            fund_totals.append({
+                'fund': fund,
+                'total': bucket['total'],
+                'total_display': fmt_rupiah(bucket['total']),
+                'periods': bucket['periods'],
+            })
+
+        prop = getattr(user, 'properties', None)
+        rows.append({
+            'user': user,
+            'name': user.get_full_name() or user.username,
+            'home_number': (getattr(prop, 'home_number', '') or '') if prop is not None else '',
+            'fund_totals': fund_totals,
+            'total': total,
+            'total_display': fmt_rupiah(total),
+        })
+
+    rows.sort(key=lambda r: r['total'], reverse=True)
+    return rows, funds
 
 
 def dot_status(amount, expected):

@@ -1,0 +1,124 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:income_dashboard' %}">{% translate 'Income' %}</a>
+  &rsaquo; {% translate 'Outstanding' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  #content { max-width: none; }
+
+  .txn-header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:18px; }
+  .txn-header h1 { margin:0; }
+  .txn-header .sub { font-size:0.875rem; color:var(--body-quiet-color); }
+
+  .txn-scroll { overflow-x:auto; }
+  .txn-table { border-collapse:collapse; white-space:nowrap; font-size:0.8125rem; width:100%; }
+  .txn-table th, .txn-table td {
+    padding:8px 12px;
+    border:1px solid var(--hairline-color);
+    text-align:left;
+    vertical-align:top;
+  }
+  .txn-table th {
+    background:var(--darkened-bg);
+    font-size:0.6875rem; text-transform:uppercase; letter-spacing:.03em; color:var(--body-quiet-color);
+  }
+  .txn-table td.name-col { font-weight:600; white-space:nowrap; }
+  .txn-table td.name-col a { text-decoration:none; color:var(--body-fg); }
+  .txn-table td.total-col { font-weight:700; white-space:nowrap; }
+  .sort-link { text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:4px; }
+  .sort-link:hover { text-decoration:underline; }
+
+  .fund-owed { display:flex; flex-direction:column; gap:2px; border-left:3px solid transparent; padding:2px 0 2px 8px; }
+  .fund-owed + .fund-owed { margin-top:8px; }
+  .fund-owed .fund-name { font-size:0.625rem; font-weight:400; text-transform:uppercase; letter-spacing:.02em; color:var(--body-quiet-color); }
+  .fund-owed .fund-amount { font-size:0.875rem; font-weight:700; color:var(--body-fg); }
+  .fund-owed .fund-periods { font-size:0.6875rem; font-weight:400; color:var(--body-quiet-color); white-space:normal; max-width:320px; }
+
+  .txn-table tr.total-row td {
+    background:color-mix(in srgb, var(--primary) 14%, var(--body-bg));
+    border-top:2px solid var(--primary);
+    border-bottom:2px solid var(--primary);
+    font-weight:700;
+  }
+</style>
+
+<div class="txn-header">
+  <span class="sub">{% blocktranslate with today=today|date:"F Y" %}Through {{ today }} &mdash; {{ total_residents }} resident(s) with outstanding dues{% endblocktranslate %}</span>
+  <a href="{% url 'admin:income_dashboard' %}" class="button">{% translate '← Back to Income' %}</a>
+</div>
+
+{# ── Search ── #}
+<form method="get" style="display:flex;gap:8px;align-items:center;margin-bottom:18px;">
+  {% if sort and sort != '-total' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  <input type="search" name="q" value="{{ q }}"
+         placeholder="{% translate 'Search name or home number…' %}"
+         style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:0.8125rem;min-width:260px;">
+  <button type="submit" class="button default">{% translate 'Search' %}</button>
+  {% if q %}<a href="?{% if sort != '-total' %}sort={{ sort }}{% endif %}" class="button">{% translate 'Clear' %}</a>{% endif %}
+</form>
+
+<div class="module txn-scroll">
+  <table class="txn-table">
+    <thead>
+      <tr>
+        <th>
+          <a class="sort-link" href="?sort={% if sort == 'name' %}-name{% else %}name{% endif %}{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Name' %}{% if sort == 'name' %} ↑{% elif sort == '-name' %} ↓{% endif %}
+          </a>
+        </th>
+        <th>
+          <a class="sort-link" href="?sort={% if sort == 'home' %}-home{% else %}home{% endif %}{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Home No.' %}{% if sort == 'home' %} ↑{% elif sort == '-home' %} ↓{% endif %}
+          </a>
+        </th>
+        {% comment %} <th>{% translate 'Outstanding by fund (unpaid periods)' %}</th> {% endcomment %}
+        <th>
+          <a class="sort-link" href="?sort={% if sort == 'total' %}-total{% else %}total{% endif %}{% if q %}&q={{ q }}{% endif %}">
+            {% translate 'Total outstanding' %}{% if sort == 'total' %} ↑{% elif sort == '-total' %} ↓{% endif %}
+          </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if rows %}
+      <tr class="total-row">
+        <td colspan="2">{% translate 'Grand total' %}</td>
+        <td class="total-col">{{ grand_total_display }}</td>
+      </tr>
+      {% endif %}
+      {% for row in rows %}
+      <tr>
+        <td class="name-col">
+          <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
+        </td>
+        <td>{{ row.home_number|default:"—" }}</td>
+        {% comment %} <td>
+          {% for ft in row.fund_totals %}
+          <div class="fund-owed" style="border-left-color:{{ ft.fund.color }};">
+            <span class="fund-name">{{ ft.fund.name }}</span>
+            <span class="fund-amount">{{ ft.total_display }}</span>
+            <span class="fund-periods">{% for p in ft.periods %}{{ p.label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+          </div>
+          {% endfor %}
+        </td> {% endcomment %}
+        <td class="total-col">{{ row.total_display }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" style="padding:40px;text-align:center;color:var(--body-quiet-color);">
+          {% translate 'No outstanding payments — everyone is fully paid.' %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

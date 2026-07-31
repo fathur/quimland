@@ -127,8 +127,9 @@
   }
 </style>
 
-<div class="txn-header">
+<div class="txn-header" style="justify-content:space-between;">
   <span class="sub">{{ year }} &mdash; {{ total_users }} {% translate 'residents' %}</span>
+  <a href="{% url 'admin:outstanding_dashboard' %}" class="button">{% translate 'View outstanding payments' %}</a>
 </div>
 
 {# ── Future savings warning ── #}

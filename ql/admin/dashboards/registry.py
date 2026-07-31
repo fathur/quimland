@@ -4,6 +4,7 @@ from django.urls import path
 from .earmarked import earmarked_dashboard_view
 from .funds import funds_dashboard_view
 from .income import income_dashboard_view
+from .outstanding import outstanding_dashboard_view
 from .wallets import wallet_dashboard_view
 
 
@@ -19,6 +20,11 @@ def _get_urls():
             'income-dashboard/',
             admin.site.admin_view(income_dashboard_view),
             name='income_dashboard',
+        ),
+        path(
+            'income-dashboard/outstanding',
+            admin.site.admin_view(outstanding_dashboard_view),
+            name='outstanding_dashboard',
         ),
         path(
             'funds-dashboard/',
