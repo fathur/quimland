@@ -2,6 +2,7 @@ import io
 import os
 import re
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 
 
@@ -19,6 +20,20 @@ def normalize_phone(raw):
 def fmt_rupiah(amount):
     formatted = f'{amount:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
     return f'Rp {formatted}'
+
+
+def show_toolbar_to_staff(request):
+    """SHOW_TOOLBAR_CALLBACK: toolbar visible to logged-in staff/superusers only,
+    independent of DEBUG or client IP — safe to enable on the production domain
+    without exposing Django's verbose DEBUG error pages to residents.
+
+    Gated by DEBUG_TOOLBAR_ENABLED so the toolbar stays off by default even in
+    prod; flip that env var on only while actively debugging.
+    """
+    if not settings.DEBUG_TOOLBAR_ENABLED:
+        return False
+    user = getattr(request, 'user', None)
+    return bool(user and user.is_active and user.is_staff)
 
 
 def render_report_markdown(content):

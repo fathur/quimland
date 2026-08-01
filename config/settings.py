@@ -14,6 +14,26 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
+INTERNAL_IPS = [
+    # ...
+    "127.0.0.1",
+    "localhost",
+    # ...
+]
+
+# ---------------------------------------------------------------------------
+# Debug toolbar — visibility is controlled by this flag + staff status
+# (ql.debug_toolbar_hooks.show_toolbar_to_staff), NOT by DEBUG. This lets the
+# toolbar be switched on for staff on the production domain (quimland.com)
+# without ever turning on DEBUG's verbose error pages for real residents.
+# Off by default; flip only while actively debugging.
+# ---------------------------------------------------------------------------
+DEBUG_TOOLBAR_ENABLED = os.environ.get('DEBUG_TOOLBAR_ENABLED', 'False') == 'True'
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': 'ql.utils.show_toolbar_to_staff',
+}
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
 
 INSTALLED_APPS = [
@@ -30,6 +50,7 @@ INSTALLED_APPS = [
     'sorl.thumbnail',
     'django_extensions',
     'rest_framework',
+    'debug_toolbar'
 ]
 
 MIDDLEWARE = [
@@ -40,6 +61,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
