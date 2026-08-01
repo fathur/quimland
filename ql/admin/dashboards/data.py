@@ -8,6 +8,15 @@ from django.utils import timezone
 from ql.models import DueNote, Fund, ItemRoutine, Tariff, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
 
+# Leaderboard scoring: points per routine period, and points per Rp of money
+# (other income / outstanding), calibrated so a typical monthly due
+# (Rp 30k-100k, see Tariff.nominal) moves the score by a few points —
+# comparable in weight to a single early/late period.
+POINTS_EARLY_PERIOD   = 3
+POINTS_ONTIME_PERIOD  = 1
+POINTS_LATE_PERIOD    = -2
+POINTS_PER_RUPIAH     = Decimal('1') / Decimal('10000')
+
 
 def year_tariff_map(year):
     """Returns get_nominal(user_id, fund_id, month_date) for all ROUTINE tariffs in the year."""
@@ -288,6 +297,133 @@ def resident_outstanding(users_qs, today=None):
 
     rows.sort(key=lambda r: r['total'], reverse=True)
     return rows, funds
+
+
+def year_other_income_map(year):
+    """{user_id: Decimal total} of IN money credited to a resident in `year` that
+    is NOT a routine due payment (no ItemRoutine link) and not an internal wallet
+    transfer leg — e.g. earmarked fund contributions, donations, ad-hoc income."""
+    rows = (
+        TransactionItem.objects
+        .filter(
+            transaction__deleted_at__isnull=True,
+            transaction__direction=Transaction.Direction.IN,
+            transaction__transfer__isnull=True,
+            transaction__occurred_at__year=year,
+            transaction__user__is_active=True,
+            fund__deleted_at__isnull=True,
+            routine__isnull=True,
+        )
+        .values('transaction__user_id')
+        .annotate(total=Sum('nominal'))
+    )
+    zero = Decimal('0')
+    return {r['transaction__user_id']: r['total'] or zero for r in rows}
+
+
+def _period_completion_date(entries, expected):
+    """Walk paid entries (ascending by occurred_at) and return the date the
+    cumulative total first reached `expected`, or None if it never did."""
+    cum = Decimal('0')
+    for entry in entries:
+        cum += entry['amount']
+        if cum >= expected:
+            occurred_at = entry['occurred_at']
+            return timezone.localtime(occurred_at).date() if occurred_at else None
+    return None
+
+
+def resident_leaderboard(users_qs, year, today=None):
+    """
+    Ranks residents by a single score built from their ROUTINE due history in
+    `year`: rewards paying early/on-time and other (non-routine) income
+    contributed, penalizes late payment and outstanding balance.
+
+    Returns [{
+        'user', 'name', 'home_number',
+        'early', 'ontime', 'late', 'unpaid_periods',
+        'outstanding', 'outstanding_display',
+        'other_income', 'other_income_display',
+        'score', 'rank',
+    }] sorted by score descending (best payers first, biggest debtors last).
+    """
+    today = today or timezone.localdate()
+    zero  = Decimal('0')
+
+    funds = list(Fund.objects.filter(kind=Fund.Kind.ROUTINE).order_by('name'))
+    users = list(users_qs)
+    if not funds or not users:
+        return []
+
+    last_month = today.month if today.year == year else 12
+    months = [date(year, m, 1) for m in range(1, last_month + 1)]
+
+    get_tariff   = year_tariff_map(year)
+    paid         = year_paid_map(year)
+    notes        = year_note_map(year)
+    other_income = year_other_income_map(year)
+
+    by_user = {
+        user.id: {'user': user, 'early': 0, 'ontime': 0, 'late': 0, 'unpaid_periods': 0, 'outstanding': zero}
+        for user in users
+    }
+
+    for user_id, bucket in by_user.items():
+        for fund in funds:
+            for month_date in months:
+                expected = get_tariff(user_id, fund.id, month_date)
+                if expected is None:
+                    continue
+                period = month_date.strftime('%Y-%m')
+                if (user_id, fund.id, period) in notes:
+                    continue
+
+                data          = paid.get((user_id, fund.id, period))
+                entries       = data['entries'] if data else []
+                total_paid    = data['total'] if data else zero
+                completion_at = _period_completion_date(entries, expected)
+
+                if completion_at is None:
+                    bucket['unpaid_periods'] += 1
+                    bucket['outstanding'] += max(expected - total_paid, zero)
+                elif completion_at < month_date:
+                    bucket['early'] += 1
+                elif completion_at < (date(year + 1, 1, 1) if month_date.month == 12 else date(year, month_date.month + 1, 1)):
+                    bucket['ontime'] += 1
+                else:
+                    bucket['late'] += 1
+
+    rows = []
+    for bucket in by_user.values():
+        user = bucket['user']
+        oi   = other_income.get(user.id, zero)
+        score = (
+            bucket['early'] * POINTS_EARLY_PERIOD
+            + bucket['ontime'] * POINTS_ONTIME_PERIOD
+            + bucket['late'] * POINTS_LATE_PERIOD
+            + oi * POINTS_PER_RUPIAH
+            - bucket['outstanding'] * POINTS_PER_RUPIAH
+        )
+        prop = getattr(user, 'properties', None)
+        rows.append({
+            'user': user,
+            'name': user.get_full_name() or user.username,
+            'home_number': (getattr(prop, 'home_number', '') or '') if prop is not None else '',
+            'early': bucket['early'],
+            'ontime': bucket['ontime'],
+            'late': bucket['late'],
+            'unpaid_periods': bucket['unpaid_periods'],
+            'outstanding': bucket['outstanding'],
+            'outstanding_display': fmt_rupiah(bucket['outstanding']),
+            'other_income': oi,
+            'other_income_display': fmt_rupiah(oi),
+            'score': score,
+        })
+
+    rows.sort(key=lambda r: r['score'], reverse=True)
+    for i, row in enumerate(rows, start=1):
+        row['rank'] = i
+    return rows
 
 
 def dot_status(amount, expected):

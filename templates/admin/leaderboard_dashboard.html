@@ -1,0 +1,112 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:income_dashboard' %}">{% translate 'Income' %}</a>
+  &rsaquo; {% translate 'Leaderboard' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+  #content { max-width: none; }
+
+  .txn-header { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:18px; }
+  .txn-header h1 { margin:0; }
+  .txn-header .sub { font-size:0.875rem; color:var(--body-quiet-color); }
+
+  .txn-scroll { overflow-x:auto; }
+  .txn-table { border-collapse:collapse; white-space:nowrap; font-size:0.8125rem; width:100%; }
+  .txn-table th, .txn-table td {
+    padding:8px 12px;
+    border:1px solid var(--hairline-color);
+    text-align:left;
+    vertical-align:top;
+  }
+  .txn-table th {
+    background:var(--darkened-bg);
+    font-size:0.6875rem; text-transform:uppercase; letter-spacing:.03em; color:var(--body-quiet-color);
+  }
+  .txn-table td.name-col { font-weight:600; white-space:nowrap; }
+  .txn-table td.name-col a { text-decoration:none; color:var(--body-fg); }
+  .txn-table td.num-col { text-align:right; }
+  .txn-table td.score-col { font-weight:700; white-space:nowrap; text-align:right; }
+  .score-positive { color:#16a34a; }
+  .score-negative { color:#dc2626; }
+
+  .rank-col { text-align:center; font-weight:700; width:2.5em; }
+  .rank-medal { font-size:1.1rem; }
+
+  .txn-table tr.debtor-row td { background:color-mix(in srgb, #dc2626 6%, var(--body-bg)); }
+
+  .legend { font-size:0.75rem; color:var(--body-quiet-color); margin-bottom:14px; }
+</style>
+
+<div class="txn-header">
+  <span class="sub">{% blocktranslate with year=year %}Ranking for {{ year }}, through {{ today }} &mdash; {{ total_residents }} resident(s){% endblocktranslate %}</span>
+  <a href="{% url 'admin:income_dashboard' %}" class="button">{% translate '← Back to Income' %}</a>
+</div>
+
+<p class="legend">
+  {% translate 'Score = (early periods × 3) + (on-time periods × 1) − (late periods × 2) + other income ÷ Rp10,000 − outstanding ÷ Rp10,000.' %}
+  {% translate 'A period counts as early if paid before the due month starts, on-time if paid during the due month, late if completed after it ends.' %}
+</p>
+
+{# ── Search ── #}
+<form method="get" style="display:flex;gap:8px;align-items:center;margin-bottom:18px;">
+  <input type="search" name="q" value="{{ q }}"
+         placeholder="{% translate 'Search name or home number…' %}"
+         style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:0.8125rem;min-width:260px;">
+  <button type="submit" class="button default">{% translate 'Search' %}</button>
+  {% if q %}<a href="?" class="button">{% translate 'Clear' %}</a>{% endif %}
+</form>
+
+<div class="module txn-scroll">
+  <table class="txn-table">
+    <thead>
+      <tr>
+        <th>{% translate '#' %}</th>
+        <th>{% translate 'Name' %}</th>
+        <th>{% translate 'Home No.' %}</th>
+        <th class="num-col">{% translate 'Early' %}</th>
+        <th class="num-col">{% translate 'On-time' %}</th>
+        <th class="num-col">{% translate 'Late' %}</th>
+        <th class="num-col">{% translate 'Other income' %}</th>
+        <th class="num-col">{% translate 'Outstanding' %}</th>
+        <th class="num-col">{% translate 'Score' %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr{% if row.score < 0 %} class="debtor-row"{% endif %}>
+        <td class="rank-col">
+          {% if row.rank == 1 %}<span class="rank-medal">🥇</span>
+          {% elif row.rank == 2 %}<span class="rank-medal">🥈</span>
+          {% elif row.rank == 3 %}<span class="rank-medal">🥉</span>
+          {% else %}{{ row.rank }}{% endif %}
+        </td>
+        <td class="name-col">
+          <a href="{% url 'admin:auth_user_change' row.user.id %}">{{ row.name }}</a>
+        </td>
+        <td>{{ row.home_number|default:"—" }}</td>
+        <td class="num-col">{{ row.early }}</td>
+        <td class="num-col">{{ row.ontime }}</td>
+        <td class="num-col">{{ row.late }}</td>
+        <td class="num-col">{{ row.other_income_display }}</td>
+        <td class="num-col">{{ row.outstanding_display }}</td>
+        <td class="score-col {% if row.score > 0 %}score-positive{% elif row.score < 0 %}score-negative{% endif %}">{{ row.score|floatformat:1 }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="9" style="padding:40px;text-align:center;color:var(--body-quiet-color);">
+          {% translate 'No residents to rank yet.' %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

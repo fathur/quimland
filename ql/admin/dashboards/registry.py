@@ -4,6 +4,7 @@ from django.urls import path
 from .earmarked import earmarked_dashboard_view
 from .funds import funds_dashboard_view
 from .income import income_dashboard_view
+from .leaderboard import leaderboard_dashboard_view
 from .outstanding import outstanding_dashboard_view
 from .wallets import wallet_dashboard_view
 
@@ -25,6 +26,11 @@ def _get_urls():
             'income-dashboard/outstanding',
             admin.site.admin_view(outstanding_dashboard_view),
             name='outstanding_dashboard',
+        ),
+        path(
+            'leaderboard-dashboard/',
+            admin.site.admin_view(leaderboard_dashboard_view),
+            name='leaderboard_dashboard',
         ),
         path(
             'funds-dashboard/',
@@ -57,6 +63,16 @@ def _dashboard_app(request):
             'name': 'Tariff Income Overview',
             'object_name': 'IncomeDashboard',
             'admin_url': '/income-dashboard/',
+            'add_url': None,
+            'view_only': True,
+            'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+        })
+
+    if request.user.has_perm('ql.view_alltransaction'):
+        models.append({
+            'name': 'Leaderboard',
+            'object_name': 'LeaderboardDashboard',
+            'admin_url': '/leaderboard-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
