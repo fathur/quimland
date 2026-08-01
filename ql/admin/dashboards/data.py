@@ -8,6 +8,29 @@ from django.utils import timezone
 from ql.models import DueNote, Fund, ItemRoutine, Tariff, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
 
+# A due period isn't counted as outstanding/late until residents have had the
+# full grace window to pay it: paid on or before this day-of-month counts as
+# on-time; paid after (or still unpaid) counts as outstanding/late. Shared by
+# the Outstanding dashboard and the Leaderboard so both agree on what "overdue"
+# means — change this one value to move the cutoff everywhere.
+PAYMENT_GRACE_DAY = 5
+
+
+def _months_through(year, today, grace_day=PAYMENT_GRACE_DAY):
+    """Month-1 dates from Jan through the latest month of `year` whose grace
+    day has passed, relative to `today`. The current month is excluded until
+    today.day is past grace_day — e.g. on Aug 3rd with grace_day=5, August
+    isn't in the list yet; from Aug 6th onward it is.
+    """
+    if year != today.year:
+        last_month = 12
+    elif today.day > grace_day:
+        last_month = today.month
+    else:
+        last_month = today.month - 1
+    return [date(year, m, 1) for m in range(1, last_month + 1)]
+
+
 # Leaderboard scoring: points per routine period, and points per Rp of money
 # (other income / outstanding), calibrated so a typical monthly due
 # (Rp 30k-100k, see Tariff.nominal) moves the score by a few points —
@@ -16,10 +39,6 @@ POINTS_EARLY_PERIOD   = 3
 POINTS_ONTIME_PERIOD  = 1
 POINTS_LATE_PERIOD    = -2
 POINTS_PER_RUPIAH     = Decimal('1') / Decimal('100000')
-
-# A period paid on or before this day-of-month counts as on-time; paid after
-# (any later day, or in a later month) counts as late.
-ON_TIME_DUE_DAY = 5
 
 
 def year_tariff_map(year):
@@ -245,8 +264,7 @@ def resident_outstanding(users_qs, today=None):
     by_user = {user.id: {'user': user, 'fund_totals': {fund.id: {'total': zero, 'periods': []} for fund in funds}} for user in users_qs}
 
     for year in range(earliest.year, today.year + 1):
-        last_month = today.month if year == today.year else 12
-        months = [date(year, m, 1) for m in range(1, last_month + 1)]
+        months = _months_through(year, today)
 
         get_tariff = year_tariff_map(year)
         paid = year_paid_map(year)
@@ -359,8 +377,7 @@ def resident_leaderboard(users_qs, year, today=None):
     if not funds or not users:
         return []
 
-    last_month = today.month if today.year == year else 12
-    months = [date(year, m, 1) for m in range(1, last_month + 1)]
+    months = _months_through(year, today)
 
     get_tariff   = year_tariff_map(year)
     paid         = year_paid_map(year)
@@ -392,7 +409,7 @@ def resident_leaderboard(users_qs, year, today=None):
                     bucket['outstanding'] += max(expected - total_paid, zero)
                 elif completion_at < month_date:
                     bucket['early'] += 1
-                elif completion_at <= date(month_date.year, month_date.month, ON_TIME_DUE_DAY):
+                elif completion_at <= date(month_date.year, month_date.month, PAYMENT_GRACE_DAY):
                     bucket['ontime'] += 1
                 else:
                     bucket['late'] += 1
