@@ -21,9 +21,13 @@ class SyncResidentAdminAccessTests(TestCase):
         self.creator = User.objects.create_user(username='treasurer', is_staff=True)
         self.fund = Fund.objects.create(name='Monthly Dues', kind=Fund.Kind.ROUTINE)
 
-    def _make_resident(self, username, is_staff=False, is_active=True, is_superuser=False, home_number='A1'):
+    def _make_resident(self, username, is_staff=False, is_active=True, is_superuser=False,
+                        home_number='A1', password=None):
+        # create_user(password=None) leaves an unusable password, matching
+        # the real `add_user` command's default (see cmd-add-user.txt).
         user = User.objects.create_user(
-            username=username, is_staff=is_staff, is_active=is_active, is_superuser=is_superuser,
+            username=username, password=password,
+            is_staff=is_staff, is_active=is_active, is_superuser=is_superuser,
         )
         UserProperty.objects.create(
             user=user, occupancy_status=UserProperty.OccupancyStatus.OCCUPIED, home_number=home_number,
@@ -51,19 +55,19 @@ class SyncResidentAdminAccessTests(TestCase):
         resident.refresh_from_db()
         self.assertFalse(resident.is_staff)
         self.assertTrue(resident.is_active)  # untouched by design
-        self.assertEqual(result, {'disabled': 1, 'enabled': 0})
+        self.assertEqual(result, {'disabled': 1, 'enabled': 0, 'new_credentials': []})
 
     def test_resident_with_no_tariff_gets_staff_granted(self):
-        resident = self._make_resident('sari', is_staff=False)
+        resident = self._make_resident('sari', is_staff=False, password='s3curePass!')
 
         result = sync_resident_admin_access(today=TODAY)
 
         resident.refresh_from_db()
         self.assertTrue(resident.is_staff)
-        self.assertEqual(result, {'disabled': 0, 'enabled': 1})
+        self.assertEqual(result, {'disabled': 0, 'enabled': 1, 'new_credentials': []})
 
     def test_resident_fully_paid_gets_staff_granted(self):
-        resident = self._make_resident('tono', is_staff=False)
+        resident = self._make_resident('tono', is_staff=False, password='s3curePass!')
         self._give_tariff(resident, datetime.date(2026, 1, 1))
         for month in range(1, 8):
             self._pay(resident, f'2026-{month:02d}', Decimal('50000'))
@@ -72,7 +76,7 @@ class SyncResidentAdminAccessTests(TestCase):
 
         resident.refresh_from_db()
         self.assertTrue(resident.is_staff)
-        self.assertEqual(result, {'disabled': 0, 'enabled': 1})
+        self.assertEqual(result, {'disabled': 0, 'enabled': 1, 'new_credentials': []})
 
     def test_partially_paid_resident_stays_outstanding(self):
         resident = self._make_resident('wati', is_staff=True)
@@ -83,7 +87,7 @@ class SyncResidentAdminAccessTests(TestCase):
 
         resident.refresh_from_db()
         self.assertFalse(resident.is_staff)
-        self.assertEqual(result, {'disabled': 1, 'enabled': 0})
+        self.assertEqual(result, {'disabled': 1, 'enabled': 0, 'new_credentials': []})
 
     def test_superuser_never_touched(self):
         superuser = self._make_resident('admin_rt', is_staff=True, is_superuser=True)
@@ -113,7 +117,7 @@ class SyncResidentAdminAccessTests(TestCase):
         outstanding_resident = self._make_resident('agus', is_staff=True)
         self._give_tariff(outstanding_resident, datetime.date(2026, 1, 1))
 
-        clear_resident = self._make_resident('heri', is_staff=False)
+        clear_resident = self._make_resident('heri', is_staff=False, password='s3curePass!')
 
         result = sync_resident_admin_access(today=TODAY)
 
@@ -121,13 +125,65 @@ class SyncResidentAdminAccessTests(TestCase):
         clear_resident.refresh_from_db()
         self.assertFalse(outstanding_resident.is_staff)
         self.assertTrue(clear_resident.is_staff)
-        self.assertEqual(result, {'disabled': 1, 'enabled': 1})
+        self.assertEqual(result, {'disabled': 1, 'enabled': 1, 'new_credentials': []})
 
     def test_already_correct_state_is_a_noop(self):
-        resident = self._make_resident('candra', is_staff=True)  # already staff, no dues
+        # Already staff, no dues, AND already has a real password -> nothing to do.
+        resident = self._make_resident('candra', is_staff=True, password='s3curePass!')
 
         result = sync_resident_admin_access(today=TODAY)
 
         resident.refresh_from_db()
         self.assertTrue(resident.is_staff)
-        self.assertEqual(result, {'disabled': 0, 'enabled': 0})
+        self.assertTrue(resident.check_password('s3curePass!'))
+        self.assertEqual(result, {'disabled': 0, 'enabled': 0, 'new_credentials': []})
+
+    # ── Password bootstrapping ───────────────────────────────────────────────
+
+    def test_password_generated_when_granting_access(self):
+        resident = self._make_resident('dewi', is_staff=False)  # no password (default)
+        self.assertFalse(resident.has_usable_password())
+
+        result = sync_resident_admin_access(today=TODAY)
+
+        resident.refresh_from_db()
+        self.assertTrue(resident.is_staff)
+        self.assertTrue(resident.has_usable_password())
+        self.assertEqual(len(result['new_credentials']), 1)
+        cred = result['new_credentials'][0]
+        self.assertEqual(cred['username'], 'dewi')
+        self.assertTrue(resident.check_password(cred['password']))
+
+    def test_no_new_password_when_resident_already_has_one(self):
+        resident = self._make_resident('yanto', is_staff=False, password='alreadySet1')
+
+        result = sync_resident_admin_access(today=TODAY)
+
+        resident.refresh_from_db()
+        self.assertTrue(resident.is_staff)
+        self.assertEqual(result['new_credentials'], [])
+        self.assertTrue(resident.check_password('alreadySet1'))  # unchanged
+
+    def test_already_staff_resident_without_password_still_gets_one(self):
+        # Already granted access previously, but never actually got a password.
+        resident = self._make_resident('galang', is_staff=True)
+
+        result = sync_resident_admin_access(today=TODAY)
+
+        resident.refresh_from_db()
+        self.assertTrue(resident.is_staff)
+        self.assertTrue(resident.has_usable_password())
+        self.assertEqual(result['enabled'], 0)  # was already staff -> not counted as newly enabled
+        self.assertEqual(len(result['new_credentials']), 1)
+        self.assertEqual(result['new_credentials'][0]['username'], 'galang')
+
+    def test_outstanding_resident_is_not_given_a_password(self):
+        resident = self._make_resident('bagas', is_staff=True)  # passwordless
+        self._give_tariff(resident, datetime.date(2026, 1, 1))  # unpaid -> outstanding
+
+        result = sync_resident_admin_access(today=TODAY)
+
+        resident.refresh_from_db()
+        self.assertFalse(resident.is_staff)
+        self.assertFalse(resident.has_usable_password())  # still untouched
+        self.assertEqual(result['new_credentials'], [])

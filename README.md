@@ -67,6 +67,90 @@ ignored — from then on the DB (i.e. the admin) is the source of truth.
 |---|---|---|
 | `ql.tasks.access_control.sync_resident_admin_access` | daily, 01:00 | Grants admin (`is_staff`) login to residents with no outstanding ROUTINE dues, revokes it from those who owe. Superusers are never touched; `is_active` is never touched. |
 
+### Production (systemd)
+
+Run the worker and beat as long-lived services instead of `poetry run ...` in
+a terminal. Point systemd straight at the Poetry virtualenv's `celery`
+binary — don't invoke `poetry run` from the unit, it adds a needless resolve
+step on every start.
+
+```bash
+# One-time: keep the venv inside the project so its path is stable
+# (otherwise Poetry hides it under ~/.cache/pypoetry/virtualenvs/<hash>/).
+cd /opt/quimland                      # wherever you deployed the repo
+poetry config virtualenvs.in-project true
+poetry install                        # recreates the venv at ./.venv
+```
+
+Create a dedicated, unprivileged user to run the services (adjust paths/user
+to match your deploy):
+
+```bash
+sudo useradd --system --home /opt/quimland --shell /usr/sbin/nologin quimland
+sudo chown -R quimland:quimland /opt/quimland
+```
+
+`/etc/systemd/system/quimland-celery.service` — the worker:
+
+```ini
+[Unit]
+Description=Quimland Celery worker
+After=network.target redis-server.service postgresql.service
+
+[Service]
+Type=simple
+User=quimland
+Group=quimland
+WorkingDirectory=/opt/quimland
+EnvironmentFile=/opt/quimland/.env
+ExecStart=/opt/quimland/.venv/bin/celery -A config worker -l info
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`/etc/systemd/system/quimland-celerybeat.service` — the scheduler (needs the
+same `django-celery-beat` DB tables migrated first, see above):
+
+```ini
+[Unit]
+Description=Quimland Celery beat
+After=network.target redis-server.service postgresql.service
+
+[Service]
+Type=simple
+User=quimland
+Group=quimland
+WorkingDirectory=/opt/quimland
+EnvironmentFile=/opt/quimland/.env
+ExecStart=/opt/quimland/.venv/bin/celery -A config beat -l info
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`EnvironmentFile=` is there so `DB_*`/`CELERY_BROKER_URL`/etc. are set before
+Django's settings module (and its own `load_dotenv(BASE_DIR / '.env')`) even
+runs — belt-and-suspenders with the `.env` file already living in
+`WorkingDirectory`; keep both pointed at the same file or drop one.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now quimland-celery quimland-celerybeat
+
+# Status / logs
+sudo systemctl status quimland-celery quimland-celerybeat
+journalctl -u quimland-celery -f
+journalctl -u quimland-celerybeat -f
+
+# After deploying new code
+sudo systemctl restart quimland-celery quimland-celerybeat
+```
+
 To use SQLite for quick local testing (no Postgres needed):
 ```bash
 DB_ENGINE=django.db.backends.sqlite3 poetry run python manage.py migrate
