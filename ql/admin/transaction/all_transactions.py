@@ -11,7 +11,7 @@ from django.utils.html import format_html
 from django.contrib.contenttypes.models import ContentType
 
 from ql.models import AllTransaction, Transaction, TransactionItem
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 from .base import OccurredAtRangeFilter, TransactionIconsMixin
 from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter, make_select_related_filter
 

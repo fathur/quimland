@@ -6,7 +6,7 @@ from django.shortcuts import render
 
 from .data import parse_as_of_dt, wallet_money_map
 from ql.models import Wallet
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 @permission_required('ql.view_wallet', raise_exception=True)

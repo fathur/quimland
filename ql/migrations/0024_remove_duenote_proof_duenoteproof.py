@@ -2,7 +2,7 @@
 
 import django.db.models.deletion
 import ql.models.due_note
-import ql.storage
+import ql.services.storage
 from django.db import migrations, models
 
 
@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
-                ('image', models.ImageField(storage=ql.storage.get_receipt_storage, upload_to=ql.models.due_note._due_note_proof_upload_to)),
+                ('image', models.ImageField(storage=ql.services.storage.get_receipt_storage, upload_to=ql.models.due_note._due_note_proof_upload_to)),
                 ('due_note', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='proofs', to='ql.duenote')),
             ],
             options={

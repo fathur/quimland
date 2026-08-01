@@ -18,7 +18,7 @@ from ql.admin.dashboards.data import (
     year_tariff_map,
 )
 from ql.models import Fund, Transaction, TransactionItem
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 class Command(BaseCommand):

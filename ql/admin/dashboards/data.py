@@ -6,7 +6,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ql.models import DueNote, Fund, ItemRoutine, Tariff, Transaction, TransactionItem
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 # A due period isn't counted as outstanding/late until residents have had the
 # full grace window to pay it: paid on or before this day-of-month counts as

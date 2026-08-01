@@ -7,7 +7,16 @@
       "Read(//Users/fathur/**)",
       "Bash(pip show *)",
       "Bash(poetry add *)",
-      "Bash(DB_ENGINE=django.db.backends.sqlite3 poetry run python manage.py test ql.tests --verbosity=2)"
+      "Bash(DB_ENGINE=django.db.backends.sqlite3 poetry run python manage.py test ql.tests --verbosity=2)",
+      "Bash(git mv *)",
+      "Bash(sed -i '' 's/from ql\\\\.auth_backends import/from ql.services.auth_backends import/' config/urls.py)",
+      "Bash(sed -i '' -e 's/'\\\\''ql\\\\.auth_backends\\\\.PhoneOrUsernameBackend'\\\\''/'\\\\''ql.services.auth_backends.PhoneOrUsernameBackend'\\\\''/' -e 's/'\\\\''ql\\\\.utils\\\\.show_toolbar_to_staff'\\\\''/'\\\\''ql.services.utils.show_toolbar_to_staff'\\\\''/' config/settings.py)",
+      "Bash(xargs sed -i '' 's/from ql\\\\.utils import/from ql.services.utils import/')",
+      "Bash(xargs sed -i '' 's/from ql\\\\.reports import/from ql.services.reports import/')",
+      "Bash(xargs sed -i '' 's/from \\\\.\\\\.utils import/from ..services.utils import/')",
+      "Bash(xargs sed -i '' 's/from \\\\.\\\\.storage import/from ..services.storage import/')",
+      "Bash(sed -i '' 's/from ql\\\\.whatsapp_client import/from ql.services.whatsapp_client import/' ql/management/commands/send_whatsapp.py)",
+      "Bash(xargs sed -i '' 's/ql\\\\.storage/ql.services.storage/g')"
     ]
   }
 }

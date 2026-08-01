@@ -1,6 +1,6 @@
 from mcp_server import ModelQueryToolset
 
-from .models import (
+from ..models import (
     Fund, SalaryRate, Setting, Tariff,
     PaymentBatch, Payment, Payout, CashEntry, FundDue,
 )

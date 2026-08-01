@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from .data import dot_status, year_note_map, year_paid_map, year_tariff_map
 from ql.models import Fund
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 @permission_required('ql.view_alltransaction', raise_exception=True)

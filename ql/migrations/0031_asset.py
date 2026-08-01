@@ -2,7 +2,7 @@
 
 import django.db.models.deletion
 import ql.models.asset
-import ql.storage
+import ql.services.storage
 from django.db import migrations, models
 
 
@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('object_id', models.PositiveBigIntegerField(blank=True, null=True)),
                 ('purpose', models.CharField(blank=True, default='', max_length=50)),
-                ('file', models.FileField(blank=True, null=True, storage=ql.storage.get_asset_storage, upload_to=ql.models.asset._asset_upload_to)),
+                ('file', models.FileField(blank=True, null=True, storage=ql.services.storage.get_asset_storage, upload_to=ql.models.asset._asset_upload_to)),
                 ('url', models.URLField(blank=True, help_text='External URL, used as a fallback when the file is too large to upload.', max_length=1000, null=True)),
                 ('original_name', models.CharField(blank=True, default='', max_length=255)),
                 ('mime_type', models.CharField(blank=True, default='', max_length=100)),

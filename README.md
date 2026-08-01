@@ -33,6 +33,39 @@ poetry run python manage.py createsuperuser
 | `DB_PORT`     | `5432`       | Postgres port                            |
 | `SECRET_KEY`  | insecure dev | Django secret key — **change for prod**  |
 | `DEBUG`       | `True`       | Set to `False` in production             |
+| `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Celery broker (Redis) |
+| `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | Celery result backend (Redis) |
+
+## Celery
+
+Background tasks live in each app's `tasks.py` (e.g. `ql/tasks.py`), wired up via
+`config/celery.py`. Needs a Redis instance reachable at `CELERY_BROKER_URL`.
+
+```bash
+# Worker (run alongside `manage.py runserver`)
+poetry run celery -A config worker -l info
+
+# Beat — needed for scheduled tasks (e.g. the daily resident access sync)
+poetry run celery -A config beat -l info
+
+# Quick sanity check from a Django shell
+poetry run python manage.py shell
+from ql.tasks import debug_task
+debug_task.delay()
+```
+
+### Scheduled tasks
+
+The schedule is stored in the database via `django-celery-beat`, not just in
+code — manage it from **/admin/ → Periodic Tasks** (crontab/interval editing,
+enable/disable, "run now" via a clocked task), no redeploy needed. The
+`CELERY_BEAT_SCHEDULE` dict in `config/settings.py` is only a one-time seed:
+on first `celery beat` run it's copied into the DB if not already there, then
+ignored — from then on the DB (i.e. the admin) is the source of truth.
+
+| Task | Default schedule | Purpose |
+|---|---|---|
+| `ql.tasks.access_control.sync_resident_admin_access` | daily, 01:00 | Grants admin (`is_staff`) login to residents with no outstanding ROUTINE dues, revokes it from those who owe. Superusers are never touched; `is_active` is never touched. |
 
 To use SQLite for quick local testing (no Postgres needed):
 ```bash
@@ -58,7 +91,7 @@ For a GARBAGE payment with period M received at P:
 eligible    = max(P.date, day-10 of month M)
 payout_date = next of [10, 25] that is >= eligible
 ```
-Implemented in `ql/queries.py :: _garbage_payout_date()`.
+Implemented in `ql/services/queries.py :: _garbage_payout_date()`.
 
 ### Append-only tables
 `payments` and `tariffs` are **never** UPDATE-d or DELETE-d.  
@@ -72,7 +105,7 @@ state reconstructable by filtering `paid_at <= D`.
 The `fund_dues` table is the denominator for earmarked unpaid reports;
 a purely voluntary fund has no `fund_dues` rows and therefore no "unpaid" concept.
 
-## Reports (in `ql/queries.py`)
+## Reports (in `ql/services/queries.py`)
 
 | # | Function | Returns |
 |---|----------|---------|
@@ -90,7 +123,7 @@ Example usage from a Django shell:
 ```python
 poetry run python manage.py shell
 
-from ql.queries import *
+from ql.services.queries import *
 import datetime
 
 report_unpaid_monthly('2026-05')

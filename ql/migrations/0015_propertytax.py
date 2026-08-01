@@ -2,7 +2,7 @@
 
 import django.db.models.deletion
 import ql.models.property_tax
-import ql.storage
+import ql.services.storage
 from django.conf import settings
 from django.db import migrations, models
 
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 ('nop', models.CharField(blank=True, default='', help_text='Nomor Objek Pajak', max_length=20)),
                 ('land_area', models.DecimalField(decimal_places=2, default=0, max_digits=15)),
                 ('building_area', models.DecimalField(decimal_places=2, default=0, max_digits=15)),
-                ('attachment', models.ImageField(blank=True, null=True, storage=ql.storage.get_receipt_storage, upload_to=ql.models.property_tax._receipt_upload_to)),
+                ('attachment', models.ImageField(blank=True, null=True, storage=ql.services.storage.get_receipt_storage, upload_to=ql.models.property_tax._receipt_upload_to)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='property_taxes', to=settings.AUTH_USER_MODEL)),
             ],
             options={

@@ -2,7 +2,7 @@
 
 import django.db.models.deletion
 import ql.models.report
-import ql.storage
+import ql.services.storage
 from django.conf import settings
 from django.db import migrations, models
 
@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('deleted_at', models.DateTimeField(blank=True, default=None, null=True)),
                 ('title', models.CharField(blank=True, default='', help_text='Human-readable report title.', max_length=255)),
-                ('file', models.FileField(blank=True, help_text='The generated report file (PDF, Excel, etc.)', storage=ql.storage.get_report_storage, upload_to=ql.models.report._report_upload_to)),
+                ('file', models.FileField(blank=True, help_text='The generated report file (PDF, Excel, etc.)', storage=ql.services.storage.get_report_storage, upload_to=ql.models.report._report_upload_to)),
                 ('status', models.CharField(choices=[('PROCESSING', 'Processing'), ('DONE', 'Done')], default='PROCESSING', max_length=10)),
                 ('completed_at', models.DateTimeField(blank=True, help_text='When generation finished.', null=True)),
                 ('creator', models.ForeignKey(blank=True, help_text='The user who created this report.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_reports', to=settings.AUTH_USER_MODEL)),

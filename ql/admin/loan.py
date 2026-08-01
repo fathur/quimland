@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from ql.models import Loan
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 @admin.register(Loan)

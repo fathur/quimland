@@ -5,8 +5,8 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 
 from ql.models import Report
-from ql.reports import generate_report_pdf
-from ql.utils import render_report_markdown
+from ql.services.reports import generate_report_pdf
+from ql.services.utils import render_report_markdown
 
 
 class ReportAdminForm(forms.ModelForm):

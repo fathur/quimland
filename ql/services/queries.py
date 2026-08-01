@@ -18,7 +18,7 @@ from django.db import connection
 from django.db.models import Q, Sum, OuterRef, Subquery, DecimalField, Value
 from django.db.models.functions import Coalesce
 
-from .models import Fund, FundDue, Payment, PaymentBatch, Payout, SalaryRate, CashEntry
+from ..models import Fund, FundDue, Payment, PaymentBatch, Payout, SalaryRate, CashEntry
 
 
 # ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 
 from .base import TimestampMixin
-from ..storage import get_receipt_storage
+from ..services.storage import get_receipt_storage
 
 
 class DueNote(TimestampMixin):
@@ -66,7 +66,7 @@ class DueNoteProof(TimestampMixin):
 
     def save(self, *args, **kwargs):
         if self.image and not self.image._committed:
-            from ..utils import compress_image_field
+            from ..services.utils import compress_image_field
             compress_image_field(self.image)
         super().save(*args, **kwargs)
 

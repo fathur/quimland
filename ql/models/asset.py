@@ -6,8 +6,8 @@ from django.db import models
 from django.utils import timezone
 
 from .base import TimestampMixin
-from ..storage import get_asset_storage
-from ..utils import (
+from ..services.storage import get_asset_storage
+from ..services.utils import (
     ALLOWED_ASSET_MIME_TYPES,
     IMAGE_MIME_TYPES,
     compress_image_field,

@@ -20,7 +20,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
-from ql.auth_backends import PhoneOrUsernameAuthForm
+from ql.services.auth_backends import PhoneOrUsernameAuthForm
 from ql.views import serve_secure_media, WhatsAppWebhookView
 
 admin.site.site_header = 'Quim Land'

@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,7 +24,7 @@ INTERNAL_IPS = [
 
 # ---------------------------------------------------------------------------
 # Debug toolbar — visibility is controlled by this flag + staff status
-# (ql.debug_toolbar_hooks.show_toolbar_to_staff), NOT by DEBUG. This lets the
+# (ql.services.utils.show_toolbar_to_staff), NOT by DEBUG. This lets the
 # toolbar be switched on for staff on the production domain (quimland.com)
 # without ever turning on DEBUG's verbose error pages for real residents.
 # Off by default; flip only while actively debugging.
@@ -31,7 +32,7 @@ INTERNAL_IPS = [
 DEBUG_TOOLBAR_ENABLED = os.environ.get('DEBUG_TOOLBAR_ENABLED', 'False') == 'True'
 
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': 'ql.utils.show_toolbar_to_staff',
+    'SHOW_TOOLBAR_CALLBACK': 'ql.services.utils.show_toolbar_to_staff',
 }
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
@@ -50,7 +51,8 @@ INSTALLED_APPS = [
     'sorl.thumbnail',
     'django_extensions',
     'rest_framework',
-    'debug_toolbar'
+    'debug_toolbar',
+    'django_celery_beat'
 ]
 
 MIDDLEWARE = [
@@ -109,7 +111,7 @@ else:
     }
 
 AUTHENTICATION_BACKENDS = [
-    'ql.auth_backends.PhoneOrUsernameBackend',
+    'ql.services.auth_backends.PhoneOrUsernameBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -156,3 +158,29 @@ ASSET_MAX_UPLOAD_SIZE = int(os.environ.get('ASSET_MAX_UPLOAD_SIZE', 10 * 1024 * 
 # ---------------------------------------------------------------------------
 WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', '')
 WHATSAPP_APP_SECRET = os.environ.get('WHATSAPP_APP_SECRET', '')
+
+# ---------------------------------------------------------------------------
+# Celery — broker/result backend default to Redis on localhost; override via
+# env for prod (e.g. a managed Redis URL). See config/celery.py for the app.
+# ---------------------------------------------------------------------------
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# django_celery_beat stores the schedule in the DB (editable from /admin/ —
+# Periodic Tasks, Crontabs, Intervals, etc.) instead of only here in code.
+# Needs `celery -A config beat` running alongside the worker.
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Seed only: on first run, DatabaseScheduler copies entries from this dict
+# into the DB (django_celery_beat_periodictask) if they don't already exist
+# there, then ignores this dict — from then on, edit the schedule in /admin/.
+CELERY_BEAT_SCHEDULE = {
+    'sync-resident-admin-access-daily': {
+        'task': 'ql.tasks.access_control.sync_resident_admin_access',
+        'schedule': crontab(hour=1, minute=0),
+    },
+}

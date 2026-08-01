@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from .data import cmp_status, parse_as_of_date
 from ql.models import CashEntry, Fund, FundDue
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 def earmarked_dashboard_view(request):

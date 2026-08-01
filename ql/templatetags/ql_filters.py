@@ -1,5 +1,5 @@
 from django import template
-from ql.utils import fmt_rupiah as _fmt_rupiah
+from ql.services.utils import fmt_rupiah as _fmt_rupiah
 
 register = template.Library()
 

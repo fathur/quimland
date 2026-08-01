@@ -6,7 +6,7 @@ from django.shortcuts import render
 
 from .data import fund_money_map, parse_as_of_dt
 from ql.models import Fund
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 @permission_required('ql.view_fund', raise_exception=True)

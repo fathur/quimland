@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from .data import resident_outstanding
-from ql.utils import fmt_rupiah
+from ql.services.utils import fmt_rupiah
 
 
 @permission_required('ql.view_alltransaction', raise_exception=True)

@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from .base import TimestampMixin
 
-from ..storage import get_receipt_storage
+from ..services.storage import get_receipt_storage
 
 
 def _receipt_upload_to(instance, filename):

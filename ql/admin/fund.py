@@ -7,8 +7,8 @@ from django.utils.safestring import mark_safe
 from mptt.admin import MPTTModelAdmin
 
 from ql.models import CashEntry, Fund, FundDue
-from ql.reports import generate_fund_report_draft
-from ql.utils import fmt_rupiah
+from ql.services.reports import generate_fund_report_draft
+from ql.services.utils import fmt_rupiah
 
 
 class CashEntryInline(admin.TabularInline):

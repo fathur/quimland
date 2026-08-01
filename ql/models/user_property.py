@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from ql.utils import normalize_phone
+from ql.services.utils import normalize_phone
 
 from .base import TimestampMixin
 

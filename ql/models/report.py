@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 
 from .base import TimestampMixin
-from ..storage import get_report_storage
+from ..services.storage import get_report_storage
 
 
 def _report_upload_to(instance, filename):

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 
 from ql.models.user_property import UserProperty
-from ql.utils import normalize_phone
+from .utils import normalize_phone
 
 
 class PhoneOrUsernameBackend(ModelBackend):
