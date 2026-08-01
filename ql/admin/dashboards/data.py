@@ -17,6 +17,10 @@ POINTS_ONTIME_PERIOD  = 1
 POINTS_LATE_PERIOD    = -2
 POINTS_PER_RUPIAH     = Decimal('1') / Decimal('100000')
 
+# A period paid on or before this day-of-month counts as on-time; paid after
+# (any later day, or in a later month) counts as late.
+ON_TIME_DUE_DAY = 5
+
 
 def year_tariff_map(year):
     """Returns get_nominal(user_id, fund_id, month_date) for all ROUTINE tariffs in the year."""
@@ -388,7 +392,7 @@ def resident_leaderboard(users_qs, year, today=None):
                     bucket['outstanding'] += max(expected - total_paid, zero)
                 elif completion_at < month_date:
                     bucket['early'] += 1
-                elif completion_at < (date(year + 1, 1, 1) if month_date.month == 12 else date(year, month_date.month + 1, 1)):
+                elif completion_at <= date(month_date.year, month_date.month, ON_TIME_DUE_DAY):
                     bucket['ontime'] += 1
                 else:
                     bucket['late'] += 1
