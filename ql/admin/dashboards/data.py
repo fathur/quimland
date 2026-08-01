@@ -15,7 +15,7 @@ from ql.utils import fmt_rupiah
 POINTS_EARLY_PERIOD   = 3
 POINTS_ONTIME_PERIOD  = 1
 POINTS_LATE_PERIOD    = -2
-POINTS_PER_RUPIAH     = Decimal('1') / Decimal('10000')
+POINTS_PER_RUPIAH     = Decimal('1') / Decimal('100000')
 
 
 def year_tariff_map(year):
