@@ -13,7 +13,7 @@ from django.contrib.contenttypes.models import ContentType
 from ql.models import AllTransaction, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
 from .base import OccurredAtRangeFilter, TransactionIconsMixin
-from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter
+from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter, make_select_related_filter
 
 
 class TransactionItemInline(admin.TabularInline):
@@ -35,7 +35,7 @@ class TransactionItemInline(admin.TabularInline):
 
 class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'status_icons', 'note_short', 'highlight_row']
-    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', 'user']
+    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', ('user', make_select_related_filter('properties'))]
     search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     readonly_fields     = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note',
@@ -60,7 +60,7 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
         import weasyprint
 
         cl  = self.get_changelist_instance(request)
-        qs  = cl.get_queryset(request).select_related('user', 'user__properties', 'wallet')
+        qs  = cl.get_queryset(request)  # already select_related via get_queryset()
 
         agg = qs.aggregate(
             income=Sum('nominal', filter=Q(direction=Transaction.Direction.IN)),
@@ -92,6 +92,7 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
         return (
             super().get_queryset(request)
             .filter(direction__in=[Transaction.Direction.IN, Transaction.Direction.OUT])
+            .select_related('user', 'user__properties', 'wallet', 'creator', 'creator__properties', 'receipt')
         )
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
@@ -141,8 +142,8 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         try:
-            qs = response.context_data['cl'].queryset
-            agg = qs.aggregate(
+            cl = response.context_data['cl']
+            agg = cl.queryset.aggregate(
                 income=Sum('nominal', filter=Q(direction=Transaction.Direction.IN)),
                 expense=Sum('nominal', filter=Q(direction=Transaction.Direction.OUT)),
             )
@@ -153,7 +154,9 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
             response.context_data['expense_total'] = fmt_rupiah(expense)
             response.context_data['balance_total'] = fmt_rupiah(balance)
             response.context_data['balance_negative'] = balance < 0
-            response.context_data['nominal_total_count'] = qs.count()
+            # cl.result_count is the paginator's count of this same filtered
+            # queryset — reuse it instead of running COUNT(*) a second time.
+            response.context_data['nominal_total_count'] = cl.result_count
             response.context_data.update(self._imbalance_data())
         except (AttributeError, KeyError):
             pass

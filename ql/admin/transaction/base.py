@@ -9,7 +9,7 @@ from django.utils.html import format_html, mark_safe
 
 from ql.models import Fund, ItemRoutine, Receipt, Transaction, TransactionItem
 from ql.utils import fmt_rupiah
-from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter, make_date_range_filter
+from ..filters import SoftDeleteAdminMixin, SoftDeleteFilter, make_date_range_filter, make_select_related_filter
 
 OccurredAtRangeFilter = make_date_range_filter('occurred_at', 'occurred at')
 
@@ -133,7 +133,7 @@ class TransactionIconsMixin:
 class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     form                = TransactionAdminForm
     list_display        = ['id', 'user', 'wallet', 'nominal_display', 'occurred_at', 'receipt_icon', 'note_short']
-    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', 'user']
+    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', ('user', make_select_related_filter('properties'))]
     search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
@@ -182,7 +182,11 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
 
     def get_queryset(self, request):
         # super() → SoftDeleteAdminMixin.get_queryset → with_deleted() base
-        return super().get_queryset(request).filter(direction=self._forced_direction)
+        return (
+            super().get_queryset(request)
+            .filter(direction=self._forced_direction)
+            .select_related('user', 'user__properties', 'wallet', 'creator', 'creator__properties', 'receipt')
+        )
 
     def has_change_permission(self, request, obj=None):
         if obj is not None and obj.transfer_id:
@@ -257,10 +261,12 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         try:
-            qs = response.context_data['cl'].queryset
-            total = qs.aggregate(total=Sum('nominal'))['total'] or Decimal('0')
+            cl = response.context_data['cl']
+            total = cl.queryset.aggregate(total=Sum('nominal'))['total'] or Decimal('0')
             response.context_data['nominal_total'] = fmt_rupiah(total)
-            response.context_data['nominal_total_count'] = qs.count()
+            # cl.result_count is the paginator's count of this same filtered
+            # queryset — reuse it instead of running COUNT(*) a second time.
+            response.context_data['nominal_total_count'] = cl.result_count
         except (AttributeError, KeyError):
             pass
         return response

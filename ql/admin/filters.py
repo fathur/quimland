@@ -61,6 +61,34 @@ class SoftDeleteAdminMixin:
         return qs
 
 
+def make_select_related_filter(*related_fields):
+    """
+    Return a RelatedFieldListFilter subclass that select_related()s the given
+    fields when building the sidebar choice list.
+
+    Django's default RelatedFieldListFilter.field_choices() fetches the full
+    related queryset with no select_related and calls str() on every row —
+    if that model's __str__ touches a relation (e.g. User's __str__ touching
+    `properties`), that's one extra query per row, every time the changelist
+    renders. This produces the exact same choices/labels, just via a JOIN
+    instead of N+1 separate queries.
+
+    Usage:
+        list_filter = [..., ('user', make_select_related_filter('properties'))]
+    """
+    class _SelectRelatedFieldListFilter(admin.RelatedFieldListFilter):
+        def field_choices(self, field, request, model_admin):
+            ordering = self.field_admin_ordering(field, request, model_admin)
+            rel_model = field.remote_field.model
+            qs = rel_model._default_manager.complex_filter(field.get_limit_choices_to())
+            qs = qs.select_related(*related_fields)
+            if ordering:
+                qs = qs.order_by(*ordering)
+            return [(x.pk, str(x)) for x in qs]
+
+    return _SelectRelatedFieldListFilter
+
+
 def make_date_range_filter(field_name, title=None):
     """
     Return a SimpleListFilter subclass that filters a DateTimeField by a from/to
