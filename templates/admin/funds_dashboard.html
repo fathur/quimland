@@ -196,7 +196,7 @@
               {% if card.spend_progress_pct is not None %}
                 <div class="ql-progress">
                   <div class="ql-bar-track">
-                    <span class="{% if card.spend_over_target %}over{% endif %}" style="width: {{ card.spend_bar_pct }}%; background: #6b7280;"></span>
+                    <span class="{% if card.spend_over_collected %}over{% endif %}" style="width: {{ card.spend_bar_pct }}%; background: #6b7280;"></span>
                     <div class="ql-fund-progress-label">{{ card.spend_progress_pct }}% {% translate 'Spent' %} · {{ card.spent_display }}</div>
                   </div>
                 </div>

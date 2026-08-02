@@ -66,11 +66,19 @@ def funds_dashboard_view(request):
         if fund.kind == Fund.Kind.EARMARKED and fund.target_amount:
             if not is_child:
                 card['progress_pct'] = int(min(rolled_collected / fund.target_amount, 1) * 100)
-            spend_pct                  = int(rolled_spent / fund.target_amount * 100)
-            card['spend_progress_pct'] = spend_pct
-            card['spend_bar_pct']      = min(spend_pct, 100)
-            card['spend_over_target']  = rolled_spent > fund.target_amount
-            card['has_progress']       = True
+            # Spend is measured against what's actually been collected, not the
+            # target — a fund can only spend money it has in hand. Comparing
+            # against target instead would hide real overspending (spent >
+            # collected, i.e. a negative balance) whenever spent still happens
+            # to be under the target amount.
+            if rolled_collected:
+                spend_pct = int(rolled_spent / rolled_collected * 100)
+            else:
+                spend_pct = 100 if rolled_spent else 0
+            card['spend_progress_pct']  = spend_pct
+            card['spend_bar_pct']       = min(spend_pct, 100)
+            card['spend_over_collected'] = rolled_spent > rolled_collected
+            card['has_progress']        = True
 
         groups.setdefault(fund.kind, []).append(card)
 
