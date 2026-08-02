@@ -157,8 +157,14 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
         if not self.has_change_permission(request):
             self.message_user(request, 'You do not have permission to restore records.', level='error')
             return
-        restored = queryset.restore()
-        self.message_user(request, f'{restored} record(s) restored.')
+        # Looping obj.restore() (not the bulk queryset.restore()) routes
+        # through Transaction.restore()'s cascade to items/sibling leg/transfer
+        # — see delete_queryset() above for the same reasoning on the delete side.
+        count = 0
+        for obj in queryset:
+            obj.restore()
+            count += 1
+        self.message_user(request, f'{count} record(s) restored.')
 
     @admin.action(description='Mark selected as QRIS')
     def mark_qris(self, request, queryset):
@@ -187,6 +193,13 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
             .filter(direction=self._forced_direction)
             .select_related('user', 'user__properties', 'wallet', 'creator', 'creator__properties', 'receipt')
         )
+
+    def delete_queryset(self, request, queryset):
+        # The "Delete selected" bulk action otherwise runs a raw queryset
+        # UPDATE (SoftDeleteQuerySet.delete()), bypassing Transaction.delete()
+        # and its cascade to items / sibling transfer legs.
+        for obj in queryset:
+            obj.delete()
 
     def has_change_permission(self, request, obj=None):
         if obj is not None and obj.transfer_id:

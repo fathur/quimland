@@ -4,6 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from ql.models.transaction import Transaction
+from ql.models.transaction_item import TransactionItem
 
 from .base import TimestampMixin
 
@@ -45,6 +46,12 @@ class WalletTransfer(TimestampMixin):
                 Transaction.objects.filter(
                     pk__in=[self.out_transaction_id, self.in_transaction_id]
                 ).update(transfer=self)
+                # Keep the cached in-memory legs (self.out_transaction /
+                # self.in_transaction, set above from .create()) in sync with
+                # the bulk update — otherwise transfer.out_transaction.transfer_id
+                # reads back as None until the leg is reloaded from the DB.
+                self.out_transaction.transfer = self
+                self.in_transaction.transfer = self
         else:
             with transaction.atomic():
                 super().save(*args, **kwargs)
@@ -68,13 +75,33 @@ class WalletTransfer(TimestampMixin):
                 in_tx.save()
 
     def delete(self, using=None, keep_parents=False):
+        # Bulk .update() here (not leg.delete()) deliberately bypasses
+        # Transaction.delete(), which would otherwise recurse back into this
+        # method via self.transfer.delete().
         with transaction.atomic():
             now = timezone.now()
-            Transaction.objects.filter(
-                pk__in=[self.out_transaction_id, self.in_transaction_id]
-            ).update(deleted_at=now)
+            leg_ids = [self.out_transaction_id, self.in_transaction_id]
+            TransactionItem.objects.filter(transaction_id__in=leg_ids).update(deleted_at=now)
+            Transaction.objects.filter(pk__in=leg_ids).update(deleted_at=now)
             WalletTransfer.objects.filter(pk=self.pk).update(deleted_at=now)
             self.deleted_at = now
+
+    def force_delete(self, using=None, keep_parents=False):
+        with transaction.atomic():
+            leg_ids = [self.out_transaction_id, self.in_transaction_id]
+            TransactionItem.objects.with_deleted().filter(transaction_id__in=leg_ids).force_delete()
+            Transaction.objects.with_deleted().filter(pk__in=leg_ids).force_delete()
+            super().force_delete(using=using, keep_parents=keep_parents)
+
+    def restore(self):
+        # Bulk .restore() here (not leg.restore()) deliberately bypasses
+        # Transaction.restore(), which would otherwise recurse back into this
+        # method via self.transfer.restore().
+        with transaction.atomic():
+            leg_ids = [self.out_transaction_id, self.in_transaction_id]
+            TransactionItem.objects.with_deleted().filter(transaction_id__in=leg_ids).restore()
+            Transaction.objects.with_deleted().filter(pk__in=leg_ids).restore()
+            super().restore()
 
     def __str__(self):
         return f'Transfer #{self.pk} | {self.from_wallet} → {self.to_wallet} | {self.nominal:,}'

@@ -139,6 +139,13 @@ class IncomeTransactionItemInline(admin.TabularInline):
         if obj is not None:
             _txn = obj
         elif request.method == 'POST':
+            # On the "Add" page there's no saved Transaction yet to pass as
+            # `obj` — but IncomeTransactionItemForm.clean() (see income.py:54)
+            # only ever reads `_transaction.user_id` off it, to look up the
+            # resident's tariff/routine period. Rather than construct a real
+            # (unsaved) Transaction instance, build a minimal duck-typed
+            # stand-in with just that one attribute, sourced from the raw,
+            # not-yet-validated POST data for the parent form's `user` field.
             user_pk = request.POST.get('user', '')
             _txn = type('_TxnProxy', (), {
                 'direction': Transaction.Direction.IN,

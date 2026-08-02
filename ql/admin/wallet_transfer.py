@@ -51,6 +51,12 @@ class WalletTransferAdmin(admin.ModelAdmin):
             obj.creator = request.user
         super().save_model(request, obj, form, change)
 
+    def delete_queryset(self, request, queryset):
+        # See BaseTransactionAdmin.delete_queryset — bulk queryset.delete()
+        # would skip WalletTransfer.delete()'s cascade to both legs.
+        for obj in queryset:
+            obj.delete()
+
     @admin.display(description='Nominal', ordering='nominal')
     def nominal_display(self, obj):
         return fmt_rupiah(obj.nominal)

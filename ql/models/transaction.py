@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
+from django.db import transaction as db_transaction
 
 from .base import TimestampMixin
+from .transaction_item import TransactionItem
 
 
 class Transaction(TimestampMixin):
@@ -73,6 +75,47 @@ class Transaction(TimestampMixin):
 
     def __str__(self):
         return f'{self.direction} | {self.nominal:,} | {self.created_at:%Y-%m-%d}'
+
+    def _get_transfer(self):
+        # local import: wallet_transfer.py imports Transaction at module level,
+        # so importing WalletTransfer here at module level would be circular.
+        # .with_deleted() because a leg's transfer may already be soft-deleted
+        # (e.g. this leg itself is being force-deleted after a prior soft-delete).
+        from .wallet_transfer import WalletTransfer
+        return WalletTransfer.objects.with_deleted().get(pk=self.transfer_id)
+
+    def delete(self, using=None, keep_parents=False):
+        # A transfer leg can't be deleted on its own — it and its sibling leg
+        # are one atomic unit with the WalletTransfer (see WalletTransfer.delete()).
+        # Deleting just one leg here is what caused production transfer #12 to
+        # end up with a deleted OUT leg but a still-active IN leg.
+        if self.transfer_id:
+            self._get_transfer().delete()
+            self.refresh_from_db(fields=['deleted_at'])
+            return
+        with db_transaction.atomic():
+            self.items.all().delete()
+            super().delete(using=using, keep_parents=keep_parents)
+
+    def force_delete(self, using=None, keep_parents=False):
+        if self.transfer_id:
+            self._get_transfer().force_delete()
+            return
+        with db_transaction.atomic():
+            TransactionItem.objects.with_deleted().filter(transaction=self).force_delete()
+            super().force_delete(using=using, keep_parents=keep_parents)
+
+    def restore(self):
+        # Mirrors delete(): a transfer leg restores as part of its whole
+        # transfer (both legs + the WalletTransfer), and a plain transaction
+        # brings its items back with it.
+        if self.transfer_id:
+            self._get_transfer().restore()
+            self.refresh_from_db(fields=['deleted_at'])
+            return
+        with db_transaction.atomic():
+            super().restore()
+            TransactionItem.objects.with_deleted().filter(transaction=self).restore()
 
 
 class IncomeTransaction(Transaction):
