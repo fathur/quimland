@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import admin
-from django.db.models import F, Q, Sum
+from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.urls import path
@@ -10,6 +10,7 @@ from django.utils.html import format_html
 
 from django.contrib.contenttypes.models import ContentType
 
+from ql.admin.dashboards.data import imbalance_summary
 from ql.models import AllTransaction, Transaction, TransactionItem
 from ql.services.utils import fmt_rupiah
 from .base import OccurredAtRangeFilter, TransactionIconsMixin
@@ -115,30 +116,6 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
     def has_delete_permission(self, request, obj=None):  # noqa: ARG002
         return False
 
-    def _imbalance_data(self):
-        mismatched = list(
-            Transaction.objects
-            .filter(transfer__isnull=True)
-            .annotate(total_items=Sum('items__nominal'))
-            .filter(~Q(nominal=F('total_items')) | Q(total_items__isnull=True))
-            .select_related('wallet', 'user')
-            .order_by('-occurred_at')
-        )
-        contaminated = list(
-            Transaction.objects
-            .filter(transfer__isnull=False)
-            .annotate(total_items=Sum('items__nominal'))
-            .filter(total_items__isnull=False)
-            .select_related('wallet', 'user')
-            .order_by('-occurred_at')
-        )
-        return {
-            'imbalance_mismatched':           mismatched,
-            'imbalance_mismatched_count':     len(mismatched),
-            'imbalance_contaminated':         contaminated,
-            'imbalance_contaminated_count':   len(contaminated),
-        }
-
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
         try:
@@ -157,7 +134,7 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
             # cl.result_count is the paginator's count of this same filtered
             # queryset — reuse it instead of running COUNT(*) a second time.
             response.context_data['nominal_total_count'] = cl.result_count
-            response.context_data.update(self._imbalance_data())
+            response.context_data.update(imbalance_summary())
         except (AttributeError, KeyError):
             pass
         return response

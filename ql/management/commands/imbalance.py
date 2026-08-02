@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from django.db.models import F, Q, Sum
+
+from ql.admin.dashboards.data import imbalance_summary
 
 
 class Command(BaseCommand):
@@ -13,28 +14,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self._check_imbalanced(options['direction'])
+        data = imbalance_summary(direction=options['direction'])
+        self._check_imbalanced(data['imbalance_mismatched'])
         self.stdout.write('')
-        self._check_contaminated_transfer_legs()
+        self._check_contaminated_transfer_legs(data['imbalance_contaminated'])
 
-    def _check_imbalanced(self, direction=None):
-        from ql.models import Transaction
-
-        # Transfer legs intentionally have no items — exclude them from this check.
-        qs = (
-            Transaction.objects
-            .filter(transfer__isnull=True)
-            .annotate(total_items=Sum('items__nominal'))
-        )
-        if direction:
-            qs = qs.filter(direction=direction)
-
-        # NULL total_items means the transaction has no items at all — also imbalanced.
-        mismatched = qs.filter(
-            ~Q(nominal=F('total_items')) | Q(total_items__isnull=True)
-        ).select_related('wallet', 'user').order_by('-occurred_at')
-
-        count = mismatched.count()
+    def _check_imbalanced(self, mismatched):
+        count = len(mismatched)
         if count == 0:
             self.stdout.write(self.style.SUCCESS('All transactions are balanced.'))
             return
@@ -43,18 +29,8 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write(self.style.WARNING(f'Total: {count} imbalanced transaction(s).'))
 
-    def _check_contaminated_transfer_legs(self):
-        from ql.models import Transaction
-
-        contaminated = (
-            Transaction.objects
-            .filter(transfer__isnull=False)
-            .annotate(total_items=Sum('items__nominal'))
-            .filter(total_items__isnull=False)
-            .select_related('wallet', 'user')
-            .order_by('-occurred_at')
-        )
-        count = contaminated.count()
+    def _check_contaminated_transfer_legs(self, contaminated):
+        count = len(contaminated)
         if count == 0:
             self.stdout.write(self.style.SUCCESS('No transfer legs with items found.'))
             return

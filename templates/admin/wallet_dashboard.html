@@ -103,6 +103,11 @@
     </div>
   </div>
 
+  {# ---------------- Imbalance check ---------------- #}
+  <div style="margin-bottom:26px;">
+    {% include 'admin/ql/_imbalance_panel.html' %}
+  </div>
+
   {# ---------------- Wallet cards ---------------- #}
   <div class="ql-fund-grid">
     {% for card in cards %}

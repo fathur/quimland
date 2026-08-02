@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render
 
-from .data import fund_money_map, parse_as_of_dt
+from .data import fund_money_map, imbalance_summary, parse_as_of_dt
 from ql.models import Fund
 from ql.services.utils import fmt_rupiah
 
@@ -89,5 +89,6 @@ def funds_dashboard_view(request):
         'fund_count': len(funds),
         'as_of_input': as_of_input,
         'as_of_label': as_of.strftime('%d %b %Y %H:%M:%S') if as_of else None,
+        **imbalance_summary(),
     }
     return render(request, 'admin/funds_dashboard.html', context)

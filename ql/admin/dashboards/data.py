@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -200,6 +200,57 @@ def wallet_money_map(as_of=None):
     for bucket in result.values():
         bucket['balance'] = bucket['in'] - bucket['out']
     return result
+
+
+def imbalance_summary(direction=None):
+    """
+    Data-integrity check behind wallet-total vs fund-total mismatches
+    (see the wallet/funds dashboards' hero totals): a Transaction's nominal
+    should always equal the sum of its TransactionItems, and a transfer leg
+    should never have items at all (WalletTransfer legs are pure cash
+    movement — see WalletTransfer.delete()).
+
+    Returns {
+        'imbalance_mismatched': [...], 'imbalance_mismatched_count': n,
+        'imbalance_contaminated': [...], 'imbalance_contaminated_count': n,
+    }
+    - mismatched: non-transfer transactions where nominal != sum(items.nominal),
+      including ones with no items at all. `direction` (IN/OUT) narrows this half only.
+    - contaminated: transfer legs that have items attached despite being transfers.
+    Shared by AllTransactionAdmin, the `imbalance` management command, and the
+    funds/wallet dashboards so all three agree on what counts as broken.
+    """
+    mismatched_qs = (
+        Transaction.objects
+        .filter(transfer__isnull=True)
+        .annotate(total_items=Sum('items__nominal'))
+    )
+    if direction:
+        mismatched_qs = mismatched_qs.filter(direction=direction)
+    mismatched = list(
+        mismatched_qs
+        .filter(~Q(nominal=F('total_items')) | Q(total_items__isnull=True))
+        .select_related('wallet', 'user')
+        .order_by('-occurred_at')
+    )
+    contaminated = list(
+        Transaction.objects
+        .filter(transfer__isnull=False)
+        .annotate(total_items=Sum('items__nominal'))
+        .filter(total_items__isnull=False)
+        .select_related('wallet', 'user')
+        .order_by('-occurred_at')
+    )
+    # nominal minus items — 0 items means nothing to subtract, so the whole
+    # nominal is unaccounted for (mirrors the `imbalance` command's table).
+    for tx in mismatched + contaminated:
+        tx.diff = tx.nominal - tx.total_items if tx.total_items is not None else tx.nominal
+    return {
+        'imbalance_mismatched': mismatched,
+        'imbalance_mismatched_count': len(mismatched),
+        'imbalance_contaminated': contaminated,
+        'imbalance_contaminated_count': len(contaminated),
+    }
 
 
 def _format_period_ranges(periods):

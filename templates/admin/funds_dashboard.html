@@ -138,6 +138,11 @@
     </div>
   </div>
 
+  {# ---------------- Imbalance check ---------------- #}
+  <div style="margin-bottom:26px;">
+    {% include 'admin/ql/_imbalance_panel.html' %}
+  </div>
+
   {# ---------------- Fund cards, grouped by kind ---------------- #}
   {% for section in sections %}
     <div class="ql-section-head">{{ section.label }}</div>

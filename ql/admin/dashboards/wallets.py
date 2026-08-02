@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render
 
-from .data import parse_as_of_dt, wallet_money_map
+from .data import imbalance_summary, parse_as_of_dt, wallet_money_map
 from ql.models import Wallet
 from ql.services.utils import fmt_rupiah
 
@@ -44,5 +44,6 @@ def wallet_dashboard_view(request):
         'wallet_count': len(wallets),
         'as_of_input': as_of_input,
         'as_of_label': as_of.strftime('%d %b %Y %H:%M:%S') if as_of else None,
+        **imbalance_summary(),
     }
     return render(request, 'admin/wallet_dashboard.html', context)
