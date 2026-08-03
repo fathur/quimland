@@ -159,6 +159,39 @@ ASSET_MAX_UPLOAD_SIZE = int(os.environ.get('ASSET_MAX_UPLOAD_SIZE', 10 * 1024 * 
 # ---------------------------------------------------------------------------
 WHATSAPP_VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', '')
 WHATSAPP_APP_SECRET = os.environ.get('WHATSAPP_APP_SECRET', '')
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
+WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
+WHATSAPP_API_VERSION = os.environ.get('WHATSAPP_API_VERSION', 'v21.0')
+
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'whatsapp_file': {
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': LOG_DIR / 'whatsapp.log',
+            'when': 'midnight',
+            'backupCount': 14,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'ql.views.whatsapp': {
+            'handlers': ['whatsapp_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Celery — broker/result backend default to Redis on localhost; override via
