@@ -11,7 +11,7 @@ class Transaction(TimestampMixin):
     class Direction(models.TextChoices):
         IN       = 'IN',       'Income'
         OUT      = 'OUT',      'Expense'
-        TRANSFER = 'TRANSFER', 'Internal Transfer'
+        # TRANSFER = 'TRANSFER', 'Internal Transfer'
 
     direction   = models.CharField(max_length=10, choices=Direction)
     nominal     = models.DecimalField(max_digits=15, decimal_places=2)
