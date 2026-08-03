@@ -52,7 +52,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'rest_framework',
     'debug_toolbar',
-    'django_celery_beat'
+    'django_celery_beat',
+    'more_admin_filters'
 ]
 
 MIDDLEWARE = [

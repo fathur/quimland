@@ -27,7 +27,8 @@ dependencies = [
     "djangorestframework (>=3.17.1,<4.0.0)",
     "django-debug-toolbar (>=7.0.0,<8.0.0)",
     "celery[redis] (>=5.6.3,<6.0.0)",
-    "django-celery-beat (>=2.9.0,<3.0.0)"
+    "django-celery-beat (>=2.9.0,<3.0.0)",
+    "django-more-admin-filters (>=1.15,<2.0)"
 ]
 
 [tool.poetry]

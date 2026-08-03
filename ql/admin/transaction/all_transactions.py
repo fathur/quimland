@@ -10,6 +10,8 @@ from django.utils.html import format_html
 
 from django.contrib.contenttypes.models import ContentType
 
+from more_admin_filters import MultiSelectRelatedFilter, MultiSelectRelatedOnlyFilter, RelatedDropdownFilter, ChoicesDropdownFilter
+
 from ql.admin.dashboards.data import imbalance_summary
 from ql.models import AllTransaction, Transaction, TransactionItem
 from ql.services.utils import fmt_rupiah
@@ -36,7 +38,7 @@ class TransactionItemInline(admin.TabularInline):
 
 class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display        = ['id', 'occurred_at', 'direction', 'wallet', 'user', 'nominal_display', 'status_icons', 'note_short', 'highlight_row']
-    list_filter         = [SoftDeleteFilter, OccurredAtRangeFilter, 'wallet', ('user', make_select_related_filter('properties'))]
+    list_filter         = ['direction', OccurredAtRangeFilter, ('wallet', MultiSelectRelatedOnlyFilter), ('user', make_select_related_filter('properties')), SoftDeleteFilter]
     search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     readonly_fields     = ['direction', 'nominal', 'occurred_at', 'user', 'wallet', 'note',
