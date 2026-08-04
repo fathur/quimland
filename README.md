@@ -38,7 +38,7 @@ poetry run python manage.py createsuperuser
 
 ## Celery
 
-Background tasks live in each app's `tasks.py` (e.g. `ql/tasks.py`), wired up via
+Background tasks live in each app's `tasks.py` (e.g. `ql/fee/tasks/`), wired up via
 `config/celery.py`. Needs a Redis instance reachable at `CELERY_BROKER_URL`.
 
 ```bash
@@ -50,7 +50,7 @@ poetry run celery -A config beat -l info
 
 # Quick sanity check from a Django shell
 poetry run python manage.py shell
-from ql.tasks import debug_task
+from ql.fee.tasks import debug_task
 debug_task.delay()
 ```
 
@@ -65,7 +65,7 @@ ignored — from then on the DB (i.e. the admin) is the source of truth.
 
 | Task | Default schedule | Purpose |
 |---|---|---|
-| `ql.tasks.access_control.sync_resident_admin_access` | daily, 01:00 | Grants admin (`is_staff`) login to residents with no outstanding ROUTINE dues, revokes it from those who owe. Superusers are never touched; `is_active` is never touched. |
+| `ql.fee.tasks.access_control.sync_resident_admin_access` | daily, 01:00 | Grants admin (`is_staff`) login to residents with no outstanding ROUTINE dues, revokes it from those who owe. Superusers are never touched; `is_active` is never touched. |
 
 ### Production (systemd)
 
@@ -175,7 +175,7 @@ For a GARBAGE payment with period M received at P:
 eligible    = max(P.date, day-10 of month M)
 payout_date = next of [10, 25] that is >= eligible
 ```
-Implemented in `ql/services/queries.py :: _garbage_payout_date()`.
+Implemented in `ql/fee/services/queries.py :: _garbage_payout_date()`.
 
 ### Append-only tables
 `payments` and `tariffs` are **never** UPDATE-d or DELETE-d.  
@@ -189,7 +189,7 @@ state reconstructable by filtering `paid_at <= D`.
 The `fund_dues` table is the denominator for earmarked unpaid reports;
 a purely voluntary fund has no `fund_dues` rows and therefore no "unpaid" concept.
 
-## Reports (in `ql/services/queries.py`)
+## Reports (in `ql/fee/services/queries.py`)
 
 | # | Function | Returns |
 |---|----------|---------|
@@ -207,7 +207,7 @@ Example usage from a Django shell:
 ```python
 poetry run python manage.py shell
 
-from ql.services.queries import *
+from ql.fee.services.queries import *
 import datetime
 
 report_unpaid_monthly('2026-05')

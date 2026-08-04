@@ -2,7 +2,7 @@
 {% load i18n static %}
 
 {% block extrastyle %}{{ block.super }}
-<link rel="stylesheet" href="{% static 'ql/css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'fee/css/dashboard.css' %}">
 <style>
   /* Big hero number for total money across all wallets */
   .ql-hero {
@@ -105,7 +105,7 @@
 
   {# ---------------- Imbalance check ---------------- #}
   <div style="margin-bottom:26px;">
-    {% include 'admin/ql/_imbalance_panel.html' %}
+    {% include 'admin/fee/_imbalance_panel.html' %}
   </div>
 
   {# ---------------- Wallet cards ---------------- #}
@@ -115,7 +115,7 @@
 
         <div class="ql-fund-card-head">
           <h3 class="ql-fund-card-name">
-            <a href="{% url 'admin:ql_wallet_change' card.wallet.id %}">{{ card.wallet.name }}</a>
+            <a href="{% url 'admin:fee_wallet_change' card.wallet.id %}">{{ card.wallet.name }}</a>
           </h3>
           <span class="ql-pill">{{ card.kind_display }}</span>
         </div>

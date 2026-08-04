@@ -24,7 +24,7 @@ INTERNAL_IPS = [
 
 # ---------------------------------------------------------------------------
 # Debug toolbar — visibility is controlled by this flag + staff status
-# (ql.services.utils.show_toolbar_to_staff), NOT by DEBUG. This lets the
+# (ql.fee.services.utils.show_toolbar_to_staff), NOT by DEBUG. This lets the
 # toolbar be switched on for staff on the production domain (quimland.com)
 # without ever turning on DEBUG's verbose error pages for real residents.
 # Off by default; flip only while actively debugging.
@@ -32,7 +32,7 @@ INTERNAL_IPS = [
 DEBUG_TOOLBAR_ENABLED = os.environ.get('DEBUG_TOOLBAR_ENABLED', 'False') == 'True'
 
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': 'ql.services.utils.show_toolbar_to_staff',
+    'SHOW_TOOLBAR_CALLBACK': 'ql.fee.services.utils.show_toolbar_to_staff',
 }
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'admin_auto_filters',
     # 'mcp_server',
     'mptt',
-    'ql',
+    'ql.fee',
+    'ql.neighbor',
     'sorl.thumbnail',
     'django_extensions',
     'rest_framework',
@@ -112,7 +113,7 @@ else:
     }
 
 AUTHENTICATION_BACKENDS = [
-    'ql.services.auth_backends.PhoneOrUsernameBackend',
+    'ql.fee.services.auth_backends.PhoneOrUsernameBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -185,7 +186,7 @@ LOGGING = {
         },
     },
     'loggers': {
-        'ql.views.whatsapp': {
+        'ql.fee.views.whatsapp': {
             'handlers': ['whatsapp_file'],
             'level': 'INFO',
             'propagate': False,
@@ -214,7 +215,7 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 # there, then ignores this dict — from then on, edit the schedule in /admin/.
 CELERY_BEAT_SCHEDULE = {
     'sync-resident-admin-access-daily': {
-        'task': 'ql.tasks.access_control.sync_resident_admin_access',
+        'task': 'ql.fee.tasks.access_control.sync_resident_admin_access',
         'schedule': crontab(hour=1, minute=0),
     },
 }

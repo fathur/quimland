@@ -20,8 +20,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 
-from ql.services.auth_backends import PhoneOrUsernameAuthForm
-from ql.views import serve_secure_media, WhatsAppWebhookView
+from ql.fee.services.auth_backends import PhoneOrUsernameAuthForm
+from ql.fee.views import serve_secure_media, WhatsAppWebhookView
 
 admin.site.site_header = 'Quim Land'
 admin.site.site_title  = 'Quim Land'
@@ -49,6 +49,6 @@ urlpatterns = [
     # path("", include('mcp_server.urls')),
 ]
 
-handler400 = 'ql.views.error_400'
-handler403 = 'ql.views.error_403'
-handler404 = 'ql.views.error_404'
+handler400 = 'ql.fee.views.error_400'
+handler403 = 'ql.fee.views.error_403'
+handler404 = 'ql.fee.views.error_404'

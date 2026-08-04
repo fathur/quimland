@@ -137,11 +137,11 @@
 
   {# ── Object tools row ── #}
   <ul class="object-tools" style="float:none; margin: 0 0 12px;">
-    {% if perms.ql.add_incometransaction %}
-    <li><a href="{% url 'admin:ql_incometransaction_add' %}" class="addlink">{% translate 'Add income' %}</a></li>
+    {% if perms.fee.add_incometransaction %}
+    <li><a href="{% url 'admin:fee_incometransaction_add' %}" class="addlink">{% translate 'Add income' %}</a></li>
     {% endif %}
-    {% if perms.ql.add_expensetransaction %}
-    <li><a href="{% url 'admin:ql_expensetransaction_add' %}" class="addlink">{% translate 'Add expense' %}</a></li>
+    {% if perms.fee.add_expensetransaction %}
+    <li><a href="{% url 'admin:fee_expensetransaction_add' %}" class="addlink">{% translate 'Add expense' %}</a></li>
     {% endif %}
   </ul>
 
