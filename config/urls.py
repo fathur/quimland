@@ -49,6 +49,6 @@ urlpatterns = [
     # path("", include('mcp_server.urls')),
 ]
 
-handler400 = 'ql.fee.views.error_400'
-handler403 = 'ql.fee.views.error_403'
-handler404 = 'ql.fee.views.error_404'
+handler400 = 'ql.errors.error_400'
+handler403 = 'ql.errors.error_403'
+handler404 = 'ql.errors.error_404'
