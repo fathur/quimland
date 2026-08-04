@@ -12,7 +12,7 @@
 
   {# Quick-links sections (not real registered apps, injected into available_apps) #}
   {% for app in available_apps %}
-    {% if app.app_label == 'ql_dashboard' or app.app_label == 'ql_transactions' %}
+    {% if app.app_label == 'fee_dashboard' or app.app_label == 'fee_transactions' %}
     <div class="app-{{ app.app_label }} module">
       <table>
         <caption>
