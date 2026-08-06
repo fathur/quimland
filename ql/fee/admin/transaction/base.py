@@ -326,7 +326,9 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
         if formset.model is not TransactionItem:
             super().save_formset(request, form, formset, change)
             return
-        _auto_dir = self._forced_direction if self._forced_direction != Transaction.Direction.TRANSFER else None
+
+        # _auto_dir = self._forced_direction if self._forced_direction != Transaction.Direction.TRANSFER else None
+        _auto_dir = self._forced_direction
         instances = formset.save(commit=False)
         for instance in instances:
             if _auto_dir:
