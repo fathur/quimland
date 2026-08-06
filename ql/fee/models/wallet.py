@@ -12,7 +12,8 @@ class Wallet(TimestampMixin):
         ('E-WALLET', 'E-Wallet'),
     ])
     balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-
+    is_blur = models.BooleanField(default=False, help_text='Permanently hide the balance/in/out figures')
+    
     class Meta:
         db_table = 'wallets'
         ordering = ['name']

@@ -70,6 +70,9 @@
 
   .ql-fund-figs { display: flex; gap: 18px; font-size: 0.75rem; color: var(--body-quiet-color); }
   .ql-fund-figs strong { display: block; color: var(--body-fg); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+
+  /* Wallet.is_blur — permanently hide the balance/in/out figures */
+  .ql-blur { filter: blur(6px); user-select: none; }
 </style>
 {% endblock %}
 
@@ -121,13 +124,13 @@
         </div>
 
         <div>
-          <div class="ql-fund-balance {% if card.balance_negative %}neg{% endif %}">{{ card.balance_display }}</div>
+          <div class="ql-fund-balance {% if card.balance_negative %}neg{% endif %}{% if card.wallet.is_blur %} ql-blur{% endif %}">{{ card.balance_display }}</div>
           <div class="ql-fund-balance-label">{% translate 'Balance (in − out)' %}</div>
         </div>
 
         <div class="ql-fund-figs">
-          <span>{% translate 'In' %}<strong>{{ card.in_display }}</strong></span>
-          <span>{% translate 'Out' %}<strong>{{ card.out_display }}</strong></span>
+          <span>{% translate 'In' %}<strong{% if card.wallet.is_blur %} class="ql-blur"{% endif %}>{{ card.in_display }}</strong></span>
+          <span>{% translate 'Out' %}<strong{% if card.wallet.is_blur %} class="ql-blur"{% endif %}>{{ card.out_display }}</strong></span>
         </div>
 
       </div>
