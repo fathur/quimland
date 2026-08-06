@@ -124,7 +124,7 @@
         </div>
 
         <div>
-          <div class="ql-fund-balance {% if card.balance_negative %}neg{% endif %}{% if card.wallet.is_blur %} ql-blur{% endif %}">{{ card.balance_display }}</div>
+          <div class="ql-fund-balance {% if card.balance_negative and not card.wallet.is_blur %}neg{% endif %}{% if card.wallet.is_blur %} ql-blur{% endif %}">{{ card.balance_display }}</div>
           <div class="ql-fund-balance-label">{% translate 'Balance (in − out)' %}</div>
         </div>
 
