@@ -1,3 +1,5 @@
+import random
+
 from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import get_object_or_404, redirect
@@ -40,6 +42,11 @@ class FundAdmin(MPTTModelAdmin):
         if obj:
             fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))
         return fieldsets
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        initial.setdefault('color', '#%06x' % random.randint(0, 0xFFFFFF))
+        return initial
 
     def get_urls(self):
         return [

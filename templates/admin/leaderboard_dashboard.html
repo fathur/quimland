@@ -50,7 +50,7 @@
 </div>
 
 <p class="legend">
-  {% blocktranslate with early=points_early ontime=points_ontime late=points_late rupiah=rupiah_per_point %}Score = (early periods × {{ early }}) + (on-time periods × {{ ontime }}) − (late periods × {{ late }}) + other income : Rp{{ rupiah }} − outstanding : Rp{{ rupiah }}.{% endblocktranslate %}
+  {% blocktranslate with early=points_early ontime=points_ontime late=points_late rupiah=rupiah_per_point %}Score = (early periods × {{ early }}) + (on-time periods × {{ ontime }}) + (late periods × {{ late }}) + other income : Rp{{ rupiah }} − outstanding : Rp{{ rupiah }}.{% endblocktranslate %}
   {% translate 'A period counts as early if paid before the due month starts, on-time if paid by the 5th of the due month, late if paid after that.' %}
 </p>
 
