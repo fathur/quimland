@@ -59,7 +59,7 @@ class ExpenseTransactionAdmin(BaseTransactionAdmin):
     _forced_direction    = Transaction.Direction.OUT
     inlines              = [ExpenseTransactionItemInline]
     list_display         = ['id', 'occurred_at', 'wallet_display', 'nominal_display', 'pic', 'status_icons', 'note_short', 'highlight_row', 'creator']
-    change_form_template = 'admin/ql/expensetransaction/change_form.html'
+    change_form_template = 'admin/fee/expensetransaction/change_form.html'
 
     @admin.display(description='PIC', ordering='user')
     def pic(self, obj):

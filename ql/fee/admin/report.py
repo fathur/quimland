@@ -57,7 +57,7 @@ class ReportAdmin(admin.ModelAdmin):
             self.message_user(request, 'You do not have permission to preview this report.', level=messages.ERROR)
             return redirect('admin:fee_report_changelist')
         content_html = render_report_markdown(report.content)
-        return render(request, 'admin/ql/report/preview.html', {
+        return render(request, 'admin/fee/report/preview.html', {
             'report': report,
             'content_html': content_html,
         })

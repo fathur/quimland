@@ -73,7 +73,7 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
         expense = agg['expense'] or Decimal('0')
         balance = income - expense
 
-        html = render_to_string('admin/ql/alltransaction/export_pdf.html', {
+        html = render_to_string('admin/fee/alltransaction/export_pdf.html', {
             'transactions':    qs,
             'income_total':    fmt_rupiah(income),
             'expense_total':   fmt_rupiah(expense),
