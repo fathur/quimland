@@ -5,7 +5,13 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
-from .data import resident_leaderboard
+from .data import (
+    POINTS_EARLY_PERIOD,
+    POINTS_LATE_PERIOD,
+    POINTS_ONTIME_PERIOD,
+    POINTS_PER_RUPIAH,
+    resident_leaderboard,
+)
 
 
 @permission_required('fee.view_alltransaction', raise_exception=True)
@@ -34,5 +40,9 @@ def leaderboard_dashboard_view(request):
         'rows': rows,
         'total_residents': len(rows),
         'q': q,
+        'points_early': POINTS_EARLY_PERIOD,
+        'points_ontime': POINTS_ONTIME_PERIOD,
+        'points_late': POINTS_LATE_PERIOD,
+        'rupiah_per_point': int(1 / POINTS_PER_RUPIAH),
     }
     return render(request, 'admin/leaderboard_dashboard.html', context)

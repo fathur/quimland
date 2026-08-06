@@ -35,8 +35,8 @@ def _months_through(year, today, grace_day=PAYMENT_GRACE_DAY):
 # (other income / outstanding), calibrated so a typical monthly due
 # (Rp 30k-100k, see Tariff.nominal) moves the score by a few points —
 # comparable in weight to a single early/late period.
-POINTS_EARLY_PERIOD   = 3
-POINTS_ONTIME_PERIOD  = 1
+POINTS_EARLY_PERIOD   = 1
+POINTS_ONTIME_PERIOD  = 3
 POINTS_LATE_PERIOD    = -2
 POINTS_PER_RUPIAH     = Decimal('1') / Decimal('100000')
 
