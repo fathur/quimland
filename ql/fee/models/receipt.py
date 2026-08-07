@@ -25,9 +25,9 @@ class Receipt(TimestampMixin):
     )
     # storage=get_receipt_storage is only a fallback (used for e.g. field
     # deconstruction) — actual reads/writes go through DynamicStorageImageField's
-    # per-row resolution (keyed off receipt_storage, below).
-    image           = DynamicStorageImageField(upload_to=_receipt_upload_to, storage=get_receipt_storage, null=True, blank=True)
-    receipt_storage = models.CharField(
+    # per-row resolution (keyed off the `storage` column, below).
+    image   = DynamicStorageImageField(upload_to=_receipt_upload_to, storage=get_receipt_storage, null=True, blank=True)
+    storage = models.CharField(
         max_length=10,
         choices=STORAGE_BACKEND_CHOICES,
         default=STORAGE_LOCAL,
@@ -42,10 +42,10 @@ class Receipt(TimestampMixin):
         if self.image and not self.image._committed:
             # Must be set BEFORE compress_image_field() — it calls
             # image.save(..., save=False) internally, which writes the file
-            # through ReceiptImageFieldFile.storage right away, and that
-            # reads receipt_storage to pick the backend. Setting it after
+            # through DynamicStorageImageFieldFile.storage right away, and
+            # that reads self.storage to pick the backend. Setting it after
             # the write would target wherever the field last pointed.
-            self.receipt_storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
+            self.storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
             from ..services.utils import compress_image_field
             compress_image_field(self.image)
         super().save(*args, **kwargs)

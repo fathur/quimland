@@ -65,9 +65,9 @@ class DueNoteProof(TimestampMixin):
     due_note = models.ForeignKey('DueNote', on_delete=models.CASCADE, related_name='proofs')
     # storage=get_receipt_storage is only a fallback (used for e.g. field
     # deconstruction) — actual reads/writes go through DynamicStorageImageField's
-    # per-row resolution (keyed off receipt_storage, below).
-    image    = DynamicStorageImageField(upload_to=_due_note_proof_upload_to, storage=get_receipt_storage)
-    receipt_storage = models.CharField(
+    # per-row resolution (keyed off the `storage` column, below).
+    image   = DynamicStorageImageField(upload_to=_due_note_proof_upload_to, storage=get_receipt_storage)
+    storage = models.CharField(
         max_length=10,
         choices=STORAGE_BACKEND_CHOICES,
         default=STORAGE_LOCAL,
@@ -83,7 +83,7 @@ class DueNoteProof(TimestampMixin):
         if self.image and not self.image._committed:
             # Must be set before compress_image_field() actually writes the
             # file — see Receipt.save()/Asset.save() for the same reasoning.
-            self.receipt_storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
+            self.storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
             from ..services.utils import compress_image_field
             compress_image_field(self.image)
         super().save(*args, **kwargs)

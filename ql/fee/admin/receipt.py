@@ -6,19 +6,19 @@ from ql.fee.models import Receipt
 
 @admin.register(Receipt)
 class ReceiptAdmin(admin.ModelAdmin):
-    list_display  = ['id', 'user', 'receipt_storage', 'image_preview', 'created_at']
-    list_filter   = ['receipt_storage']
-    readonly_fields = ['receipt_storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image_preview']
+    list_display  = ['id', 'user', 'storage', 'image_preview', 'created_at']
+    list_filter   = ['storage']
+    readonly_fields = ['storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image_preview']
     search_fields = ['id']
 
     def get_fields(self, request, obj=None):
         if obj:
-            return ['user', 'image', 'image_preview', 'receipt_storage', 'created_at', 'updated_at', 'deleted_at']
+            return ['user', 'image', 'image_preview', 'storage', 'created_at', 'updated_at', 'deleted_at']
         return ['user', 'image']
-    
+
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
-            (None, {'fields': ['user', 'image', 'image_preview', 'receipt_storage']}),
+            (None, {'fields': ['user', 'image', 'image_preview', 'storage']}),
         ]
         if obj:
             fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))

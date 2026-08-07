@@ -63,18 +63,22 @@ def get_report_storage():
 
 
 # ── Per-row dynamic storage ───────────────────────────────────────────────
-# A model that tracks which backend its file actually lives on (a
-# `receipt_storage` CharField using STORAGE_BACKEND_CHOICES) uses these
-# instead of a plain FileField/ImageField, so that field's storage is
-# resolved per-row from that column — not from whatever STORAGE_BACKEND
-# happens to be right now. Without this, flipping STORAGE_BACKEND would
-# orphan every file already sitting on the other backend, since a plain
-# FileField shares ONE storage instance across every row.
+# A model that tracks which backend its file actually lives on (a `storage`
+# CharField using STORAGE_BACKEND_CHOICES) uses these instead of a plain
+# FileField/ImageField, so that field's storage is resolved per-row from
+# that column — not from whatever STORAGE_BACKEND happens to be right now.
+# Without this, flipping STORAGE_BACKEND would orphan every file already
+# sitting on the other backend, since a plain FileField shares ONE storage
+# instance across every row.
 #
 # Shared by Receipt.image, Asset.file, and DueNoteProof.image.
 class _DynamicStorageMixin:
     def _get_storage(self):
-        backend = getattr(self.instance, 'receipt_storage', STORAGE_LOCAL)
+        # NOTE: self.instance.storage is the *model's* `storage` CharField
+        # (a plain string like 'r2') — unrelated to this property, which is
+        # THIS FieldFile's own `.storage` (a Storage backend instance). Same
+        # name, different objects; don't confuse the two.
+        backend = getattr(self.instance, 'storage', STORAGE_LOCAL)
         return storage_for_backend(backend)
 
     def _set_storage(self, value):
