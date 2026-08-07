@@ -45,6 +45,16 @@ class Transaction(TimestampMixin):
         null=True, blank=True, editable=False,
         related_name='legs',
     )
+    # Set when this transaction is one of the two legs of a Direct Expense
+    # (resident paid out of pocket — see DirectExpense). Legs stay IN/OUT so
+    # they behave normally everywhere (fund totals, leaderboard other-income,
+    # etc.) but carry this marker so BaseTransactionAdmin can block editing
+    # them directly — they're only editable via the DirectExpense admin.
+    direct_expense = models.ForeignKey(
+        'DirectExpense', on_delete=models.CASCADE,
+        null=True, blank=True, editable=False,
+        related_name='legs',
+    )
     class Highlight(models.TextChoices):
         NONE    = '',        'None'
         WARNING = 'warning', 'Warning'
@@ -84,6 +94,11 @@ class Transaction(TimestampMixin):
         from .wallet_transfer import WalletTransfer
         return WalletTransfer.objects.with_deleted().get(pk=self.transfer_id)
 
+    def _get_direct_expense(self):
+        # local import: direct_expense.py imports Transaction at module level.
+        from .direct_expense import DirectExpense
+        return DirectExpense.objects.with_deleted().get(pk=self.direct_expense_id)
+
     def delete(self, using=None, keep_parents=False):
         # A transfer leg can't be deleted on its own — it and its sibling leg
         # are one atomic unit with the WalletTransfer (see WalletTransfer.delete()).
@@ -93,6 +108,11 @@ class Transaction(TimestampMixin):
             self._get_transfer().delete()
             self.refresh_from_db(fields=['deleted_at'])
             return
+        # Same reasoning for a Direct Expense's IN/OUT legs (see DirectExpense.delete()).
+        if self.direct_expense_id:
+            self._get_direct_expense().delete()
+            self.refresh_from_db(fields=['deleted_at'])
+            return
         with db_transaction.atomic():
             self.items.all().delete()
             super().delete(using=using, keep_parents=keep_parents)
@@ -100,6 +120,9 @@ class Transaction(TimestampMixin):
     def force_delete(self, using=None, keep_parents=False):
         if self.transfer_id:
             self._get_transfer().force_delete()
+            return
+        if self.direct_expense_id:
+            self._get_direct_expense().force_delete()
             return
         with db_transaction.atomic():
             TransactionItem.objects.with_deleted().filter(transaction=self).force_delete()
@@ -111,6 +134,10 @@ class Transaction(TimestampMixin):
         # brings its items back with it.
         if self.transfer_id:
             self._get_transfer().restore()
+            self.refresh_from_db(fields=['deleted_at'])
+            return
+        if self.direct_expense_id:
+            self._get_direct_expense().restore()
             self.refresh_from_db(fields=['deleted_at'])
             return
         with db_transaction.atomic():

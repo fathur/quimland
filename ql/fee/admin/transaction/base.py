@@ -137,7 +137,7 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
     search_fields       = ['id', 'user__username', 'user__first_name', 'user__last_name', 'note']
     ordering            = ['-occurred_at', '-created_at']
     autocomplete_fields = ['user']
-    readonly_fields     = ['creator', 'created_at', 'updated_at', 'deleted_at', 'receipt_preview', 'transfer']
+    readonly_fields     = ['creator', 'created_at', 'updated_at', 'deleted_at', 'receipt_preview', 'transfer', 'direct_expense']
 
     _forced_direction = None
 
@@ -202,7 +202,7 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
             obj.delete()
 
     def has_change_permission(self, request, obj=None):
-        if obj is not None and obj.transfer_id:
+        if obj is not None and (obj.transfer_id or obj.direct_expense_id):
             return False
         return super().has_change_permission(request, obj)
 
@@ -210,7 +210,7 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
         css = {'all': ['admin/css/transaction_highlight.css']}
 
     def get_fields(self, request, obj=None):
-        fields = ['nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image', 'transfer']
+        fields = ['nominal', 'occurred_at', 'user', 'wallet', 'note', 'receipt_image', 'transfer', 'direct_expense']
         if obj and obj.receipt:
             fields.append('receipt_preview')
         if obj:

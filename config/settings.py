@@ -155,6 +155,12 @@ R2_CUSTOM_DOMAIN    = os.environ.get('R2_CUSTOM_DOMAIN', '')  # optional public 
 # referenced by URL instead. Default: 10 MiB.
 ASSET_MAX_UPLOAD_SIZE = int(os.environ.get('ASSET_MAX_UPLOAD_SIZE', 10 * 1024 * 1024))
 
+# Wallet used to record Direct Expenses (resident pays out of pocket, no money
+# actually moves through a tracked wallet). Every Direct Expense posts an
+# equal IN and OUT leg against this one wallet so its balance always nets to
+# zero. Create the wallet manually in the admin, then point this at its id.
+DIRECT_EXPENSE_WALLET_ID = os.environ.get('DIRECT_EXPENSE_WALLET_ID') or None
+
 # ---------------------------------------------------------------------------
 # WhatsApp Business API (Meta Cloud API) webhook
 # ---------------------------------------------------------------------------

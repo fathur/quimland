@@ -21,6 +21,7 @@ from . import (
     asset,
     asset_manager,
     wallet_transfer,
+    direct_expense,
     report,
 )
 from .dashboards import registry as _dashboard_registry  # noqa: F401 — import for side-effects (URL + sidebar registration)

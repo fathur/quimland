@@ -18,6 +18,7 @@ from .due_note import DueNote, DueNoteProof
 from .wallet import Wallet
 from .asset import Asset
 from .wallet_transfer import WalletTransfer
+from .direct_expense import DirectExpense
 from .report import Report
 
 __all__ = [
@@ -46,5 +47,6 @@ __all__ = [
     'Wallet',
     'Asset',
     'WalletTransfer',
+    'DirectExpense',
     'Report',
 ]
