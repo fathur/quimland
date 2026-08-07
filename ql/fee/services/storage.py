@@ -1,8 +1,15 @@
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from django.db import models
+from django.db.models.fields.files import FieldFile, ImageFieldFile
 
 STORAGE_LOCAL = 'local'
 STORAGE_R2    = 'r2'
+
+STORAGE_BACKEND_CHOICES = [
+    (STORAGE_LOCAL, 'Local'),
+    (STORAGE_R2,    'Cloudflare R2'),
+]
 
 
 def storage_for_backend(backend):
@@ -53,3 +60,43 @@ def get_asset_storage():
 
 def get_report_storage():
     return _get_secure_storage()
+
+
+# ── Per-row dynamic storage ───────────────────────────────────────────────
+# A model that tracks which backend its file actually lives on (a
+# `receipt_storage` CharField using STORAGE_BACKEND_CHOICES) uses these
+# instead of a plain FileField/ImageField, so that field's storage is
+# resolved per-row from that column — not from whatever STORAGE_BACKEND
+# happens to be right now. Without this, flipping STORAGE_BACKEND would
+# orphan every file already sitting on the other backend, since a plain
+# FileField shares ONE storage instance across every row.
+#
+# Shared by Receipt.image, Asset.file, and DueNoteProof.image.
+class _DynamicStorageMixin:
+    def _get_storage(self):
+        backend = getattr(self.instance, 'receipt_storage', STORAGE_LOCAL)
+        return storage_for_backend(backend)
+
+    def _set_storage(self, value):
+        # FieldFile.__init__ unconditionally does self.storage = field.storage;
+        # swallow that assignment — the getter above resolves it dynamically
+        # from the instance instead.
+        pass
+
+    storage = property(_get_storage, _set_storage)
+
+
+class DynamicStorageFieldFile(_DynamicStorageMixin, FieldFile):
+    pass
+
+
+class DynamicStorageImageFieldFile(_DynamicStorageMixin, ImageFieldFile):
+    pass
+
+
+class DynamicStorageFileField(models.FileField):
+    attr_class = DynamicStorageFieldFile
+
+
+class DynamicStorageImageField(models.ImageField):
+    attr_class = DynamicStorageImageFieldFile

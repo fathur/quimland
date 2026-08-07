@@ -3,7 +3,12 @@ from django.db import models
 from django.utils import timezone
 
 from .base import TimestampMixin
-from ..services.storage import get_receipt_storage
+from ..services.storage import (
+    STORAGE_BACKEND_CHOICES,
+    STORAGE_LOCAL,
+    DynamicStorageImageField,
+    get_receipt_storage,
+)
 
 
 class DueNote(TimestampMixin):
@@ -58,7 +63,17 @@ class DueNoteProof(TimestampMixin):
     """One image proof attached to a DueNote (a note can have several)."""
 
     due_note = models.ForeignKey('DueNote', on_delete=models.CASCADE, related_name='proofs')
-    image    = models.ImageField(upload_to=_due_note_proof_upload_to, storage=get_receipt_storage)
+    # storage=get_receipt_storage is only a fallback (used for e.g. field
+    # deconstruction) — actual reads/writes go through DynamicStorageImageField's
+    # per-row resolution (keyed off receipt_storage, below).
+    image    = DynamicStorageImageField(upload_to=_due_note_proof_upload_to, storage=get_receipt_storage)
+    receipt_storage = models.CharField(
+        max_length=10,
+        choices=STORAGE_BACKEND_CHOICES,
+        default=STORAGE_LOCAL,
+        editable=False,
+        help_text='Backend that holds the proof image.',
+    )
 
     class Meta:
         app_label = 'fee'
@@ -66,6 +81,9 @@ class DueNoteProof(TimestampMixin):
 
     def save(self, *args, **kwargs):
         if self.image and not self.image._committed:
+            # Must be set before compress_image_field() actually writes the
+            # file — see Receipt.save()/Asset.save() for the same reasoning.
+            self.receipt_storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
             from ..services.utils import compress_image_field
             compress_image_field(self.image)
         super().save(*args, **kwargs)

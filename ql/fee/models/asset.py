@@ -6,7 +6,12 @@ from django.db import models
 from django.utils import timezone
 
 from .base import TimestampMixin
-from ..services.storage import get_asset_storage
+from ..services.storage import (
+    STORAGE_BACKEND_CHOICES,
+    STORAGE_LOCAL,
+    DynamicStorageFileField,
+    get_asset_storage,
+)
 from ..services.utils import (
     ALLOWED_ASSET_MIME_TYPES,
     IMAGE_MIME_TYPES,
@@ -45,7 +50,10 @@ class Asset(TimestampMixin):
     purpose = models.CharField(max_length=50, blank=True, default='')
 
     # ── Payload: exactly one of file / url ────────────────────────────────────
-    file = models.FileField(
+    # storage=get_asset_storage is only a fallback (used for e.g. field
+    # deconstruction) — actual reads/writes go through DynamicStorageFileField's
+    # per-row resolution (keyed off receipt_storage, below).
+    file = DynamicStorageFileField(
         upload_to=_asset_upload_to, storage=get_asset_storage,
         null=True, blank=True,
     )
@@ -59,6 +67,14 @@ class Asset(TimestampMixin):
     mime_type     = models.CharField(max_length=100, blank=True, default='')
     size          = models.BigIntegerField(null=True, blank=True)  # bytes
     metadata      = models.JSONField(default=dict, blank=True)
+
+    receipt_storage = models.CharField(
+        max_length=10,
+        choices=STORAGE_BACKEND_CHOICES,
+        default=STORAGE_LOCAL,
+        editable=False,
+        help_text='Backend that holds the asset file.',
+    )
 
     class Meta:
         db_table = 'assets'
@@ -120,6 +136,14 @@ class Asset(TimestampMixin):
     # ── Persistence ───────────────────────────────────────────────────────────
     def save(self, *args, **kwargs):
         if self.file and not self.file._committed:
+            # Must be set before the file is actually written — for image
+            # assets that happens via compress_image_field() below; for
+            # everything else it happens inside super().save() via
+            # FileField.pre_save(). Either way, DynamicStorageFileField reads
+            # receipt_storage to pick the backend, so it must already be
+            # correct by the time either write occurs.
+            self.receipt_storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
+
             mime = getattr(self, '_detected_mime', None) or detect_asset_mime(
                 self.file.file, filename=self.file.name
             )
