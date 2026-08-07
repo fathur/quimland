@@ -1,11 +1,20 @@
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 
+STORAGE_LOCAL = 'local'
+STORAGE_R2    = 'r2'
 
-def _get_secure_storage():
-    """Return the configured backend (R2 or local secure filesystem)."""
-    backend = getattr(settings, 'STORAGE_BACKEND', 'local')
-    if backend == 'r2':
+
+def storage_for_backend(backend):
+    """Return a Storage instance for the given backend name ('local' or 'r2').
+
+    Used two ways: keyed off the current global STORAGE_BACKEND setting (via
+    _get_secure_storage(), below — Asset/Report/PropertyTax/DueNote all work
+    this way), and keyed off a specific row's own stored backend value (see
+    Receipt.image, which must keep reading/writing wherever *that* receipt's
+    file actually lives, independent of whatever STORAGE_BACKEND is today).
+    """
+    if backend == STORAGE_R2:
         from storages.backends.s3boto3 import S3Boto3Storage
 
         kwargs = dict(
@@ -27,6 +36,11 @@ def _get_secure_storage():
         location=settings.SECURE_MEDIA_ROOT,
         base_url='/secure-media/',
     )
+
+
+def _get_secure_storage():
+    """Return the currently configured backend (R2 or local secure filesystem)."""
+    return storage_for_backend(getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL))
 
 
 def get_receipt_storage():
