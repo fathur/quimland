@@ -127,7 +127,7 @@
   </form>
 
   {# ---------------- Hero: total money on hand ---------------- #}
-  <div class="ql-hero">
+  {% comment %} <div class="ql-hero">
     <div class="ql-hero-label">
       {% translate 'Total money on hand' %}
       {% if as_of_label %}<span class="ql-as-of-badge">{{ as_of_label }}</span>{% endif %}
@@ -136,12 +136,12 @@
     <div class="ql-hero-sub">
       {% blocktranslate count counter=fund_count %}Across {{ counter }} fund — collected minus spent, not yet allocated{% plural %}Across {{ counter }} funds — collected minus spent, still available{% endblocktranslate %}
     </div>
-  </div>
+  </div> {% endcomment %}
 
   {# ---------------- Imbalance check ---------------- #}
-  <div style="margin-bottom:26px;">
+  {% comment %} <div style="margin-bottom:26px;">
     {% include 'admin/fee/_imbalance_panel.html' %}
-  </div>
+  </div> {% endcomment %}
 
   {# ---------------- Fund cards, grouped by kind ---------------- #}
   {% for section in sections %}
