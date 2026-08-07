@@ -1,6 +1,7 @@
 from django.contrib import admin
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
@@ -14,7 +15,13 @@ from .data import (
 )
 
 
-@permission_required('fee.view_alltransaction', raise_exception=True)
+def _is_superuser(user):
+    if user.is_superuser:
+        return True
+    raise PermissionDenied
+
+
+@user_passes_test(_is_superuser)
 def leaderboard_dashboard_view(request):
     today = timezone.localdate()
     year  = today.year

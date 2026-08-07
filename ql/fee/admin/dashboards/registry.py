@@ -68,7 +68,7 @@ def _dashboard_app(request):
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
         })
 
-    if request.user.has_perm('fee.view_alltransaction'):
+    if request.user.is_superuser:
         models.append({
             'name': 'Leaderboard',
             'object_name': 'LeaderboardDashboard',

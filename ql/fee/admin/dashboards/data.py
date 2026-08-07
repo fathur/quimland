@@ -220,10 +220,19 @@ def imbalance_summary(direction=None):
     Shared by AllTransactionAdmin, the `imbalance` management command, and the
     funds/wallet dashboards so all three agree on what counts as broken.
     """
+    # Sum('items__nominal') joins the transaction_items table directly and
+    # does NOT go through TransactionItem's soft-delete manager (that only
+    # applies via .objects/a related manager, not relation-traversal in
+    # filter()/annotate()) — so a plain Sum would double-count a since
+    # soft-deleted item alongside its replacement (e.g. DirectExpense.sync_legs()
+    # recreates the income leg's items on every save). Restrict the sum to
+    # currently-active items explicitly.
+    active_items_nominal = Sum('items__nominal', filter=Q(items__deleted_at__isnull=True))
+
     mismatched_qs = (
         Transaction.objects
         .filter(transfer__isnull=True)
-        .annotate(total_items=Sum('items__nominal'))
+        .annotate(total_items=active_items_nominal)
     )
     if direction:
         mismatched_qs = mismatched_qs.filter(direction=direction)
@@ -236,7 +245,7 @@ def imbalance_summary(direction=None):
     contaminated = list(
         Transaction.objects
         .filter(transfer__isnull=False)
-        .annotate(total_items=Sum('items__nominal'))
+        .annotate(total_items=active_items_nominal)
         .filter(total_items__isnull=False)
         .select_related('wallet', 'user')
         .order_by('-occurred_at')
