@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.urls import reverse
 from django.utils.html import format_html
 
 from ql.fee.models import Transaction, WalletTransfer
@@ -10,13 +11,20 @@ class TransferLegInline(admin.TabularInline):
     fk_name    = 'transfer'
     extra      = 0
     can_delete = False
-    fields     = ['direction', 'wallet', 'nominal_display', 'occurred_at']
-    readonly_fields = ['direction', 'wallet', 'nominal_display', 'occurred_at']
+    fields     = ['transaction_link', 'direction', 'wallet', 'nominal_display', 'occurred_at']
+    readonly_fields = ['transaction_link', 'direction', 'wallet', 'nominal_display', 'occurred_at']
     verbose_name        = 'Transaction leg'
     verbose_name_plural = 'Transaction legs'
 
     def has_add_permission(self, request, obj=None):
         return False
+
+    @admin.display(description='Transaction')
+    def transaction_link(self, obj):
+        if not obj.pk:
+            return ''
+        url = reverse('admin:fee_alltransaction_change', args=[obj.pk])
+        return format_html('<a href="{}">#{}</a>', url, obj.pk)
 
     @admin.display(description='Nominal')
     def nominal_display(self, obj):
