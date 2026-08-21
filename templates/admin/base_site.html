@@ -10,6 +10,38 @@
 {% endif %}
 {% endblock %}
 
+{% block welcome-msg %}
+{% translate 'Welcome,' %}
+{% if user.is_authenticated %}
+<strong><a href="{% url 'admin:profile' %}" title="{% translate 'My Profile' %}">{% firstof user.get_short_name user.get_username %}</a></strong>.
+{% else %}
+<strong>{% firstof user.get_short_name user.get_username %}</strong>.
+{% endif %}
+{% endblock %}
+
+{% block userlinks %}
+{% if site_url %}
+  <a href="{{ site_url }}">{% translate 'View site' %}</a> /
+{% endif %}
+{% if user.is_active and user.is_staff %}
+  {% url 'django-admindocs-docroot' as docsroot %}
+  {% if docsroot %}
+    <a href="{{ docsroot }}">{% translate 'Documentation' %}</a> /
+  {% endif %}
+{% endif %}
+<a href="{% url 'admin:profile' %}" title="{% translate 'View and manage your account' %}">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"
+    style="vertical-align:-2px;margin-right:2px;">
+    <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
+  </svg>{% translate 'My Profile' %}</a> /
+<form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+  {% csrf_token %}
+  <button type="submit">{% translate 'Log out' %}</button>
+</form>
+{% include "admin/color_theme_toggle.html" %}
+{% endblock %}
+
 {% block nav-global %}{% endblock %}
 
 {% block extrastyle %}

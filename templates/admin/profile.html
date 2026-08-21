@@ -1,0 +1,115 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+<style>
+  .ql-profile-wrap { max-width: 620px; margin: 0 auto; }
+
+  .ql-profile-card {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 22px; margin-bottom: 26px;
+    border: 1px solid var(--hairline-color); border-radius: 12px;
+    background: var(--darkened-bg, var(--body-bg));
+  }
+  .ql-profile-avatar {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.125rem; font-weight: 700; color: #fff;
+  }
+  .ql-profile-name { font-size: 1.0625rem; font-weight: 700; margin: 0; }
+  .ql-profile-meta { font-size: 0.8125rem; color: var(--body-quiet-color); margin-top: 2px; }
+  .ql-profile-facts { display: flex; flex-wrap: wrap; gap: 14px 26px; margin-top: 12px; }
+  .ql-profile-fact-label {
+    font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--body-quiet-color); font-weight: 600;
+  }
+  .ql-profile-fact-value { font-size: 0.875rem; font-weight: 600; margin-top: 2px; }
+
+  .ql-profile-wrap .module { margin-bottom: 0; }
+  .ql-profile-wrap .module h2 { margin: 0; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; {% translate 'My Profile' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="ql-profile-wrap">
+
+  {# ---------------- Identity card ---------------- #}
+  <div class="ql-profile-card">
+    <div class="ql-profile-avatar" style="background:hsl({{ avatar_hue }},55%,45%);">{{ avatar_initials }}</div>
+    <div>
+      <p class="ql-profile-name">{{ display_name }}</p>
+      <div class="ql-profile-meta">
+        {{ request.user.username }}{% if request.user.email %} · {{ request.user.email }}{% endif %}
+      </div>
+      {% if properties %}
+      <div class="ql-profile-facts">
+        <div>
+          <div class="ql-profile-fact-label">{% translate 'Home' %}</div>
+          <div class="ql-profile-fact-value">{{ properties.home_number|default:'—' }}</div>
+        </div>
+        <div>
+          <div class="ql-profile-fact-label">{% translate 'Phone' %}</div>
+          <div class="ql-profile-fact-value">{{ properties.phone|default:'—' }}</div>
+        </div>
+        <div>
+          <div class="ql-profile-fact-label">{% translate 'Status' %}</div>
+          <div class="ql-profile-fact-value">{{ properties.get_occupancy_status_display|default:'—' }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---------------- Password change ---------------- #}
+  {% if request.user.has_usable_password %}
+  <form method="post">{% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>{% translate 'Change password' %}</h2>
+      <div style="padding: 10px 12px 4px;">
+
+        {% if password_form.errors %}
+        <p class="errornote">
+          {% blocktranslate count counter=password_form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+        </p>
+        {% endif %}
+
+        <div class="form-row field-old_password">
+          {{ password_form.old_password.errors }}
+          <div class="flex-container">{{ password_form.old_password.label_tag }} {{ password_form.old_password }}</div>
+        </div>
+
+        <div class="form-row field-new_password1">
+          {{ password_form.new_password1.errors }}
+          <div class="flex-container">{{ password_form.new_password1.label_tag }} {{ password_form.new_password1 }}</div>
+          {% if password_form.new_password1.help_text %}
+          <div class="help">{{ password_form.new_password1.help_text|safe }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-row field-new_password2">
+          {{ password_form.new_password2.errors }}
+          <div class="flex-container">{{ password_form.new_password2.label_tag }} {{ password_form.new_password2 }}</div>
+          {% if password_form.new_password2.help_text %}
+          <div class="help">{{ password_form.new_password2.help_text|safe }}</div>
+          {% endif %}
+        </div>
+
+      </div>
+    </fieldset>
+
+    <div class="submit-row">
+      <input type="submit" class="default" value="{% translate 'Update password' %}">
+    </div>
+  </form>
+  {% endif %}
+
+</div>
+{% endblock %}

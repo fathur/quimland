@@ -1,5 +1,5 @@
 {% for obj in object_list %}
-<a class="media-box" href="{% url 'admin:fee_asset_change' obj.pk %}">
+<a class="media-box" href="{% url 'admin:asset_detail' obj.pk %}">
   <div class="media-thumb"
        {% if obj.file and 'image/' in obj.mime_type %}data-url-endpoint="{% url 'admin:fee_asset_url_image' obj.pk %}"{% endif %}>
     {% if obj.file and 'image/' in obj.mime_type %}

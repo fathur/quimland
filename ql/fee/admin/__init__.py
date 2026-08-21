@@ -23,5 +23,6 @@ from . import (
     wallet_transfer,
     direct_expense,
     report,
+    profile,
 )
 from .dashboards import registry as _dashboard_registry  # noqa: F401 — import for side-effects (URL + sidebar registration)

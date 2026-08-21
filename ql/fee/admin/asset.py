@@ -1,9 +1,8 @@
 from django.contrib import admin
-from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html, mark_safe
 
 from ql.fee.models import Asset
-from .mixins import LazyMediaGridAdmin
+from .mixins import LazyMediaGridAdmin, resolve_content_object_link
 
 
 @admin.register(Asset)
@@ -14,15 +13,6 @@ class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
     search_fields   = ['original_name', 'url']
     readonly_fields = ['content_type', 'object_id', 'mime_type', 'size', 'original_name', 'metadata', 'preview', 'related_records', 'created_at', 'updated_at', 'deleted_at']
 
-    # GenericForeignKey targets resolve to their *concrete* model's
-    # ContentType (fee.transaction), but that base model has no admin of its
-    # own registered — only its proxies do (IncomeTransactionAdmin etc.).
-    # AllTransactionAdmin is the read-only "view any transaction" one, so
-    # that's what a Transaction-owned asset should link to. Extend this if
-    # another owner model ever ends up in the same situation.
-    _content_type_admin_overrides = {
-        'transaction': 'alltransaction',
-    }
     fields = [
         'content_type', 'object_id', 'purpose',
         'file', 'url',
@@ -69,18 +59,12 @@ class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
     def related_records(self, obj):
         if not obj or not obj.pk:
             return '—'
-        content_object = obj.content_object
-        if content_object is None:
+        url, label = resolve_content_object_link(obj.content_object, obj.content_type, obj.object_id)
+        if label is None:
             return mark_safe('<span style="color:var(--body-quiet-color);">Not attached to any record.</span>')
-
-        ct = obj.content_type
-        model_name = self._content_type_admin_overrides.get(ct.model, ct.model)
-        try:
-            url = reverse(f'admin:{ct.app_label}_{model_name}_change', args=[obj.object_id])
-        except NoReverseMatch:
-            return str(content_object)
-
-        return format_html('<a href="{}">{}: {}</a>', url, ct.name.capitalize(), content_object)
+        if url is None:
+            return label
+        return format_html('<a href="{}">{}: {}</a>', url, obj.content_type.name.capitalize(), label)
 
     @admin.display(description='Size')
     def size_display(self, obj):

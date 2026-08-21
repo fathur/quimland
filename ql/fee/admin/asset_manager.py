@@ -13,6 +13,7 @@ from django.urls import path, reverse
 from django.views.decorators.http import require_POST
 
 from ql.fee.models import Asset
+from .mixins import resolve_content_object_link
 
 _MIME_LABEL = {
     'application/pdf': 'PDF',
@@ -122,6 +123,9 @@ def list_view(request):
 def detail_view(request, asset_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     meta_rows = sorted((asset.metadata or {}).items(), key=lambda kv: kv[0])
+    used_by_url, used_by_label = resolve_content_object_link(
+        asset.content_object, asset.content_type, asset.object_id,
+    )
     context = {
         **admin.site.each_context(request),
         'title': asset.original_name or f'Asset #{asset.id}',
@@ -130,6 +134,9 @@ def detail_view(request, asset_id):
         'size_text': _human_size(asset.size),
         'label': _MIME_LABEL.get(asset.mime_type, 'FILE'),
         'meta_rows': meta_rows,
+        'used_by_url': used_by_url,
+        'used_by_label': used_by_label,
+        'used_by_type': asset.content_type.name.capitalize() if asset.content_type else None,
     }
     return render(request, 'admin/asset_detail.html', context)
 

@@ -2,7 +2,36 @@ from django.contrib.admin.options import IncorrectLookupParameters
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from django.urls import path
+from django.urls import NoReverseMatch, path, reverse
+
+# GenericForeignKey targets resolve to their *concrete* model's ContentType
+# (e.g. fee.transaction), but that base model doesn't always have an admin of
+# its own registered — only a proxy does (Transaction itself has none; only
+# IncomeTransactionAdmin/ExpenseTransactionAdmin/AllTransactionAdmin do).
+# Maps a target's real model_name to the model_name whose admin URL should be
+# used instead, when the direct one doesn't resolve. Shared by AssetAdmin
+# (ql/fee/admin/asset.py) and the standalone asset manager detail page
+# (ql/fee/admin/asset_manager.py) — same underlying problem, one place to fix.
+CONTENT_TYPE_ADMIN_OVERRIDES = {
+    'transaction': 'alltransaction',
+}
+
+
+def resolve_content_object_link(content_object, content_type, object_id, overrides=None):
+    """
+    Return (url_or_None, display_str) for a GenericForeignKey target: the
+    registered admin's change URL when one resolves, otherwise (None, str)
+    so callers can render a plain, unlinked label instead of a dead link.
+    """
+    if content_object is None:
+        return None, None
+    overrides = overrides if overrides is not None else CONTENT_TYPE_ADMIN_OVERRIDES
+    model_name = overrides.get(content_type.model, content_type.model)
+    try:
+        url = reverse(f'admin:{content_type.app_label}_{model_name}_change', args=[object_id])
+    except NoReverseMatch:
+        url = None
+    return url, str(content_object)
 
 
 class LazyMediaGridAdmin:

@@ -42,8 +42,6 @@
         <tr><th>{% translate 'Type' %}</th><td>{{ asset.mime_type|default:"—" }}</td></tr>
         <tr><th>{% translate 'Size' %}</th><td>{{ size_text|default:"—" }}</td></tr>
         <tr><th>{% translate 'Purpose' %}</th><td>{{ asset.purpose|default:"—" }}</td></tr>
-        <tr><th>{% translate 'Attached to' %}</th><td>{{ asset.content_object|default:"—" }}</td></tr>
-        <tr><th>{% translate 'Uploaded' %}</th><td>{{ asset.created_at }}</td></tr>
       </table>
     </div>
 
@@ -57,6 +55,32 @@
       </table>
     </div>
     {% endif %}
+
+    <div class="module">
+      <h2>{% translate 'Used by' %}</h2>
+      <table>
+        <tr>
+          <th>{% translate 'Attached to' %}</th>
+          <td>
+            {% if used_by_label %}
+              {% if used_by_url %}<a href="{{ used_by_url }}">{{ used_by_type }}: {{ used_by_label }}</a>
+              {% else %}{{ used_by_type }}: {{ used_by_label }}{% endif %}
+            {% else %}
+              <span style="color:var(--body-quiet-color);">{% translate 'Not attached to any record.' %}</span>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="module">
+      <h2>{% translate 'Audit' %}</h2>
+      <table>
+        <tr><th>{% translate 'Created' %}</th><td>{{ asset.created_at }}</td></tr>
+        <tr><th>{% translate 'Updated' %}</th><td>{{ asset.updated_at }}</td></tr>
+        <tr><th>{% translate 'Deleted' %}</th><td>{{ asset.deleted_at|default:"—" }}</td></tr>
+      </table>
+    </div>
   </div>
 </div>
 {% endblock %}
