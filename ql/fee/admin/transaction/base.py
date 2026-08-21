@@ -110,7 +110,7 @@ class TransactionIconsMixin:
             return ''
         url = reverse('admin:fee_receipt_change', args=[obj.receipt_id])
         return format_html(
-            '<a href="{}" target="_blank" title="View receipt">'
+            '<a href="{}" title="View receipt">'
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
             ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
             ' stroke-linejoin="round" width="16" height="16"'
