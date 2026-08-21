@@ -108,6 +108,7 @@ class TransactionIconsMixin:
     def receipt_icon(self, obj):
         if not obj.receipt or not obj.receipt.image:
             return ''
+        url = reverse('admin:fee_receipt_change', args=[obj.receipt_id])
         return format_html(
             '<a href="{}" target="_blank" title="View receipt">'
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
@@ -118,7 +119,7 @@ class TransactionIconsMixin:
             ' a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'
             '</svg>'
             '</a>',
-            obj.receipt.image.url,
+            url,
         )
 
     @admin.display(description='Transfer', ordering='transfer')
