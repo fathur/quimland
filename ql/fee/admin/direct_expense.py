@@ -78,6 +78,11 @@ class DirectExpenseAdmin(admin.ModelAdmin):
         'creator', 'created_at', 'updated_at',
     ]
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'user', 'user__properties'
+        )
+
     def get_inline_instances(self, request, obj=None):
         # Build each inline against Transaction, not self.model (DirectExpense)
         # — TransactionItem's FK targets Transaction, so inlineformset_factory
