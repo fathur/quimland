@@ -1,10 +1,17 @@
-.receipt-grid {
+/*
+ * Shared by any ModelAdmin using LazyMediaGridAdmin (ql/fee/admin/mixins.py)
+ * — a boxed grid changelist with lazy-loaded thumbnails. Generic class names
+ * (.media-*) so this one file covers Receipt, Asset, and any future model
+ * that adopts the same pattern; nothing here is Receipt- or Asset-specific.
+ */
+
+.media-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0;
 }
 
-.receipt-box {
+.media-box {
     display: block;
     border: 1px solid var(--border-color, #ccc);
     margin: -1px 0 0 -1px; /* collapse adjacent borders into shared 1px grid lines */
@@ -17,30 +24,30 @@
     transition: box-shadow 0.15s ease;
 }
 
-.receipt-box:hover,
-.receipt-box:focus {
+.media-box:hover,
+.media-box:focus {
     box-shadow: inset 0 0 0 2px var(--link-fg, #2563eb);
     text-decoration: none;
     z-index: 1;
 }
 
-.receipt-thumb {
+.media-thumb {
     position: relative;
     aspect-ratio: 1 / 1;
     background: var(--darkened-bg, #f3f4f6);
 }
 
-.receipt-image {
+.media-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.receipt-image:not([hidden]) {
+.media-image:not([hidden]) {
     display: block;
 }
 
-.receipt-placeholder {
+.media-placeholder {
     position: absolute;
     inset: 0;
     display: flex;
@@ -48,9 +55,11 @@
     justify-content: center;
     font-size: 12px;
     color: var(--body-quiet-color, #666);
+    text-align: center;
+    padding: 8px;
 }
 
-.receipt-placeholder--loading {
+.media-placeholder--loading {
     background: linear-gradient(
         100deg,
         var(--darkened-bg, #f3f4f6) 30%,
@@ -58,11 +67,11 @@
         var(--darkened-bg, #f3f4f6) 70%
     );
     background-size: 400% 100%;
-    animation: receipt-shimmer 1.4s ease-in-out infinite;
+    animation: media-shimmer 1.4s ease-in-out infinite;
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .receipt-placeholder--loading {
+    :root:not([data-theme="light"]) .media-placeholder--loading {
         background: linear-gradient(
             100deg,
             var(--darkened-bg, #2b2b2b) 30%,
@@ -73,7 +82,7 @@
     }
 }
 
-[data-theme="dark"] .receipt-placeholder--loading {
+[data-theme="dark"] .media-placeholder--loading {
     background: linear-gradient(
         100deg,
         var(--darkened-bg, #2b2b2b) 30%,
@@ -83,20 +92,45 @@
     background-size: 400% 100%;
 }
 
-@keyframes receipt-shimmer {
+@keyframes media-shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
-.receipt-placeholder--empty {
+.media-placeholder--empty {
     background: var(--darkened-bg, #f3f4f6);
 }
 
-.receipt-placeholder--error {
+.media-placeholder--error {
     color: #b91c1c;
 }
 
-.receipt-caption {
+/* Static placeholder for non-previewable items (a PDF, a doc, an external
+   link) — rendered immediately server-side, no AJAX call: there's no
+   expensive URL to defer for these, only images pay that cost. */
+.media-placeholder--file {
+    background: var(--darkened-bg, #f3f4f6);
+    flex-direction: column;
+    gap: 6px;
+}
+
+.media-placeholder--file .media-file-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--body-quiet-color, #666);
+}
+
+.media-placeholder--file .media-file-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.media-caption {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -105,18 +139,21 @@
     line-height: 1.4;
 }
 
-.receipt-caption-user {
+.media-caption-primary {
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.receipt-caption-date {
+.media-caption-secondary {
     color: var(--body-quiet-color, #666);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.receipt-caption-storage {
+.media-caption-badge {
     align-self: flex-start;
     margin-top: 2px;
     padding: 1px 6px;
@@ -128,24 +165,24 @@
     color: var(--body-quiet-color, #666);
 }
 
-.receipt-caption-storage--r2 {
+.media-caption-badge--r2 {
     background: rgba(37, 99, 235, 0.12);
     color: #2563eb;
 }
 
-.receipt-grid-loadmore {
+.media-grid-loadmore {
     display: flex;
     padding: 16px 0;
 }
 
-.receipt-grid-loadmore .button {
+.media-grid-loadmore .button {
     flex: 1;
     text-align: center;
     padding: 14px 0;
     font-size: 15px;
 }
 
-.receipt-grid-empty {
+.media-grid-empty {
     padding: 24px 0;
     color: var(--body-quiet-color, #666);
 }

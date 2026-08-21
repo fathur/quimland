@@ -1,18 +1,18 @@
 {% for obj in object_list %}
-<a class="receipt-box" href="{% url 'admin:fee_receipt_change' obj.pk %}">
-  <div class="receipt-thumb"
+<a class="media-box" href="{% url 'admin:fee_receipt_change' obj.pk %}">
+  <div class="media-thumb"
        {% if obj.image %}data-url-endpoint="{% url 'admin:fee_receipt_url_image' obj.pk %}"{% endif %}>
     {% if obj.image %}
-      <div class="receipt-placeholder receipt-placeholder--loading"></div>
-      <img class="receipt-image" alt="{{ obj }}" hidden>
+      <div class="media-placeholder media-placeholder--loading"></div>
+      <img class="media-image" alt="{{ obj }}" hidden>
     {% else %}
-      <div class="receipt-placeholder receipt-placeholder--empty">No image</div>
+      <div class="media-placeholder media-placeholder--empty">No image</div>
     {% endif %}
   </div>
-  <div class="receipt-caption">
-    <span class="receipt-caption-user">{{ obj.user|default:'—' }}</span>
-    <span class="receipt-caption-date">{{ obj.created_at|date:'d M Y H:i' }}</span>
-    <span class="receipt-caption-storage receipt-caption-storage--{{ obj.storage }}">{{ obj.get_storage_display }}</span>
+  <div class="media-caption">
+    <span class="media-caption-primary">{{ obj.user|default:'—' }}</span>
+    <span class="media-caption-secondary">{{ obj.created_at|date:'d M Y H:i' }}</span>
+    <span class="media-caption-badge media-caption-badge--{{ obj.storage }}">{{ obj.get_storage_display }}</span>
   </div>
 </a>
 {% endfor %}

@@ -97,6 +97,12 @@ class Asset(TimestampMixin):
     def __str__(self):
         return self.original_name or self.url or f'Asset #{self.pk}'
 
+    @property
+    def file_extension(self):
+        """Uppercase file extension (e.g. 'PDF'), or '' if there isn't one."""
+        name = self.original_name or (self.file.name if self.file else '')
+        return name.rsplit('.', 1)[-1].upper() if '.' in name else ''
+
     # ── Validation ────────────────────────────────────────────────────────────
     def clean(self):
         super().clean()

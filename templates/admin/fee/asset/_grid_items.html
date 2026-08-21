@@ -1,0 +1,36 @@
+{% for obj in object_list %}
+<a class="media-box" href="{% url 'admin:fee_asset_change' obj.pk %}">
+  <div class="media-thumb"
+       {% if obj.file and 'image/' in obj.mime_type %}data-url-endpoint="{% url 'admin:fee_asset_url_image' obj.pk %}"{% endif %}>
+    {% if obj.file and 'image/' in obj.mime_type %}
+      <div class="media-placeholder media-placeholder--loading"></div>
+      <img class="media-image" alt="{{ obj }}" hidden>
+    {% elif obj.file %}
+      <div class="media-placeholder media-placeholder--file">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="media-file-icon">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6"/>
+        </svg>
+        <span class="media-file-label">{{ obj.file_extension|default:'File' }}</span>
+      </div>
+    {% elif obj.url %}
+      <div class="media-placeholder media-placeholder--file">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="media-file-icon">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span class="media-file-label">Link</span>
+      </div>
+    {% else %}
+      <div class="media-placeholder media-placeholder--empty">No file</div>
+    {% endif %}
+  </div>
+  <div class="media-caption">
+    <span class="media-caption-primary">{{ obj.content_object|default:'Unattached' }}</span>
+    <span class="media-caption-secondary">{{ obj.original_name|default:obj.mime_type }}</span>
+    <span class="media-caption-badge media-caption-badge--{{ obj.storage }}">{{ obj.get_storage_display }}</span>
+  </div>
+</a>
+{% endfor %}

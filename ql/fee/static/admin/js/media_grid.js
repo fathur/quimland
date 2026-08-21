@@ -1,14 +1,19 @@
+/*
+ * Shared by any ModelAdmin using LazyMediaGridAdmin (ql/fee/admin/mixins.py).
+ * Generic — knows nothing about Receipt or Asset specifically, only the
+ * .media-* class/data-attribute contract that grid fragment templates emit.
+ */
 (function () {
     'use strict';
 
-    // Fetches each unloaded box's real image URL and swaps it in — fired
+    // Fetches each unhydrated box's real image URL and swaps it in — fired
     // immediately for whatever boxes are currently in the DOM (not on scroll),
-    // since the point is keeping the R2 signed-URL cost off the page's initial
-    // render, not deferring until the user scrolls to it. Several boxes'
-    // fetches run concurrently, so wall-clock cost is roughly one call, not
-    // the sum of all of them.
+    // since the point is keeping the storage-backend URL cost off the page's
+    // initial render, not deferring until the user scrolls to it. Several
+    // boxes' fetches run concurrently, so wall-clock cost is roughly one
+    // call, not the sum of all of them.
     function hydrate(root) {
-        var thumbs = root.querySelectorAll('.receipt-thumb[data-url-endpoint]');
+        var thumbs = root.querySelectorAll('.media-thumb[data-url-endpoint]');
         thumbs.forEach(function (thumb) {
             if (thumb.dataset.hydrating) return;
             thumb.dataset.hydrating = '1';
@@ -19,8 +24,8 @@
                     return res.json();
                 })
                 .then(function (data) {
-                    var img = thumb.querySelector('.receipt-image');
-                    var placeholder = thumb.querySelector('.receipt-placeholder');
+                    var img = thumb.querySelector('.media-image');
+                    var placeholder = thumb.querySelector('.media-placeholder');
                     if (!img || !data.url) throw new Error('no url');
                     img.addEventListener('load', function () {
                         placeholder.remove();
@@ -38,20 +43,20 @@
     }
 
     function markFailed(thumb) {
-        var placeholder = thumb.querySelector('.receipt-placeholder');
+        var placeholder = thumb.querySelector('.media-placeholder');
         if (!placeholder) return;
         placeholder.textContent = 'Failed to load';
-        placeholder.classList.remove('receipt-placeholder--loading');
-        placeholder.classList.add('receipt-placeholder--error');
+        placeholder.classList.remove('media-placeholder--loading');
+        placeholder.classList.add('media-placeholder--error');
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        var grid = document.getElementById('receipt-grid');
+        var grid = document.getElementById('media-grid');
         if (!grid) return;
 
         hydrate(grid);
 
-        var btn = document.getElementById('receipt-load-more-btn');
+        var btn = document.getElementById('media-load-more-btn');
         if (!btn) return;
 
         var nextPage = parseInt(grid.dataset.nextPage, 10) || 2;
