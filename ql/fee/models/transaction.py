@@ -81,6 +81,15 @@ class Transaction(TimestampMixin):
             models.Index(fields=['direction']),
             models.Index(fields=['user']),
             models.Index(fields=['creator']),
+            # Matches the admin changelists' default ORDER BY (occurred_at,
+            # created_at, id) + the SoftDeleteFilter's default "Active" filter,
+            # so the planner can walk the index in order and stop at LIMIT
+            # instead of sorting every matching row first.
+            models.Index(
+                fields=['-occurred_at', '-created_at', '-id'],
+                name='transactions_active_order_idx',
+                condition=models.Q(deleted_at__isnull=True),
+            ),
         ]
 
     def __str__(self):

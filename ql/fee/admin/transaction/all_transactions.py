@@ -92,10 +92,12 @@ class AllTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mod
 
     def get_queryset(self, request):
         # super() → SoftDeleteAdminMixin.get_queryset → with_deleted() base
+        # creator/creator__properties dropped: not in list_display or the PDF
+        # export template, so those joins were pure overhead on every row.
         return (
             super().get_queryset(request)
             .filter(direction__in=[Transaction.Direction.IN, Transaction.Direction.OUT])
-            .select_related('user', 'user__properties', 'wallet', 'creator', 'creator__properties', 'receipt')
+            .select_related('user', 'user__properties', 'wallet', 'receipt')
         )
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
