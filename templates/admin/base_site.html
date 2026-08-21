@@ -29,12 +29,6 @@
     <a href="{{ docsroot }}">{% translate 'Documentation' %}</a> /
   {% endif %}
 {% endif %}
-<a href="{% url 'admin:profile' %}" title="{% translate 'View and manage your account' %}">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"
-    style="vertical-align:-2px;margin-right:2px;">
-    <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
-  </svg>{% translate 'My Profile' %}</a> /
 <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
   {% csrf_token %}
   <button type="submit">{% translate 'Log out' %}</button>
