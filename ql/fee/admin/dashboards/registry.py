@@ -7,6 +7,7 @@ from .income import income_dashboard_view
 from .leaderboard import leaderboard_dashboard_view
 from .outstanding import outstanding_dashboard_view
 from .wallets import wallet_dashboard_view
+from ql.fee.models import UserProperty
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +172,21 @@ _original_each_context = admin.site.__class__.each_context
 
 
 def _each_context(self, request):
+    # # Every admin page's chrome renders str(request.user) (see User.__str__ in
+    # # admin/user.py), which lazily queries UserProperty when it isn't cached —
+    # # request.user here is always a plain, non-select_related load (it comes
+    # # from AuthenticationMiddleware's session lookup). Priming the cache once,
+    # # in this hook that already runs before every admin page renders, avoids
+    # # that one extra query recurring on every single page view.
+    # if request.user.is_authenticated:
+    #     # request.user is a SimpleLazyObject; .__dict__ on it would write to the
+    #     # wrapper, not the real User instance that User.__str__ actually reads
+    #     # its cache from — unwrap via ._wrapped (safe here since is_authenticated
+    #     # above already forced it to resolve).
+    #     real_user = getattr(request.user, '_wrapped', request.user)
+    #     if 'properties' not in real_user.__dict__:
+    #         real_user.__dict__['properties'] = UserProperty.objects.filter(user_id=real_user.pk).first()
+
     ctx = _original_each_context(self, request)
     filtered_apps = []
     proxy_labels = {'incometransaction', 'expensetransaction', 'transfertransaction', 'alltransaction'}

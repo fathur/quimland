@@ -211,15 +211,7 @@ class BaseTransactionAdmin(TransactionIconsMixin, SoftDeleteAdminMixin, admin.Mo
         updated = queryset.update(is_reconciled=False)
         self.message_user(request, f'{updated} transaction(s) unmarked as reconciled.')
 
-    def get_queryset(self, request):
-        # super() → SoftDeleteAdminMixin.get_queryset → with_deleted() base
-        # creator/creator__properties dropped: not in list_display, so those
-        # joins were pure overhead on every row of the changelist.
-        return (
-            super().get_queryset(request)
-            .filter(direction=self._forced_direction)
-            .select_related('user', 'user__properties', 'wallet', 'receipt')
-        )
+    
 
     def delete_queryset(self, request, queryset):
         # The "Delete selected" bulk action otherwise runs a raw queryset

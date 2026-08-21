@@ -61,6 +61,13 @@ class ExpenseTransactionAdmin(BaseTransactionAdmin):
     list_display         = ['id', 'occurred_at', 'wallet_display', 'nominal_display', 'pic', 'status_icons', 'note_short', 'highlight_row', 'creator']
     change_form_template = 'admin/fee/expensetransaction/change_form.html'
 
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request)
+            .filter(direction=self._forced_direction)
+            .select_related('user', 'user__properties', 'wallet', 'receipt', 'creator', 'creator__properties')
+        )
+
     @admin.display(description='PIC', ordering='user')
     def pic(self, obj):
         return obj.user

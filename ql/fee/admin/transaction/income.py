@@ -170,7 +170,12 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
     inlines           = [IncomeTransactionItemInline]
     list_display      = ['id', 'occurred_at', 'resident', 'wallet_display', 'nominal_display', 'status_icons', 'note_short', 'highlight_row', 'creator']
 
-
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request)
+            .filter(direction=self._forced_direction)
+            .select_related('user', 'user__properties', 'wallet', 'receipt', 'creator', 'creator__properties')
+        )
 
     @admin.display(description='From Resident', ordering='user')
     def resident(self, obj):
