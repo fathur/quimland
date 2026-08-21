@@ -3,7 +3,7 @@
   <div class="receipt-thumb"
        {% if obj.image %}data-url-endpoint="{% url 'admin:fee_receipt_url_image' obj.pk %}"{% endif %}>
     {% if obj.image %}
-      <div class="receipt-placeholder"><span class="receipt-spinner"></span></div>
+      <div class="receipt-placeholder receipt-placeholder--loading"></div>
       <img class="receipt-image" alt="{{ obj }}" hidden>
     {% else %}
       <div class="receipt-placeholder receipt-placeholder--empty">No image</div>

@@ -23,7 +23,7 @@
                     var placeholder = thumb.querySelector('.receipt-placeholder');
                     if (!img || !data.url) throw new Error('no url');
                     img.addEventListener('load', function () {
-                        placeholder.hidden = true;
+                        placeholder.remove();
                         img.hidden = false;
                     });
                     img.addEventListener('error', function () {
@@ -41,9 +41,8 @@
         var placeholder = thumb.querySelector('.receipt-placeholder');
         if (!placeholder) return;
         placeholder.textContent = 'Failed to load';
+        placeholder.classList.remove('receipt-placeholder--loading');
         placeholder.classList.add('receipt-placeholder--error');
-        var spinner = placeholder.querySelector('.receipt-spinner');
-        if (spinner) spinner.remove();
     }
 
     document.addEventListener('DOMContentLoaded', function () {

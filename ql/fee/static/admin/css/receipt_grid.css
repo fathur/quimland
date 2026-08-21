@@ -1,24 +1,25 @@
 .receipt-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
-    padding: 16px 0;
+    gap: 0;
 }
 
 .receipt-box {
     display: block;
     border: 1px solid var(--border-color, #ccc);
-    border-radius: 8px;
+    margin: -1px 0 0 -1px; /* collapse adjacent borders into shared 1px grid lines */
     overflow: hidden;
     text-decoration: none;
     color: inherit;
     background: var(--body-bg, #fff);
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    position: relative;
+    z-index: 0;
+    transition: box-shadow 0.15s ease;
 }
 
 .receipt-box:hover {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 2px var(--link-fg, #2563eb);
+    z-index: 1;
 }
 
 .receipt-thumb {
@@ -44,25 +45,50 @@
     color: var(--body-quiet-color, #666);
 }
 
+.receipt-placeholder--loading {
+    background: linear-gradient(
+        100deg,
+        var(--darkened-bg, #f3f4f6) 30%,
+        rgba(255, 255, 255, 0.55) 50%,
+        var(--darkened-bg, #f3f4f6) 70%
+    );
+    background-size: 400% 100%;
+    animation: receipt-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .receipt-placeholder--loading {
+        background: linear-gradient(
+            100deg,
+            var(--darkened-bg, #2b2b2b) 30%,
+            rgba(255, 255, 255, 0.09) 50%,
+            var(--darkened-bg, #2b2b2b) 70%
+        );
+        background-size: 400% 100%;
+    }
+}
+
+[data-theme="dark"] .receipt-placeholder--loading {
+    background: linear-gradient(
+        100deg,
+        var(--darkened-bg, #2b2b2b) 30%,
+        rgba(255, 255, 255, 0.09) 50%,
+        var(--darkened-bg, #2b2b2b) 70%
+    );
+    background-size: 400% 100%;
+}
+
+@keyframes receipt-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
 .receipt-placeholder--empty {
     background: var(--darkened-bg, #f3f4f6);
 }
 
 .receipt-placeholder--error {
     color: #b91c1c;
-}
-
-.receipt-spinner {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 3px solid rgba(120, 120, 120, 0.25);
-    border-top-color: var(--body-quiet-color, #666);
-    animation: receipt-spin 0.8s linear infinite;
-}
-
-@keyframes receipt-spin {
-    to { transform: rotate(360deg); }
 }
 
 .receipt-caption {
@@ -104,8 +130,14 @@
 
 .receipt-grid-loadmore {
     display: flex;
-    justify-content: center;
-    padding: 8px 0 24px;
+    padding: 16px 0;
+}
+
+.receipt-grid-loadmore .button {
+    flex: 1;
+    text-align: center;
+    padding: 14px 0;
+    font-size: 15px;
 }
 
 .receipt-grid-empty {
