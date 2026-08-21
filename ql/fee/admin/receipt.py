@@ -11,6 +11,9 @@ class ReceiptAdmin(admin.ModelAdmin):
     readonly_fields = ['storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image_preview']
     search_fields = ['id']
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'user__properties')
+
     def get_fields(self, request, obj=None):
         if obj:
             return ['user', 'image', 'image_preview', 'storage', 'created_at', 'updated_at', 'deleted_at']
