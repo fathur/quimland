@@ -6,6 +6,13 @@ from django.urls import path
 
 
 def profile_view(request):
+    """
+    The currently logged-in user's own account page.
+
+    Shows their identity (name, username, email, linked resident info) and
+    lets them change their own password via ``AdminPasswordChangeForm``.
+    Linked from the "Welcome, <name>" text in the admin header.
+    """
     user = request.user
 
     if request.method == 'POST':

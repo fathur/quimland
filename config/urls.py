@@ -27,6 +27,7 @@ admin.site.site_header = 'Quim Land'
 admin.site.site_title  = 'Quim Land'
 admin.site.index_title = 'Quim Land'
 admin.site.login_form  = PhoneOrUsernameAuthForm
+admin.site.site_url    = None  # no public-facing site to link back to — hides "View site"
 
 # debug_toolbar.toolbar.debug_toolbar_urls() no-ops unless DEBUG=True, which
 # we deliberately keep False in production. Registering the urls directly
@@ -41,6 +42,9 @@ urlpatterns = [
     path('secure-media/<path:path>', serve_secure_media, name='secure_media'),
 
     path('api/whatsapp/webhook/', WhatsAppWebhookView.as_view(), name='whatsapp_webhook'),
+
+    # Must come before admin.site.urls (its catch-all swallows everything after it).
+    path('admin/doc/', include('django.contrib.admindocs.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + _debug_toolbar_urls + [
     # admin.site.urls is mounted at the root '' and its final_catch_all_view
     # matches any remaining path — it MUST stay last, or it swallows every
