@@ -19,6 +19,11 @@ class TransactionItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     ordering             = ['-created_at']
     list_select_related  = ['transaction__user', 'transaction__receipt', 'fund']
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'transaction', 'transaction__user', 'transaction__user__properties'
+        )
+
     def has_add_permission(self, request):  # noqa: ARG002
         return False
 
