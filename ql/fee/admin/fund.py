@@ -35,6 +35,11 @@ class FundAdmin(MPTTModelAdmin):
     readonly_fields = ['created_at', 'updated_at', 'deleted_at']
     # inlines = [CashEntryInline, FundDueInline]
 
+    def get_queryset(self, request):
+        # list_display renders str(obj.parent) per row — without this,
+        # that's one query per row with a parent set.
+        return super().get_queryset(request).select_related('parent')
+
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
             (None, {'fields': ['parent', 'name', 'color', 'kind', 'description', 'target_amount', 'status']}),
