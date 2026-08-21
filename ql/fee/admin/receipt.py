@@ -12,7 +12,7 @@ class ReceiptAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
     list_display  = ['id', 'user', 'storage', 'image_preview', 'created_at']
     list_filter   = ['storage']
     list_per_page = 12
-    readonly_fields = ['storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image_preview', 'related_records']
+    readonly_fields = ['storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image', 'image_preview', 'related_records']
     search_fields = ['id', 'user__username', 'user__first_name', 'user__last_name']
 
     grid_fragment_template = 'admin/fee/receipt/_grid_items.html'
