@@ -18,6 +18,9 @@ class LoanAdmin(admin.ModelAdmin):
         ('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}),
     ]
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('fund', 'lender', 'lender__properties')
+
     @admin.display(description='Principal', ordering='principal')
     def principal_display(self, obj):
         return fmt_rupiah(obj.principal)

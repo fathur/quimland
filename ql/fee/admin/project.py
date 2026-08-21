@@ -18,6 +18,9 @@ class ProjectAdmin(admin.ModelAdmin):
         ('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}),
     ]
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('fund', 'pic', 'pic__properties')
+
     @admin.display(description='PIC Fee', ordering='pic_fee')
     def pic_fee_display(self, obj):
         return fmt_rupiah(obj.pic_fee)
