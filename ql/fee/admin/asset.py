@@ -17,6 +17,12 @@ class AssetAdmin(admin.ModelAdmin):
         'created_at', 'updated_at', 'deleted_at',
     ]
 
+    def get_queryset(self, request):
+        # owner() reads obj.content_object (a GenericForeignKey) for every row —
+        # without prefetching, that's one query per row (N+1). prefetch_related
+        # batches it per distinct content type instead.
+        return super().get_queryset(request).select_related('content_type').prefetch_related('content_object')
+
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
             (None, {'fields': [
