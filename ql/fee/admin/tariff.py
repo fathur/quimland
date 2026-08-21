@@ -13,6 +13,9 @@ class TariffAdmin(admin.ModelAdmin):
     exclude = ['kind']
     readonly_fields = ['created_at', 'updated_at', 'deleted_at']
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'user__properties', 'fund')
+
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
             (None, {'fields': ['user', 'fund', 'nominal', 'start_from', 'end_to']}),
