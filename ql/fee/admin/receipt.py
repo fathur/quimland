@@ -15,7 +15,7 @@ class ReceiptAdmin(admin.ModelAdmin):
     list_filter   = ['storage']
     list_per_page = 12
     readonly_fields = ['storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image_preview']
-    search_fields = ['id']
+    search_fields = ['id', 'user']
 
     class Media:
         css = {'all': ['admin/css/receipt_grid.css']}
