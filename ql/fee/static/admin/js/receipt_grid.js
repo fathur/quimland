@@ -74,7 +74,11 @@
                 .then(function (data) {
                     var wrapper = document.createElement('div');
                     wrapper.innerHTML = data.html;
-                    Array.prototype.forEach.call(wrapper.children, function (child) {
+                    // Array.from() snapshots the live HTMLCollection first —
+                    // appendChild() below moves each node out of wrapper,
+                    // which would otherwise shift a live collection's indices
+                    // mid-loop and skip every other element.
+                    Array.from(wrapper.children).forEach(function (child) {
                         grid.appendChild(child);
                     });
                     hydrate(grid);
