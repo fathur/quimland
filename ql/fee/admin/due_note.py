@@ -32,7 +32,10 @@ class DueNoteAdmin(admin.ModelAdmin):
     inlines = [DueNoteProofInline]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate(_proof_count=Count('proofs'))
+        return (
+            super().get_queryset(request).annotate(_proof_count=Count('proofs'))
+            .select_related('user', 'user__properties')
+        )
 
     def get_fields(self, request, obj=None):
         fields = ['user', 'fund', 'period', 'reason', 'note']
