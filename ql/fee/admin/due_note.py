@@ -34,7 +34,7 @@ class DueNoteAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return (
             super().get_queryset(request).annotate(_proof_count=Count('proofs'))
-            .select_related('user', 'user__properties')
+            .select_related('user', 'user__properties', 'fund')
         )
 
     def get_fields(self, request, obj=None):
