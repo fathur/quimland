@@ -17,8 +17,10 @@
     transition: box-shadow 0.15s ease;
 }
 
-.receipt-box:hover {
+.receipt-box:hover,
+.receipt-box:focus {
     box-shadow: inset 0 0 0 2px var(--link-fg, #2563eb);
+    text-decoration: none;
     z-index: 1;
 }
 
@@ -32,6 +34,9 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.receipt-image:not([hidden]) {
     display: block;
 }
 

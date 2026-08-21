@@ -13,7 +13,7 @@ from ql.fee.models import Receipt
 class ReceiptAdmin(admin.ModelAdmin):
     list_display  = ['id', 'user', 'storage', 'image_preview', 'created_at']
     list_filter   = ['storage']
-    list_per_page = 10
+    list_per_page = 12
     readonly_fields = ['storage', 'user', 'created_at', 'updated_at', 'deleted_at', 'image_preview']
     search_fields = ['id']
 
