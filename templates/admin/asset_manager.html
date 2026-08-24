@@ -27,7 +27,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
       <p class="am-dz-msg">{% translate 'Drag files here or click to upload' %}<br>
         <small style="color:var(--body-quiet-color);">PDF, JPG, PNG, DOC(X), XLS(X), MP4 — multiple allowed</small></p>
     </div>
-    <div id="am-dz-hidden" style="display:none;"></div>
+    <div id="am-dz-previews" class="am-dz-previews"></div>
 
     <div id="am-grid" class="am-grid"></div>
     <p id="am-empty" class="am-empty">{% translate 'No files attached yet.' %}</p>
@@ -61,6 +61,28 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
 
   .am-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
   .am-empty { color:var(--body-quiet-color); font-size:0.8125rem; margin:8px 0 0; }
+
+  .am-dz-previews { display:flex; flex-direction:column; gap:8px; margin:-8px 0 16px; }
+  .am-dz-preview {
+    /* Overrides Dropzone's default .dz-preview thumbnail-tile CSS (fixed
+       width, inline-block, its own margin) — this is a full-width row. */
+    display:block; position:relative; width:auto; min-height:0; margin:0;
+    border:1px solid var(--hairline-color,#e0e0e0); border-radius:6px;
+    padding:8px 10px; background:var(--body-bg); font-size:0.75rem;
+  }
+  .am-dz-preview-name {
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    margin-bottom:6px; color:var(--body-fg);
+  }
+  .am-dz-preview-bar-track {
+    height:6px; border-radius:3px; background:var(--darkened-bg); overflow:hidden;
+  }
+  .am-dz-preview-bar {
+    height:100%; width:0; border-radius:3px;
+    background:var(--primary,#79aec8); transition:width .15s linear;
+  }
+  .am-dz-preview.dz-success .am-dz-preview-bar { background:#16a34a; }
+  .am-dz-preview.dz-error .am-dz-preview-bar { background:#dc2626; }
   .am-card {
     position:relative; border:1px solid var(--hairline-color,#e0e0e0);
     overflow:hidden; background:var(--body-bg); display:flex; flex-direction:column;
@@ -165,7 +187,14 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     uploadMultiple: false,
     parallelUploads: 3,
     createImageThumbnails: false,
-    previewsContainer: '#am-dz-hidden',
+    previewsContainer: '#am-dz-previews',
+    previewTemplate: `
+      <div class="dz-preview am-dz-preview">
+        <div class="am-dz-preview-name" data-dz-name></div>
+        <div class="am-dz-preview-bar-track">
+          <div class="am-dz-preview-bar" data-dz-uploadprogress></div>
+        </div>
+      </div>`,
     clickable: '#am-dropzone',
     headers: { 'X-CSRFToken': CSRF },
     acceptedFiles: '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,.xls,.xlsx,.mp4',
