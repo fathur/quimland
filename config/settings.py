@@ -192,11 +192,67 @@ LOGGING = {
             'backupCount': 14,
             'formatter': 'verbose',
         },
+        'gunicorn_errors_file': {
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': LOG_DIR / 'gunicorn_errors.log',
+            'when': 'midnight',
+            'backupCount': 14,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+        'celery_worker_errors_file': {
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': LOG_DIR / 'celery_worker_errors.log',
+            'when': 'midnight',
+            'backupCount': 14,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+        'celery_beat_errors_file': {
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': LOG_DIR / 'celery_beat_errors.log',
+            'when': 'midnight',
+            'backupCount': 14,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
     },
     'loggers': {
         'ql.fee.views.whatsapp': {
             'handlers': ['whatsapp_file'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        # Unhandled exceptions during a request — Django logs these to
+        # django.request with the full traceback (exc_info) regardless of
+        # DEBUG. This only ever fires inside the process actually serving
+        # HTTP requests (gunicorn in prod, runserver locally) — this is the
+        # same traceback the DEBUG=True page shows in the browser, just also
+        # durably written to a file so it survives after the tab is gone.
+        # propagate stays True so it still reaches the console too.
+        'django.request': {
+            'handlers': ['gunicorn_errors_file'],
+            'level': 'ERROR',
+        },
+        # Our own task code (ql.fee.tasks.access_control,
+        # ql.fee.tasks.asset_processing, ...) via logger-name propagation.
+        'ql.fee.tasks': {
+            'handlers': ['celery_worker_errors_file'],
+            'level': 'ERROR',
+        },
+        # Celery's own framework-level logging (celery.worker,
+        # celery.app.trace — e.g. a task that raised without being caught by
+        # our own code at all). Only ever emitted inside a worker process.
+        'celery': {
+            'handlers': ['celery_worker_errors_file'],
+            'level': 'ERROR',
+        },
+        # celery.beat is a child of 'celery' (only runs in the beat process,
+        # never the worker) — propagate=False keeps its errors out of
+        # celery_worker_errors.log instead of landing in both files.
+        'celery.beat': {
+            'handlers': ['celery_beat_errors_file'],
+            'level': 'ERROR',
             'propagate': False,
         },
     },

@@ -165,6 +165,31 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     emptyMsg.style.display = grid.children.length ? 'none' : 'block';
   }
 
+  // fetch() + r.json() silently swallows a Django DEBUG traceback page: it's
+  // valid HTML, not JSON, so .json() throws before you ever see the body,
+  // and with no .catch() that becomes an invisible "uncaught in promise" —
+  // nothing on screen. This reads the body as text first, so a non-JSON
+  // response (that traceback page, a proxy's HTML error page, etc.) gets
+  // logged AND opened in a new tab instead of silently vanishing.
+  function fetchJson(url, options) {
+    return fetch(url, options).then(res => res.text().then(text => {
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error(`Non-JSON response from ${url} (status ${res.status}):\n`, text);
+        const win = window.open('', '_blank');
+        if (win) { win.document.write(text); win.document.close(); }
+        else alert('Request failed — see the browser console for the response (popup blocked).');
+        throw new Error(`Non-JSON response from ${url} (status ${res.status})`);
+      }
+      if (!res.ok) {
+        console.error(`Request to ${url} failed (${res.status}):`, data);
+      }
+      return data;
+    }));
+  }
+
   function cardHtml(a) {
     const thumb = a.thumb_url
       ? `<div class="am-thumb"><img src="${a.thumb_url}" alt=""></div>`
@@ -202,8 +227,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
   function ensurePolling() {
     if (pollTimer || !grid.querySelector('.am-card[data-processing="processing"]')) return;
     const tick = () => {
-      fetch(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
-        .then(r => r.json())
+      fetchJson(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
         .then(d => {
           (d.assets || []).forEach(a => {
             const existing = grid.querySelector(`.am-card[data-id="${a.id}"]`);
@@ -212,6 +236,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
             }
           });
         })
+        .catch(() => {})
         .finally(() => {
           pollTimer = grid.querySelector('.am-card[data-processing="processing"]')
             ? setTimeout(tick, 4000) : null;
@@ -228,15 +253,15 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     const card = btn.closest('.am-card');
     const id = card.dataset.id;
     if (!confirm('{% translate "Remove this attachment?" %}')) return;
-    fetch(DELETE_BASE.replace('/0/', '/' + id + '/'), {
+    fetchJson(DELETE_BASE.replace('/0/', '/' + id + '/'), {
       method: 'POST', headers: { 'X-CSRFToken': CSRF },
-    }).then(r => r.json()).then(() => { card.remove(); refreshEmpty(); });
+    }).then(() => { card.remove(); refreshEmpty(); }).catch(() => {});
   });
 
   // Initial load
-  fetch(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
-    .then(r => r.json())
-    .then(d => { (d.assets || []).forEach(addCard); refreshEmpty(); });
+  fetchJson(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
+    .then(d => { (d.assets || []).forEach(addCard); refreshEmpty(); })
+    .catch(() => {});
 
   // ── Video compression modal ──
   // Ordered ascending, mirrors ql.fee.services.utils.VIDEO_RESOLUTION_CHOICES.
@@ -350,11 +375,23 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
         (resp.errors || []).forEach(err => alert(`${err.name}: ${err.message}`));
         this.removeFile(file);
       });
-      this.on('error', function (file, msg) {
+      this.on('error', function (file, msg, xhr) {
         // 'Upload cancelled.' comes from accept()'s reject path when the
         // user hits Cancel on the video-resolution dialog — that's an
         // intentional no-op, not a failure worth an alert.
-        if (msg !== '{% translate "Upload cancelled." %}') {
+        if (msg === '{% translate "Upload cancelled." %}') { this.removeFile(file); return; }
+
+        const text = xhr && xhr.responseText;
+        if (text && /<html/i.test(text)) {
+          // A Django DEBUG traceback page (or any other HTML error page)
+          // came back instead of JSON — Dropzone just hands that raw HTML
+          // to `msg`; alert()ing it would dump unreadable markup. Open it
+          // properly instead so you get the real rendered traceback.
+          console.error('Upload failed — server response:\n', text);
+          const win = window.open('', '_blank');
+          if (win) { win.document.write(text); win.document.close(); }
+          else alert('Upload failed — see the browser console for the server response (popup blocked).');
+        } else {
           alert(typeof msg === 'string' ? msg : (msg.error || 'Upload failed'));
         }
         this.removeFile(file);
@@ -378,13 +415,13 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     body.append('object_id', OBJ);
     body.append('purpose', PURPOSE);
     body.append('url', url);
-    fetch(ADDURL_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body })
-      .then(r => r.json())
+    fetchJson(ADDURL_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body })
       .then(d => {
         if (d.error) { alert(d.error); return; }
         (d.created || []).forEach(addCard);
         modal.classList.remove('open');
-      });
+      })
+      .catch(() => {});
   });
 })();
 </script>

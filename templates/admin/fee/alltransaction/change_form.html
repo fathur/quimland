@@ -93,8 +93,24 @@
       </div>`;
   }
 
+  // r.json() silently swallows a Django DEBUG traceback page (valid HTML,
+  // not JSON) — .json() throws before the body is ever seen, and with no
+  // .catch() that's an invisible "uncaught in promise", nothing on screen.
+  // Read as text first so a non-JSON response gets logged AND opened in a
+  // new tab instead of vanishing.
   fetch(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
-    .then(r => r.json())
+    .then(r => r.text().then(text => {
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error(`Non-JSON response from ${LIST_URL} (status ${r.status}):\n`, text);
+        const win = window.open('', '_blank');
+        if (win) { win.document.write(text); win.document.close(); }
+        throw new Error('Non-JSON response from ' + LIST_URL);
+      }
+      return data;
+    }))
     .then(d => {
       const assets = d.assets || [];
       if (assets.length) {
@@ -102,7 +118,8 @@
       } else {
         emptyMsg.style.display = 'block';
       }
-    });
+    })
+    .catch(() => {});
 })();
 </script>
 {% endif %}
