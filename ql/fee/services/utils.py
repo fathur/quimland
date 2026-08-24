@@ -70,6 +70,68 @@ def generate_image_thumbnail(image_field, max_dim=320, quality=80):
     return buf.getvalue()
 
 
+def generate_pdf_thumbnail(file_field, max_dim=320):
+    """Render a PDF's first page to JPEG thumbnail bytes via poppler's
+    `pdftoppm` binary — Pillow has no built-in PDF decoder, and PyMuPDF (the
+    common pure-pip alternative) is AGPL-licensed, which is a bad fit for
+    code that runs inside an app served over a network. Mirrors the video
+    thumbnail helpers' shape: shells out, returns bytes or None.
+
+    Returns None (not an exception) if poppler is missing or rendering
+    fails — callers should treat that as "no thumbnail available"; the grid
+    falls back to the plain PDF badge either way.
+
+    Deliberately doesn't use download_field_to_temp() / open()+close(): this
+    runs synchronously inside Asset.save(), on the file *while it's still an
+    uncommitted upload* (not yet written to storage) — closing that stream
+    would leave nothing for the subsequent storage write to read from. Reads
+    without closing and restores the original position, matching
+    extract_image_metadata()'s pattern for the same not-yet-committed file.
+    """
+    import subprocess
+    import tempfile
+
+    pos = file_field.tell() if hasattr(file_field, 'tell') else None
+    if hasattr(file_field, 'seek'):
+        file_field.seek(0)
+    src_fd, src_path = tempfile.mkstemp(suffix='.pdf')
+    with os.fdopen(src_fd, 'wb') as out:
+        for chunk in file_field.chunks():
+            out.write(chunk)
+    if pos is not None and hasattr(file_field, 'seek'):
+        file_field.seek(pos)
+
+    # pdftoppm always appends "-<page>.jpg" to the prefix we give it — mint a
+    # unique prefix via mkstemp, then discard the empty file it creates so
+    # the name is free for pdftoppm to write to itself.
+    prefix_fd, out_prefix = tempfile.mkstemp()
+    os.close(prefix_fd)
+    os.remove(out_prefix)
+    out_path = f'{out_prefix}-1.jpg'
+    try:
+        try:
+            subprocess.run(
+                [
+                    'pdftoppm', '-jpeg', '-f', '1', '-l', '1',
+                    '-scale-to', str(max_dim), src_path, out_prefix,
+                ],
+                check=True, capture_output=True, timeout=30,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            return None
+
+        if not os.path.exists(out_path):
+            return None
+        with open(out_path, 'rb') as f:
+            return f.read()
+    finally:
+        for p in (src_path, out_path):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
+
 def compress_image_field(image_field, max_dim=1920, quality=85):
     """Compress and resize an ImageField in-place before the model is saved."""
     from PIL import Image

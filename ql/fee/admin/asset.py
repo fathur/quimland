@@ -97,6 +97,11 @@ class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
                 '<video src="{}" controls preload="metadata" style="max-height:300px;border-radius:8px;"></video>',
                 obj.file.url,
             )
+        if obj.file and obj.mime_type == 'application/pdf':
+            return format_html(
+                '<iframe src="{}" style="width:100%;max-width:600px;height:400px;border:none;border-radius:8px;"></iframe>',
+                obj.file.url,
+            )
         if obj.file:
             return format_html('<a href="{}" target="_blank">download</a>', obj.file.url)
         return '—'

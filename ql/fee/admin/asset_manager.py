@@ -162,6 +162,7 @@ def detail_view(request, asset_id):
         'asset': asset,
         'is_image': asset.mime_type.startswith('image/'),
         'is_video': asset.mime_type.startswith('video/'),
+        'is_pdf': asset.mime_type == 'application/pdf',
         'size_text': _human_size(asset.size),
         'label': _MIME_LABEL.get(asset.mime_type, 'FILE'),
         'meta_rows': meta_rows,

@@ -22,6 +22,7 @@ from ..services.utils import (
     detect_asset_mime,
     extract_image_metadata,
     generate_image_thumbnail,
+    generate_pdf_thumbnail,
 )
 
 
@@ -200,6 +201,14 @@ class Asset(TimestampMixin):
                 # this one.
                 thumb_name = os.path.splitext(os.path.basename(self.file.name))[0] + '-thumb.jpg'
                 self.thumbnail.save(thumb_name, ContentFile(generate_image_thumbnail(self.file)), save=False)
+
+            elif mime == 'application/pdf':
+                thumb_data = generate_pdf_thumbnail(self.file)
+                if thumb_data:
+                    thumb_name = os.path.splitext(os.path.basename(self.file.name))[0] + '-thumb.jpg'
+                    self.thumbnail.save(thumb_name, ContentFile(thumb_data), save=False)
+                # else: poppler unavailable or rendering failed — leave
+                # thumbnail unset, grid falls back to the plain PDF badge.
 
             self.size = getattr(self.file, 'size', None)
 

@@ -14,6 +14,10 @@
   .adet-wrap { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
   .adet-preview { flex:1 1 420px; }
   .adet-preview img, .adet-preview video { max-width:100%; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,.15); }
+  .adet-preview iframe {
+    width:100%; height:75vh; border:none; border-radius:10px;
+    box-shadow:0 4px 20px rgba(0,0,0,.15); background:#fff;
+  }
   .adet-badge { display:inline-block; font-weight:700; font-size:1.375rem; color:#fff; background:#6b7280; padding:40px 48px; border-radius:12px; }
   .adet-side { flex:1 1 300px; }
   .adet-side table { width:100%; border-collapse:collapse; }
@@ -38,6 +42,9 @@
       <a href="{{ asset.file.url }}" target="_blank" rel="noopener"><img src="{{ asset.file.url }}" alt=""></a>
     {% elif is_video %}
       <video src="{{ asset.file.url }}" controls preload="metadata"></video>
+    {% elif is_pdf %}
+      <iframe src="{{ asset.file.url }}" title="{{ asset.original_name|default:'PDF preview' }}"></iframe>
+      <p style="margin-top:12px;"><a class="button default" href="{{ asset.file.url }}" target="_blank" rel="noopener">{% translate 'Open in new tab' %} ↗</a></p>
     {% else %}
       <div class="adet-badge">{{ label }}</div>
       <p style="margin-top:16px;"><a class="button default" href="{{ asset.file.url }}" target="_blank" rel="noopener">{% translate 'Download file' %} ↓</a></p>
