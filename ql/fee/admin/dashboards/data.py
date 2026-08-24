@@ -75,6 +75,8 @@ def year_paid_map(year):
         .filter(transaction_item__transaction__direction='IN')
         .filter(transaction_item__fund__kind=Fund.Kind.ROUTINE)
         .filter(transaction_item__transaction__user__is_active=True)
+        .filter(transaction_item__deleted_at__isnull=True)
+        .filter(transaction_item__transaction__deleted_at__isnull=True)
         .values(
             'transaction_item__transaction__user_id',
             'transaction_item__fund_id',
