@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.contenttypes.models import ContentType
 from django.utils.html import format_html, format_html_join
 
 from ql.fee.models import Loan, Project
@@ -11,6 +12,7 @@ class ProjectAdmin(admin.ModelAdmin):
     search_fields   = ['fund__name', 'pic__username', 'pic__first_name', 'pic__last_name']
     autocomplete_fields = ['fund', 'pic']
     readonly_fields = ['loans_summary', 'created_at', 'updated_at', 'deleted_at']
+    change_form_template = 'admin/fee/project/change_form.html'
 
     fieldsets = [
         (None, {'fields': ['fund', 'pic', 'pic_fee']}),
@@ -20,6 +22,17 @@ class ProjectAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('fund', 'pic', 'pic__properties')
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        ct = ContentType.objects.get_for_model(Project)
+        extra_context = {
+            **(extra_context or {}),
+            'asset_content_type_id': ct.id,
+            'asset_object_id': object_id,
+            'asset_purpose': 'project_evidence',
+            'asset_manager_title': 'Evidence',
+        }
+        return super().change_view(request, object_id, form_url, extra_context)
 
     @admin.display(description='PIC Fee', ordering='pic_fee')
     def pic_fee_display(self, obj):
