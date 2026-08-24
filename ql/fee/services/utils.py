@@ -51,6 +51,25 @@ def render_report_markdown(content):
     )
 
 
+def generate_image_thumbnail(image_field, max_dim=320, quality=80):
+    """Return small JPEG thumbnail bytes for an ImageField, scaled so its
+    longest side is max_dim. Unlike compress_image_field, this doesn't mutate
+    image_field in place — it returns bytes for the caller to assign to a
+    *different* field (Asset.thumbnail), so the full-size image stays
+    available for the detail view; only grid previews use the thumbnail.
+    """
+    from PIL import Image
+
+    img = Image.open(image_field)
+    if img.mode in ('RGBA', 'P'):
+        img = img.convert('RGB')
+    img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=quality, optimize=True)
+    return buf.getvalue()
+
+
 def compress_image_field(image_field, max_dim=1920, quality=85):
     """Compress and resize an ImageField in-place before the model is saved."""
     from PIL import Image
@@ -112,6 +131,143 @@ _EXTENSION_TO_MIME = {
 }
 
 IMAGE_MIME_TYPES = {'image/jpeg', 'image/png', 'image/heic', 'image/heif'}
+VIDEO_MIME_TYPES = {'video/mp4'}
+
+# Ordered ascending — the upload dialog offers a prefix of this list (up to
+# the source video's own height; never upscales). '2k'/'4k' follow the
+# common consumer-tier naming (1440p/2160p), not the DCI cinema definitions.
+VIDEO_RESOLUTION_CHOICES = {'480p': 480, '720p': 720, '1080p': 1080, '2k': 1440, '4k': 2160}
+
+
+def probe_video_height(path):
+    """Return a video file's pixel height via ffprobe, or None if it can't
+    be determined (ffprobe missing, corrupt file, no video stream, ...)."""
+    import json
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            [
+                'ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                '-show_entries', 'stream=height', '-of', 'json', path,
+            ],
+            check=True, capture_output=True, timeout=30,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+    try:
+        return int(json.loads(result.stdout)['streams'][0]['height'])
+    except (KeyError, IndexError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def download_field_to_temp(file_field, suffix):
+    """Stream a FileField's content into a local temp file (ffmpeg needs a
+    real path, not a storage-backed file-like object) and return its path.
+    Caller owns cleanup (os.remove)."""
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix=suffix)
+    with os.fdopen(fd, 'wb') as out:
+        file_field.open('rb')
+        try:
+            for chunk in file_field.chunks():
+                out.write(chunk)
+        finally:
+            file_field.close()
+    return path
+
+
+def extract_video_thumbnail(src_path):
+    """Grab a representative JPEG frame (scaled to 320px wide) from a local
+    video file via ffmpeg. Returns JPEG bytes, or None if no frame could be
+    captured (ffmpeg missing, corrupt file, sub-1s clip, ...) — callers
+    should treat that as "no thumbnail available", not a hard failure; the
+    grid falls back to a plain MIME badge either way.
+    """
+    import subprocess
+    import tempfile
+
+    dst_fd, dst_path = tempfile.mkstemp(suffix='.jpg')
+    os.close(dst_fd)
+    try:
+        # 1s in first (skips an all-black opening frame on most clips);
+        # 0s as a fallback for anything shorter than that.
+        for seek in ('00:00:01', '00:00:00'):
+            try:
+                subprocess.run(
+                    [
+                        'ffmpeg', '-y', '-ss', seek, '-i', src_path,
+                        '-frames:v', '1', '-vf', 'scale=320:-2',
+                        dst_path,
+                    ],
+                    check=True, capture_output=True, timeout=60,
+                )
+            except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                continue
+            with open(dst_path, 'rb') as f:
+                data = f.read()
+            if data:
+                return data
+        return None
+    finally:
+        try:
+            os.remove(dst_path)
+        except OSError:
+            pass
+
+
+def transcode_video(src_path, resolution):
+    """Run ffmpeg on a local video file, returning the compressed bytes for
+    the given resolution tier (a key of VIDEO_RESOLUTION_CHOICES).
+
+    Never upscales: the target height is capped to the source video's own
+    height (via ffprobe) even if a higher tier was requested — the frontend
+    dialog already hides tiers above the source resolution, but the source
+    of truth has to be server-side since a client can send anything.
+
+    Raises RuntimeError (ffmpeg missing / failed / timed out) — callers
+    (ql.fee.tasks.asset_processing) are expected to catch it and mark the
+    asset's processing_status FAILED rather than lose the original file.
+    """
+    import subprocess
+    import tempfile
+
+    target_height = VIDEO_RESOLUTION_CHOICES[resolution]
+    source_height = probe_video_height(src_path)
+    if source_height:
+        target_height = min(target_height, source_height)
+
+    dst_fd, dst_path = tempfile.mkstemp(suffix='.mp4')
+    os.close(dst_fd)  # ffmpeg writes this path itself; just needed a free name
+    try:
+        try:
+            subprocess.run(
+                [
+                    'ffmpeg', '-y', '-i', src_path,
+                    '-vf', f'scale=-2:{target_height}',
+                    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    dst_path,
+                ],
+                check=True, capture_output=True, timeout=900,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError('ffmpeg is not installed on this server.') from exc
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr.decode(errors='replace') if exc.stderr else ''
+            raise RuntimeError(f'ffmpeg failed: {stderr[-500:]}') from exc
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError('ffmpeg timed out.') from exc
+
+        with open(dst_path, 'rb') as f:
+            return f.read()
+    finally:
+        try:
+            os.remove(dst_path)
+        except OSError:
+            pass
 
 
 def detect_asset_mime(fileobj, filename=''):

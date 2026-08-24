@@ -30,6 +30,7 @@
 <style>
   .am-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
   .am-card {
+    position:relative;
     border:1px solid var(--hairline-color,#e0e0e0);
     border-radius:6px; overflow:hidden;
     background:var(--body-bg); display:flex; flex-direction:column;
@@ -52,6 +53,12 @@
   .am-meta { padding:7px 9px; font-size:0.75rem; }
   .am-name { display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .am-sub  { color:var(--body-quiet-color); font-size:0.6875rem; }
+  .am-processing {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); color:#fff; font-size:0.6875rem; font-weight:600;
+    text-align:center; padding:8px;
+  }
+  .am-failed-note { color:#dc2626; }
 </style>
 
 <script>
@@ -67,14 +74,20 @@
     const thumb = a.thumb_url
       ? `<div class="am-thumb"><img src="${a.thumb_url}" alt=""></div>`
       : `<div class="am-thumb"><span class="am-badge ${a.is_url ? 'url' : a.label}">${a.label}</span></div>`;
+    const processingOverlay = a.processing === 'processing'
+      ? `<div class="am-processing">{% translate "Compressing…" %}</div>` : '';
     const sub = a.is_url ? '{% translate "External link" %}' : (a.size_text || a.mime);
+    const failedNote = a.processing === 'failed'
+      ? `<span class="am-sub am-failed-note">{% translate "Compression failed — original kept" %}</span>` : '';
     return `
-      <div class="am-card">
+      <div class="am-card" data-id="${a.id}" data-processing="${a.processing || ''}">
         <a class="am-card-link" href="${a.click_url}" target="_blank" rel="noopener">
           ${thumb}
+          ${processingOverlay}
           <div class="am-meta">
             <span class="am-name" title="${a.name}">${a.name}</span>
             <span class="am-sub">${sub}</span>
+            ${failedNote}
           </div>
         </a>
       </div>`;

@@ -7,16 +7,16 @@ from .mixins import LazyMediaGridAdmin, resolve_content_object_link
 
 @admin.register(Asset)
 class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
-    list_display    = ['id', 'original_name', 'mime_type', 'size_display', 'owner', 'purpose', 'created_at']
-    list_filter     = ['mime_type', 'purpose', 'content_type', 'created_at']
+    list_display    = ['id', 'original_name', 'mime_type', 'size_display', 'owner', 'purpose', 'processing_status', 'created_at']
+    list_filter     = ['mime_type', 'purpose', 'processing_status', 'content_type', 'created_at']
     list_per_page   = 12
     search_fields   = ['original_name', 'url']
-    readonly_fields = ['content_type', 'object_id', 'mime_type', 'size', 'original_name', 'metadata', 'preview', 'related_records', 'created_at', 'updated_at', 'deleted_at']
+    readonly_fields = ['content_type', 'object_id', 'mime_type', 'size', 'original_name', 'metadata', 'processing_status', 'preview', 'related_records', 'created_at', 'updated_at', 'deleted_at']
 
     fields = [
         'content_type', 'object_id', 'purpose',
         'file', 'url',
-        'original_name', 'mime_type', 'size', 'metadata', 'preview',
+        'original_name', 'mime_type', 'size', 'metadata', 'processing_status', 'preview',
         'related_records',
         'created_at', 'updated_at', 'deleted_at',
     ]
@@ -34,10 +34,15 @@ class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
         return super().get_queryset(request).select_related('content_type').prefetch_related('content_object')
 
     def get_grid_image_url(self, obj):
-        # Only actual images pay the (possibly expensive, e.g. R2-signed)
-        # URL cost — PDFs/docs and external links render a static
-        # placeholder in the fragment template instead, no AJAX needed.
+        # Only assets with something previewable pay the (possibly
+        # expensive, e.g. R2-signed) URL cost — PDFs/docs and external links
+        # render a static placeholder in the fragment template instead, no
+        # AJAX needed.
+        if obj.thumbnail:
+            return obj.thumbnail.url
         if obj.file and 'image/' in obj.mime_type:
+            # Falls back to the full file for assets uploaded before
+            # thumbnail generation existed — no backfill has been run.
             return obj.file.url
         return None
 
@@ -46,7 +51,7 @@ class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
             (None, {'fields': [
                 'content_type', 'object_id', 'purpose',
                 'file', 'url',
-                'original_name', 'mime_type', 'size', 'metadata', 'preview',
+                'original_name', 'mime_type', 'size', 'metadata', 'processing_status', 'preview',
                 # 'created_at', 'updated_at',
             ]}),
         ]

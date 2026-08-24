@@ -1,7 +1,10 @@
+import os
+
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
 
@@ -18,12 +21,18 @@ from ..services.utils import (
     compress_image_field,
     detect_asset_mime,
     extract_image_metadata,
+    generate_image_thumbnail,
 )
 
 
 def _asset_upload_to(instance, filename):
     month = timezone.now().strftime('%Y/%m')
     return f'assets/{month}/{filename}'
+
+
+def _asset_thumbnail_upload_to(instance, filename):
+    month = timezone.now().strftime('%Y/%m')
+    return f'assets/{month}/thumbs/{filename}'
 
 
 class Asset(TimestampMixin):
@@ -62,6 +71,15 @@ class Asset(TimestampMixin):
         help_text='External URL, used as a fallback when the file is too large to upload.',
     )
 
+    # Grid-preview cover image for file types that aren't themselves an
+    # image (currently: a video frame, extracted by ql.fee.tasks.
+    # asset_processing after upload). Never set for image assets — those use
+    # the image file itself as its own thumbnail.
+    thumbnail = DynamicStorageFileField(
+        upload_to=_asset_thumbnail_upload_to, storage=get_asset_storage,
+        null=True, blank=True,
+    )
+
     # ── Descriptive metadata (auto-filled for uploads) ────────────────────────
     original_name = models.CharField(max_length=255, blank=True, default='')
     mime_type     = models.CharField(max_length=100, blank=True, default='')
@@ -74,6 +92,18 @@ class Asset(TimestampMixin):
         default=STORAGE_LOCAL,
         editable=False,
         help_text='Backend that holds the asset file.',
+    )
+
+    class ProcessingStatus(models.TextChoices):
+        READY      = 'ready',      'Ready'
+        PROCESSING = 'processing', 'Processing'
+        FAILED     = 'failed',     'Failed'
+
+    # Only meaningful for uploads that trigger an async post-processing step
+    # (currently: video compression — see ql.fee.tasks.asset_processing).
+    # Everything else is READY the moment save() returns.
+    processing_status = models.CharField(
+        max_length=10, choices=ProcessingStatus, default=ProcessingStatus.READY,
     )
 
     class Meta:
@@ -163,6 +193,13 @@ class Asset(TimestampMixin):
                 # PNGs become JPEG, so normalise the recorded type.
                 compress_image_field(self.file)
                 self.mime_type = 'image/jpeg'
+
+                # Small grid-preview cover, separate from the (still fairly
+                # large, up to 1920px) main file — the detail/change-form
+                # view keeps using the full file, only grid thumbnails read
+                # this one.
+                thumb_name = os.path.splitext(os.path.basename(self.file.name))[0] + '-thumb.jpg'
+                self.thumbnail.save(thumb_name, ContentFile(generate_image_thumbnail(self.file)), save=False)
 
             self.size = getattr(self.file, 'size', None)
 

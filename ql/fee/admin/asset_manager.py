@@ -13,6 +13,7 @@ from django.urls import path, reverse
 from django.views.decorators.http import require_POST
 
 from ql.fee.models import Asset
+from ql.fee.tasks import process_video_asset
 from .mixins import resolve_content_object_link
 
 _MIME_LABEL = {
@@ -38,6 +39,14 @@ def _asset_json(a):
     is_image = bool(a.mime_type.startswith('image/'))
     is_video = bool(a.mime_type.startswith('video/'))
     is_url = bool(a.url)
+    if a.thumbnail:
+        thumb_url = a.thumbnail.url
+    elif is_image and a.file:
+        # Falls back to the full file for assets uploaded before thumbnail
+        # generation existed — no backfill has been run for those.
+        thumb_url = a.file.url
+    else:
+        thumb_url = None
     return {
         'id': a.id,
         'name': a.original_name or a.url or f'Asset {a.id}',
@@ -46,11 +55,12 @@ def _asset_json(a):
         'is_image': is_image,
         'is_video': is_video,
         'is_url': is_url,
-        'thumb_url': a.file.url if (is_image and a.file) else None,
+        'thumb_url': thumb_url,
         'label': 'URL' if is_url else _MIME_LABEL.get(a.mime_type, 'FILE'),
         # File assets open a detail page (where video/image can be played
         # inline); URL assets open the target directly.
         'click_url': a.url if is_url else reverse('admin:asset_detail', args=[a.id]),
+        'processing': a.processing_status,
     }
 
 
@@ -77,15 +87,29 @@ def upload_view(request):
         return JsonResponse({'error': str(exc)}, status=400)
 
     purpose = request.POST.get('purpose', '') or ''
+    # Only meaningful for video/mp4 uploads — the upload dialog's resolution
+    # choice ('original' skips compression entirely). Ignored for everything
+    # else, so a non-video field just no-ops below.
+    resolution = request.POST.get('resolution', '') or ''
+
     created, errors = [], []
     for f in request.FILES.getlist('file'):
         asset = Asset(content_type=ct, object_id=obj_id, purpose=purpose, file=f)
         try:
             asset.full_clean()
             asset.save()
-            created.append(_asset_json(asset))
         except ValidationError as exc:
             errors.append({'name': f.name, 'message': '; '.join(exc.messages)})
+            continue
+
+        if asset.mime_type.startswith('video/'):
+            # Always processed in the background, even when 'original' was
+            # chosen — a thumbnail still needs to be captured either way.
+            asset.processing_status = Asset.ProcessingStatus.PROCESSING
+            asset.save(update_fields=['processing_status'])
+            process_video_asset.delay(asset.id, resolution or 'original')
+
+        created.append(_asset_json(asset))
 
     return JsonResponse({'created': created, 'errors': errors})
 
@@ -113,6 +137,8 @@ def delete_view(request, asset_id):
     asset = get_object_or_404(Asset, pk=asset_id)
     if asset.file:
         asset.file.delete(save=False)
+    if asset.thumbnail:
+        asset.thumbnail.delete(save=False)
     asset.delete()
     return JsonResponse({'ok': True})
 

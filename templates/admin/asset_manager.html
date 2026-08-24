@@ -49,6 +49,19 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
   </div>
 </div>
 
+{# ── Video compression modal ── #}
+<div id="am-video-modal" class="am-modal-overlay">
+  <div class="am-modal">
+    <h3 style="margin-top:0;">{% translate 'Save this video at…' %}</h3>
+    <p id="am-vm-info" style="color:var(--body-quiet-color);font-size:0.75rem;margin-top:-6px;"></p>
+    <div id="am-vm-options" class="am-vm-options"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+      <button type="button" class="button" id="am-vm-cancel">{% translate 'Cancel' %}</button>
+      <button type="button" class="button default" id="am-vm-continue">{% translate 'Upload' %}</button>
+    </div>
+  </div>
+</div>
+
 <style>
   .am-dropzone {
     border:2px dashed var(--border-color,#ccc); border-radius:8px;
@@ -111,6 +124,20 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     cursor:pointer; font-size:0.875rem; padding:0; opacity:0; transition:.15s;
   }
   .am-card:hover .am-del { opacity:1; }
+  .am-processing {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); color:#fff; font-size:0.6875rem; font-weight:600;
+    text-align:center; padding:8px;
+  }
+  .am-failed-note { color:#dc2626; }
+
+  .am-vm-options { display:flex; flex-direction:column; gap:2px; }
+  .am-vm-option {
+    display:flex; align-items:center; gap:8px; padding:7px 4px;
+    border-radius:6px; cursor:pointer; font-size:0.8125rem;
+  }
+  .am-vm-option:hover { background:var(--darkened-bg); }
+  .am-vm-option input { margin:0; }
 
   .am-modal-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
@@ -142,14 +169,20 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     const thumb = a.thumb_url
       ? `<div class="am-thumb"><img src="${a.thumb_url}" alt=""></div>`
       : `<div class="am-thumb"><span class="am-badge ${a.is_url ? 'url' : a.label}">${a.label}</span></div>`;
+    const processingOverlay = a.processing === 'processing'
+      ? `<div class="am-processing">{% translate "Compressing…" %}</div>` : '';
     const sub = a.is_url ? '{% translate "External link" %}' : (a.size_text || a.mime);
+    const failedNote = a.processing === 'failed'
+      ? `<span class="am-sub am-failed-note">{% translate "Compression failed — original kept" %}</span>` : '';
     return `
-      <div class="am-card" data-id="${a.id}">
+      <div class="am-card" data-id="${a.id}" data-processing="${a.processing || ''}">
         <a class="am-card-link" href="${a.click_url}" target="_blank" rel="noopener">
           ${thumb}
+          ${processingOverlay}
           <div class="am-meta">
             <span class="am-name" title="${a.name}">${a.name}</span>
             <span class="am-sub">${sub}</span>
+            ${failedNote}
           </div>
         </a>
         <button type="button" class="am-del" title="{% translate 'Remove' %}">×</button>
@@ -159,6 +192,32 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
   function addCard(a) {
     grid.insertAdjacentHTML('beforeend', cardHtml(a));
     refreshEmpty();
+    ensurePolling();
+  }
+
+  // While any card is still PROCESSING, poll the list every few seconds and
+  // swap in just the cards whose status changed — stops itself once nothing
+  // is left processing.
+  let pollTimer = null;
+  function ensurePolling() {
+    if (pollTimer || !grid.querySelector('.am-card[data-processing="processing"]')) return;
+    const tick = () => {
+      fetch(`${LIST_URL}?content_type_id=${CT}&object_id=${OBJ}`)
+        .then(r => r.json())
+        .then(d => {
+          (d.assets || []).forEach(a => {
+            const existing = grid.querySelector(`.am-card[data-id="${a.id}"]`);
+            if (existing && existing.dataset.processing !== (a.processing || '')) {
+              existing.outerHTML = cardHtml(a);
+            }
+          });
+        })
+        .finally(() => {
+          pollTimer = grid.querySelector('.am-card[data-processing="processing"]')
+            ? setTimeout(tick, 4000) : null;
+        });
+    };
+    pollTimer = setTimeout(tick, 4000);
   }
 
   // Delete (event-delegated)
@@ -179,6 +238,75 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     .then(r => r.json())
     .then(d => { (d.assets || []).forEach(addCard); refreshEmpty(); });
 
+  // ── Video compression modal ──
+  // Ordered ascending, mirrors ql.fee.services.utils.VIDEO_RESOLUTION_CHOICES.
+  // The server re-derives (and caps to) the source height itself via
+  // ffprobe — this client-side filtering is just so the dialog doesn't
+  // offer an upscale that ffmpeg would silently cap anyway.
+  const VIDEO_TIERS = [
+    { key: '480p', height: 480, label: '480p' },
+    { key: '720p', height: 720, label: '720p' },
+    { key: '1080p', height: 1080, label: '1080p' },
+    { key: '2k', height: 1440, label: '2K (1440p)' },
+    { key: '4k', height: 2160, label: '4K (2160p)' },
+  ];
+
+  function readVideoHeight(file) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.videoHeight || null); };
+      v.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      v.src = url;
+    });
+  }
+
+  const videoModal   = document.getElementById('am-video-modal');
+  const vmInfo       = document.getElementById('am-vm-info');
+  const vmOptions    = document.getElementById('am-vm-options');
+  const vmCancelBtn  = document.getElementById('am-vm-cancel');
+  const vmContinueBtn = document.getElementById('am-vm-continue');
+
+  // Dialogs are shown one at a time even if several videos are dropped
+  // together — each call chains onto the previous one's resolution.
+  let videoModalQueue = Promise.resolve();
+
+  function askVideoResolution(file) {
+    return readVideoHeight(file).then(sourceHeight => {
+      const tiers = VIDEO_TIERS.filter(t => !sourceHeight || t.height <= sourceHeight);
+      vmInfo.textContent = sourceHeight
+        ? `{% translate "Source video is" %} ${sourceHeight}p — ${file.name}`
+        : `{% translate "Couldn't detect the source resolution — showing all options." %} ${file.name}`;
+      vmOptions.innerHTML = `
+        <label class="am-vm-option">
+          <input type="radio" name="am-vm-res" value="original" checked>
+          {% translate 'Original (no compression)' %}
+        </label>` + tiers.map(t => `
+        <label class="am-vm-option">
+          <input type="radio" name="am-vm-res" value="${t.key}">
+          ${t.label}
+        </label>`).join('');
+      videoModal.classList.add('open');
+
+      return new Promise(resolve => {
+        function cleanup() {
+          videoModal.classList.remove('open');
+          vmCancelBtn.removeEventListener('click', onCancel);
+          vmContinueBtn.removeEventListener('click', onContinue);
+        }
+        function onCancel() { cleanup(); resolve(null); }
+        function onContinue() {
+          const picked = vmOptions.querySelector('input[name="am-vm-res"]:checked');
+          cleanup();
+          resolve(picked ? picked.value : 'original');
+        }
+        vmCancelBtn.addEventListener('click', onCancel);
+        vmContinueBtn.addEventListener('click', onContinue);
+      });
+    });
+  }
+
   // ── Dropzone ──
   Dropzone.autoDiscover = false;
   const dz = new Dropzone('#am-dropzone', {
@@ -198,11 +326,24 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     clickable: '#am-dropzone',
     headers: { 'X-CSRFToken': CSRF },
     acceptedFiles: '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,.xls,.xlsx,.mp4',
+    accept: function (file, done) {
+      const isVideo = file.type === 'video/mp4' || /\.mp4$/i.test(file.name);
+      if (!isVideo) { file.resolutionChoice = 'original'; done(); return; }
+
+      videoModalQueue = videoModalQueue
+        .then(() => askVideoResolution(file))
+        .then(choice => {
+          if (choice === null) { done('{% translate "Upload cancelled." %}'); return; }
+          file.resolutionChoice = choice;
+          done();
+        });
+    },
     init: function () {
       this.on('sending', function (file, xhr, formData) {
         formData.append('content_type_id', CT);
         formData.append('object_id', OBJ);
         formData.append('purpose', PURPOSE);
+        formData.append('resolution', file.resolutionChoice || 'original');
       });
       this.on('success', function (file, resp) {
         (resp.created || []).forEach(addCard);
@@ -210,7 +351,12 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
         this.removeFile(file);
       });
       this.on('error', function (file, msg) {
-        alert(typeof msg === 'string' ? msg : (msg.error || 'Upload failed'));
+        // 'Upload cancelled.' comes from accept()'s reject path when the
+        // user hits Cancel on the video-resolution dialog — that's an
+        // intentional no-op, not a failure worth an alert.
+        if (msg !== '{% translate "Upload cancelled." %}') {
+          alert(typeof msg === 'string' ? msg : (msg.error || 'Upload failed'));
+        }
         this.removeFile(file);
       });
     },
