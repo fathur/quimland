@@ -12,17 +12,23 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
      data-upload-url="{% url 'admin:asset_upload' %}"
      data-addurl-url="{% url 'admin:asset_add_url' %}"
      data-list-url="{% url 'admin:asset_list' %}"
-     data-delete-base="{% url 'admin:asset_delete' 0 %}">
+     data-delete-base="{% url 'admin:asset_delete' 0 %}"
+     data-can-change="{{ has_change_permission|yesno:'1,' }}"
+     data-can-delete="{{ has_delete_permission|yesno:'1,' }}">
+     {# has_change_permission / has_delete_permission come from Django's own #}
+     {# change_form context — computed against the CURRENT page's ModelAdmin #}
+     {# (e.g. ProjectAdmin on a Project page), matching the same permission #}
+     {# the server enforces in asset_manager.py's upload/add-url/delete views. #}
 
   <h2 style="display:flex;align-items:center;gap:12px;">
     {% firstof asset_manager_title _('Proof of shopping') %}
-    <button type="button" class="button" id="am-add-url-btn" style="margin-left:auto;font-size:0.75rem;">
+    <button type="button" class="button" id="am-add-url-btn" style="margin-left:auto;font-size:0.75rem;" {% if not has_change_permission %}hidden{% endif %}>
       + {% translate 'Add URL' %}
     </button>
   </h2>
 
   <div style="padding:12px 14px;">
-    <div id="am-dropzone" class="am-dropzone">
+    <div id="am-dropzone" class="am-dropzone" {% if not has_change_permission %}hidden{% endif %}>
       <span class="am-dz-icon">⬆</span>
       <p class="am-dz-msg">{% translate 'Drag files here or click to upload' %}<br>
         <small style="color:var(--body-quiet-color);">PDF, JPG, PNG, DOC(X), XLS(X), MP4 — multiple allowed</small></p>
@@ -160,6 +166,8 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
   const LIST_URL   = root.dataset.listUrl;
   const DELETE_BASE= root.dataset.deleteBase;   // ends in /0/delete/
   const CSRF       = '{{ csrf_token }}';
+  const CAN_CHANGE = root.dataset.canChange === '1';
+  const CAN_DELETE = root.dataset.canDelete === '1';
 
   function refreshEmpty() {
     emptyMsg.style.display = grid.children.length ? 'none' : 'block';
@@ -199,6 +207,8 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     const sub = a.is_url ? '{% translate "External link" %}' : (a.size_text || a.mime);
     const failedNote = a.processing === 'failed'
       ? `<span class="am-sub am-failed-note">{% translate "Compression failed — original kept" %}</span>` : '';
+    const deleteBtn = CAN_DELETE
+      ? `<button type="button" class="am-del" title="{% translate 'Remove' %}">×</button>` : '';
     return `
       <div class="am-card" data-id="${a.id}" data-processing="${a.processing || ''}">
         <a class="am-card-link" href="${a.click_url}" target="_blank" rel="noopener">
@@ -210,7 +220,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
             ${failedNote}
           </div>
         </a>
-        <button type="button" class="am-del" title="{% translate 'Remove' %}">×</button>
+        ${deleteBtn}
       </div>`;
   }
 
@@ -332,6 +342,11 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     });
   }
 
+  // Uploading (dropzone + Add URL) is gated on has_change_permission — skip
+  // wiring it up entirely rather than just hiding the buttons, so there's
+  // no dead Dropzone instance bound to a hidden element.
+  if (CAN_CHANGE) {
+
   // ── Dropzone ──
   Dropzone.autoDiscover = false;
   const dz = new Dropzone('#am-dropzone', {
@@ -423,5 +438,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
       })
       .catch(() => {});
   });
+
+  } // if (CAN_CHANGE)
 })();
 </script>
