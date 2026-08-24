@@ -191,6 +191,7 @@ class IncomeTransactionAdmin(BaseTransactionAdmin):
             form.base_fields['user'].label = 'From Resident'
         if form and 'wallet' in form.base_fields:
             form.base_fields['wallet'].label = 'To Wallet'
+            form.base_fields['wallet'].required = True
         return form
 
     def save_formset(self, request, form, formset, change):
