@@ -30,8 +30,20 @@ class TransactionItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):  # noqa: ARG002
         return False
 
-    def has_delete_permission(self, request, obj=None):  # noqa: ARG002
-        return False
+    def has_delete_permission(self, request, obj=None):
+        # Block direct deletion from this admin's own pages (list/change/
+        # delete views), but defer to the normal permission check when this
+        # is being consulted as a side effect of deleting something else —
+        # e.g. Django's delete-confirmation page for the parent Transaction
+        # walking the cascade and asking "can this related row be deleted?"
+        # Without this distinction, a superuser could never delete a
+        # Transaction at all: get_deleted_objects() would see the always-
+        # False permission here and report the cascaded TransactionItem
+        # rows as protected.
+        match = request.resolver_match
+        if match and match.url_name and match.url_name.startswith('fee_transactionitem_'):
+            return False
+        return super().has_delete_permission(request, obj)
 
     @admin.display(description='Transaction')
     def transaction_link(self, obj):
