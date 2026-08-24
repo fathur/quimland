@@ -84,6 +84,7 @@ ALLOWED_ASSET_MIME_TYPES = {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
     'application/vnd.ms-excel': ['xls'],
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['xlsx'],
+    'video/mp4': ['mp4'],
 }
 
 # libmagic occasionally reports generic container types for OOXML/OLE files;
@@ -107,6 +108,7 @@ _EXTENSION_TO_MIME = {
     'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'xls': 'application/vnd.ms-excel',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'mp4': 'video/mp4',
 }
 
 IMAGE_MIME_TYPES = {'image/jpeg', 'image/png', 'image/heic', 'image/heif'}

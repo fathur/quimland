@@ -87,6 +87,11 @@ class AssetAdmin(LazyMediaGridAdmin, admin.ModelAdmin):
                 '<img src="{}" style="max-height:300px;border-radius:8px;"></a>',
                 obj.file.url, obj.file.url,
             )
+        if obj.file and obj.mime_type.startswith('video/'):
+            return format_html(
+                '<video src="{}" controls preload="metadata" style="max-height:300px;border-radius:8px;"></video>',
+                obj.file.url,
+            )
         if obj.file:
             return format_html('<a href="{}" target="_blank">download</a>', obj.file.url)
         return '—'

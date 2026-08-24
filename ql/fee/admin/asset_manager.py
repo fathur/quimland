@@ -23,6 +23,7 @@ _MIME_LABEL = {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
     'image/jpeg': 'JPG',
     'image/png': 'PNG',
+    'video/mp4': 'MP4',
 }
 
 
@@ -35,6 +36,7 @@ def _human_size(n):
 
 def _asset_json(a):
     is_image = bool(a.mime_type.startswith('image/'))
+    is_video = bool(a.mime_type.startswith('video/'))
     is_url = bool(a.url)
     return {
         'id': a.id,
@@ -42,10 +44,12 @@ def _asset_json(a):
         'mime': a.mime_type,
         'size_text': _human_size(a.size),
         'is_image': is_image,
+        'is_video': is_video,
         'is_url': is_url,
         'thumb_url': a.file.url if (is_image and a.file) else None,
         'label': 'URL' if is_url else _MIME_LABEL.get(a.mime_type, 'FILE'),
-        # File assets open a detail page; URL assets open the target directly.
+        # File assets open a detail page (where video/image can be played
+        # inline); URL assets open the target directly.
         'click_url': a.url if is_url else reverse('admin:asset_detail', args=[a.id]),
     }
 
@@ -131,6 +135,7 @@ def detail_view(request, asset_id):
         'title': asset.original_name or f'Asset #{asset.id}',
         'asset': asset,
         'is_image': asset.mime_type.startswith('image/'),
+        'is_video': asset.mime_type.startswith('video/'),
         'size_text': _human_size(asset.size),
         'label': _MIME_LABEL.get(asset.mime_type, 'FILE'),
         'meta_rows': meta_rows,

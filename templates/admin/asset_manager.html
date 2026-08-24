@@ -25,7 +25,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     <div id="am-dropzone" class="am-dropzone">
       <span class="am-dz-icon">⬆</span>
       <p class="am-dz-msg">{% translate 'Drag files here or click to upload' %}<br>
-        <small style="color:var(--body-quiet-color);">PDF, JPG, PNG, DOC(X), XLS(X) — multiple allowed</small></p>
+        <small style="color:var(--body-quiet-color);">PDF, JPG, PNG, DOC(X), XLS(X), MP4 — multiple allowed</small></p>
     </div>
     <div id="am-dz-hidden" style="display:none;"></div>
 
@@ -79,6 +79,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
   .am-badge.PDF { background:#dc2626; }
   .am-badge.DOC, .am-badge.DOCX { background:#2563eb; }
   .am-badge.XLS, .am-badge.XLSX { background:#16a34a; }
+  .am-badge.MP4 { background:#7c3aed; }
   .am-meta { padding:7px 9px; font-size:0.75rem; }
   .am-name { display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .am-sub { color:var(--body-quiet-color); font-size:0.6875rem; }
@@ -167,7 +168,7 @@ Reusable Asset grid manager. Requires context: asset_content_type_id,
     previewsContainer: '#am-dz-hidden',
     clickable: '#am-dropzone',
     headers: { 'X-CSRFToken': CSRF },
-    acceptedFiles: '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,.xls,.xlsx',
+    acceptedFiles: '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,.xls,.xlsx,.mp4',
     init: function () {
       this.on('sending', function (file, xhr, formData) {
         formData.append('content_type_id', CT);
