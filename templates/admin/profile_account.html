@@ -1,0 +1,43 @@
+{% extends "admin/profile_base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+<div class="ql-profile-wrap">
+
+  <form method="post" novalidate>{% csrf_token %}
+    <fieldset id="account" class="module aligned">
+      <h2>{% translate 'Account information' %}</h2>
+      <div style="padding: 10px 12px 4px;">
+
+        {% if form.non_field_errors %}
+        <p class="errornote">{{ form.non_field_errors }}</p>
+        {% elif form.errors %}
+        <p class="errornote">
+          {% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+        </p>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="form-row field-{{ field.name }}{% if field.errors %} errors{% endif %}">
+          {{ field.errors }}
+          <div class="flex-container">
+            {{ field.label_tag }} {{ field }}
+          </div>
+          {% if field.help_text %}
+          <div class="help">{{ field.help_text|safe }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+      </div>
+    </fieldset>
+
+    <div class="submit-row">
+      <input type="submit" class="default" value="{% translate 'Save changes' %}">
+    </div>
+  </form>
+
+</div>
+</div>
+{% endblock %}

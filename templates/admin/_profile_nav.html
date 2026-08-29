@@ -1,0 +1,19 @@
+{% load i18n %}
+<div id="content-related">
+  <div class="module">
+    <h2>{% translate 'My Profile' %}</h2>
+    <ul>
+      <li{% if profile_section == 'overview' %} class="selected"{% endif %}>
+        <a href="{% url 'admin:profile' %}">{% translate 'Overview' %}</a>
+      </li>
+      <li{% if profile_section == 'account' %} class="selected"{% endif %}>
+        <a href="{% url 'admin:profile_account' %}">{% translate 'Account settings' %}</a>
+      </li>
+      {% if request.user.has_usable_password %}
+      <li{% if profile_section == 'password' %} class="selected"{% endif %}>
+        <a href="{% url 'admin:profile_change_password' %}">{% translate 'Change password' %}</a>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
+</div>

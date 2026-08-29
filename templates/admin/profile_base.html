@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block coltype %}colSM{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+<style>
+  .ql-profile-wrap { max-width: 620px; }
+
+  .ql-profile-card {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 22px; margin-bottom: 26px;
+    border: 1px solid var(--hairline-color); border-radius: 12px;
+    background: var(--darkened-bg, var(--body-bg));
+  }
+  .ql-profile-avatar {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.125rem; font-weight: 700; color: #fff;
+  }
+  .ql-profile-name { font-size: 1.0625rem; font-weight: 700; margin: 0; }
+  .ql-profile-meta { font-size: 0.8125rem; color: var(--body-quiet-color); margin-top: 2px; }
+  .ql-profile-facts { display: flex; flex-wrap: wrap; gap: 14px 26px; margin-top: 12px; }
+  .ql-profile-fact-label {
+    font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--body-quiet-color); font-weight: 600;
+  }
+  .ql-profile-fact-value { font-size: 0.875rem; font-weight: 600; margin-top: 2px; }
+
+  .ql-profile-wrap .module { margin-bottom: 0; }
+  .ql-profile-wrap .module h2 { margin: 0; }
+
+  #content-related .module ul li.selected a { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:profile' %}">{% translate 'My Profile' %}</a>
+  {% if profile_section and profile_section != 'overview' %}&rsaquo; {{ title }}{% endif %}
+</div>
+{% endblock %}
+
+{% block sidebar %}{% include "admin/_profile_nav.html" %}{% endblock %}
