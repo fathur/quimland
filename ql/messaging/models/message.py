@@ -12,3 +12,10 @@ class Message(TimestampMixin):
         related_name='received_messages',
     )
     content = models.TextField()
+
+    class Meta:
+        db_table = 'messages'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Message #{self.pk} -> {self.recipient_id}'
