@@ -17,7 +17,8 @@ DueNote (waiver/skip) counts as satisfied.
 
 Residents who already have a Message, or who are already staff (login was
 activated before), are skipped and listed on the console, so the command is safe
-to re-run. Newly activated users are made staff and added to groups 1-4.
+to re-run. Residents with no phone number on their UserProperty are also skipped.
+Newly activated users are made staff and added to groups 1-4.
 
 Usage:
   poetry run python manage.py sent_login [--month=YYYY-MM]
@@ -127,6 +128,7 @@ class Command(BaseCommand):
         created = 0
         skipped_existing = 0
         skipped_staff = 0
+        skipped_no_phone = 0
         for user in users:
             has_due = False
             all_settled = True
@@ -163,6 +165,13 @@ class Command(BaseCommand):
                 ))
                 continue
 
+            if not (user.properties.phone or '').strip():
+                skipped_no_phone += 1
+                self.stdout.write(self.style.WARNING(
+                    f'  - {user.username}: no phone number in user property, skipped'
+                ))
+                continue
+
             name = user.get_full_name() or user.username
             password = get_random_string(PASSWORD_LENGTH, PASSWORD_ALPHABET)
             content = MESSAGE_TEMPLATE.format(
@@ -184,5 +193,6 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(
             f'{created} Message(s) created; {skipped_existing} skipped (already messaged); '
-            f'{skipped_staff} skipped (already staff).'
+            f'{skipped_staff} skipped (already staff); '
+            f'{skipped_no_phone} skipped (no phone number).'
         ))
