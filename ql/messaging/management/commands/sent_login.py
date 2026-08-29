@@ -52,7 +52,7 @@ PASSWORD_ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 PASSWORD_LENGTH = 10
 
 # Groups every newly activated resident is added to (hardcoded by request).
-ACTIVATION_GROUP_IDS = [1, 2, 3, 4]
+ACTIVATION_GROUP_IDS = [2, 4]
 
 MESSAGE_TEMPLATE = (
     "Bapak {name}, selamat malam \U0001f64f\n"
