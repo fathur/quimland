@@ -62,7 +62,7 @@ MESSAGE_TEMPLATE = (
     "\n"
     "Berikut infonya:\n"
     "\U0001f517 Portal: https://warga.quimland.com\n"
-    "\U0001f4f1 Username: {username}\n"
+    "\U0001f4f1 Username: {username} or {phone}\n"
     "\U0001f511 Password: {password}\n"
     "\n"
     "Segera update password setelah login pertama kali, ya. Jangan lupa catat password baru Bapak/Ibu.\n"
@@ -175,7 +175,7 @@ class Command(BaseCommand):
             name = user.get_full_name() or user.username
             password = get_random_string(PASSWORD_LENGTH, PASSWORD_ALPHABET)
             content = MESSAGE_TEMPLATE.format(
-                name=name, username=user.username, password=password,
+                name=name, username=user.username, password=password, phone=user.properties.phone
             )
 
             with transaction.atomic():
