@@ -15,9 +15,9 @@ reach the expected amount and the completion date must be <= the 5th (payments
 made in an earlier month count as early → still qualify). A period covered by a
 DueNote (waiver/skip) counts as satisfied.
 
-Residents who already have a Message, or who already have a usable password set
-(i.e. login was activated before), are skipped and listed on the console, so the
-command is safe to re-run.
+Residents who already have a Message, or who are already staff (login was
+activated before), are skipped and listed on the console, so the command is safe
+to re-run. Newly activated users are made staff and added to groups 1-4.
 
 Usage:
   poetry run python manage.py sent_login [--month=YYYY-MM]
@@ -49,6 +49,9 @@ User = get_user_model()
 # off a chat message.
 PASSWORD_ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 PASSWORD_LENGTH = 10
+
+# Groups every newly activated resident is added to (hardcoded by request).
+ACTIVATION_GROUP_IDS = [1, 2, 3, 4]
 
 MESSAGE_TEMPLATE = (
     "Bapak {name}, selamat malam \U0001f64f\n"
@@ -123,7 +126,7 @@ class Command(BaseCommand):
 
         created = 0
         skipped_existing = 0
-        skipped_has_password = 0
+        skipped_staff = 0
         for user in users:
             has_due = False
             all_settled = True
@@ -153,10 +156,10 @@ class Command(BaseCommand):
                 self.stdout.write(f'  - {user.username}: already has a Message, skipped')
                 continue
 
-            if user.has_usable_password():
-                skipped_has_password += 1
+            if user.is_staff:
+                skipped_staff += 1
                 self.stdout.write(self.style.WARNING(
-                    f'  - {user.username}: already has a password set, skipped'
+                    f'  - {user.username}: already staff, skipped'
                 ))
                 continue
 
@@ -168,7 +171,9 @@ class Command(BaseCommand):
 
             with transaction.atomic():
                 user.set_password(password)
-                user.save(update_fields=['password'])
+                user.is_staff = True
+                user.save(update_fields=['password', 'is_staff'])
+                user.groups.set(ACTIVATION_GROUP_IDS)
                 Message.objects.create(recipient=user, content=content)
 
             created += 1
@@ -179,5 +184,5 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(
             f'{created} Message(s) created; {skipped_existing} skipped (already messaged); '
-            f'{skipped_has_password} skipped (already has a password).'
+            f'{skipped_staff} skipped (already staff).'
         ))
