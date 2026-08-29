@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 
 class CashEntry(TimestampMixin):

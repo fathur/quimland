@@ -6,7 +6,7 @@ from django.db import models
 from django.db import transaction as db_transaction
 from django.utils import timezone
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 
 class DirectExpense(TimestampMixin):

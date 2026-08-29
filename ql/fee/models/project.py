@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 
 class Project(TimestampMixin):

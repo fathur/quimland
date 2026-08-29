@@ -1,6 +1,6 @@
 from django.db import models
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 
 class TransactionItem(TimestampMixin):

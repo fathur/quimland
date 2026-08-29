@@ -3,7 +3,7 @@ import datetime
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 
 class SalaryRate(TimestampMixin):

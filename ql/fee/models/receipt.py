@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 from ..services.storage import (
     STORAGE_BACKEND_CHOICES,
     STORAGE_LOCAL,

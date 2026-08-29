@@ -3,7 +3,7 @@ from django.db import models
 
 from ql.fee.services.utils import normalize_phone
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 
 class UserProperty(TimestampMixin):

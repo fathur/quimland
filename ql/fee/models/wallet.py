@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 class Wallet(TimestampMixin):
     name = models.CharField(max_length=100, unique=True)

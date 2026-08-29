@@ -6,7 +6,7 @@ from django.utils import timezone
 from ql.fee.models.transaction import Transaction
 from ql.fee.models.transaction_item import TransactionItem
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 
 class WalletTransfer(TimestampMixin):
     id = models.BigAutoField(primary_key=True)

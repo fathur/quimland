@@ -3,7 +3,7 @@ from mptt.managers import TreeManager
 from mptt.models import MPTTModel, TreeForeignKey
 from mptt.querysets import TreeQuerySet
 
-from .base import SoftDeleteQuerySet, TimestampMixin
+from ql.common.base import SoftDeleteQuerySet, TimestampMixin
 
 
 class FundQuerySet(SoftDeleteQuerySet, TreeQuerySet):

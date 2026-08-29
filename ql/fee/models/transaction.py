@@ -3,7 +3,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db import transaction as db_transaction
 
-from .base import TimestampMixin
+from ql.common.base import TimestampMixin
 from .transaction_item import TransactionItem
 
 

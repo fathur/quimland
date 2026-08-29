@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'mptt',
     'ql.fee',
     'ql.neighbor',
+    'ql.messaging',
     'sorl.thumbnail',
     'django_extensions',
     'rest_framework',
