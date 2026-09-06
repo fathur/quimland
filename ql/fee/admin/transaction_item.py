@@ -13,15 +13,15 @@ class TransactionItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     inline formset, which also keeps ItemRoutine and nominal-mismatch checks
     in sync. Editing here directly would bypass that."""
 
-    list_display         = ['id', 'transaction_link', 'transaction__user', 'occurred_at', 'fund', 'name', 'direction_display', 'price_display', 'quantity', 'nominal_display', 'receipt_icon']
+    list_display         = ['id', 'transaction_link', 'transaction__user', 'transaction__wallet', 'occurred_at', 'fund', 'name', 'direction_display', 'price_display', 'quantity', 'nominal_display', 'receipt_icon']
     list_filter          = [SoftDeleteFilter, 'fund', 'direction']
     search_fields        = ['id', 'name', 'transaction__id', 'transaction__note']
     ordering             = ['-created_at']
-    list_select_related  = ['transaction__user', 'transaction__receipt', 'fund']
+    list_select_related  = ['transaction__user', 'transaction__wallet', 'transaction__receipt', 'fund']
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'transaction', 'transaction__user', 'transaction__user__properties', 'fund', 'transaction__receipt'
+            'transaction', 'transaction__user', 'transaction__user__properties', 'transaction__wallet', 'fund', 'transaction__receipt'
         )
 
     def has_add_permission(self, request):  # noqa: ARG002
