@@ -23,6 +23,12 @@ class WalletTransfer(TimestampMixin):
     out_transaction = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
     in_transaction  = models.OneToOneField('Transaction', on_delete=models.CASCADE, editable=False, related_name='+')
 
+    receipt   = models.OneToOneField(
+        'WalletTransferReceipt', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='transaction',
+    )
+    
     class Meta:
         db_table = 'wallet_transfers'
 

@@ -20,6 +20,7 @@ from .asset import Asset
 from .wallet_transfer import WalletTransfer
 from .direct_expense import DirectExpense
 from .report import Report
+from .wallet_transfer_receipt import WalletTransferReceipt
 
 __all__ = [
     'Fund',
@@ -49,4 +50,5 @@ __all__ = [
     'WalletTransfer',
     'DirectExpense',
     'Report',
+    'WalletTransferReceipt',
 ]

@@ -1,0 +1,54 @@
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+
+from ql.common.base import TimestampMixin
+from ..services.storage import (
+    STORAGE_BACKEND_CHOICES,
+    STORAGE_LOCAL,
+    DynamicStorageImageField,
+    get_receipt_storage,
+)
+
+
+def _receipt_upload_to(instance, filename):
+    month = timezone.now().strftime('%Y/%m')
+    return f'receipts/user_{instance.user_id}/{month}/{filename}'
+
+
+class WalletTransferReceipt(TimestampMixin):
+    # Denormalised for the upload_to path — set before saving the file.
+    user         = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='wallet_transfer_users',
+    )
+    # storage=get_receipt_storage is only a fallback (used for e.g. field
+    # deconstruction) — actual reads/writes go through DynamicStorageImageField's
+    # per-row resolution (keyed off the `storage` column, below).
+    image   = DynamicStorageImageField(upload_to=_receipt_upload_to, storage=get_receipt_storage, null=True, blank=True)
+    storage = models.CharField(
+        max_length=10,
+        choices=STORAGE_BACKEND_CHOICES,
+        default=STORAGE_LOCAL,
+        editable=False,
+        help_text='Backend that holds the receipt file.',
+    )
+
+    class Meta:
+        db_table = 'wallet_transfer_receipts'
+
+    def save(self, *args, **kwargs):
+        if self.image and not self.image._committed:
+            # Must be set BEFORE compress_image_field() — it calls
+            # image.save(..., save=False) internally, which writes the file
+            # through DynamicStorageImageFieldFile.storage right away, and
+            # that reads self.storage to pick the backend. Setting it after
+            # the write would target wherever the field last pointed.
+            self.storage = getattr(settings, 'STORAGE_BACKEND', STORAGE_LOCAL)
+            from ..services.utils import compress_image_field
+            compress_image_field(self.image)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'Wallet Transfer Receipt #{self.pk}'
