@@ -46,6 +46,10 @@ class Fund(MPTTModel, TimestampMixin):
     description   = models.TextField(blank=True, default='')
     target_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     status        = models.CharField(max_length=10, choices=Status, default=Status.OPEN)
+    is_pass_through = models.BooleanField(
+        default=False,
+        help_text='Money collected is handed over as-is (e.g. garbage collector pay). Payouts are tracked per period on the Garbage Payouts page.',
+    )
 
     objects = FundTreeManager()
 
