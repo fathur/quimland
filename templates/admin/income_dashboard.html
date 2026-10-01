@@ -16,6 +16,12 @@
   .txn-header h1 { margin:0; }
   .txn-header .sub { font-size:0.875rem; color:var(--body-quiet-color); }
 
+  /* Year switcher */
+  .txn-year-nav { display:flex; align-items:center; gap:6px; }
+  .txn-year-nav .year { font-size:1.125rem; font-weight:700; min-width:3.5em; text-align:center; font-variant-numeric:tabular-nums; }
+  .txn-year-nav .button { padding:4px 10px; }
+  .txn-year-nav .today-link { margin-left:6px; font-size:0.75rem; }
+
   /* Legend */
   .txn-legend { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:18px; font-size:0.8125rem; }
   .txn-legend-item { display:flex; align-items:center; gap:5px; }
@@ -127,8 +133,14 @@
   }
 </style>
 
-<div class="txn-header" style="justify-content:space-between;">
-  <span class="sub">{{ year }} &mdash; {{ total_users }} {% translate 'residents' %}</span>
+<div class="txn-header" style="justify-content:space-between;align-items:center;">
+  <div class="txn-year-nav">
+    <a href="{{ prev_year_url }}" class="button" title="{% translate 'Previous year' %}" aria-label="{% translate 'Previous year' %}">&lsaquo; {{ year|add:"-1" }}</a>
+    <span class="year">{{ year }}</span>
+    <a href="{{ next_year_url }}" class="button" title="{% translate 'Next year' %}" aria-label="{% translate 'Next year' %}">{{ year|add:"1" }} &rsaquo;</a>
+    {% if not is_current_year %}<a href="{{ current_year_url }}" class="today-link">{% blocktranslate %}Back to {{ current_year }}{% endblocktranslate %}</a>{% endif %}
+    <span class="sub" style="margin-left:10px;">{{ total_users }} {% translate 'residents' %}</span>
+  </div>
   <a href="{% url 'admin:outstanding_dashboard' %}" class="button">{% translate 'View outstanding payments' %}</a>
 </div>
 
@@ -161,11 +173,12 @@
 {# ── Search ── #}
 <form method="get" style="display:flex;gap:8px;align-items:center;margin-bottom:18px;">
   {% if sort and sort != 'name' %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+  {% if not is_current_year %}<input type="hidden" name="year" value="{{ year }}">{% endif %}
   <input type="search" name="q" value="{{ q }}"
          placeholder="{% translate 'Search name or home number…' %}"
          style="padding:6px 10px;border:1px solid var(--border-color,#ccc);border-radius:4px;font-size:0.8125rem;min-width:260px;">
   <button type="submit" class="button default">{% translate 'Search' %}</button>
-  {% if q %}<a href="?{% if sort != 'name' %}sort={{ sort }}{% endif %}" class="button">{% translate 'Clear' %}</a>{% endif %}
+  {% if q %}<a href="?{% if sort != 'name' %}sort={{ sort }}{% endif %}{% if year_qs %}{% if sort != 'name' %}&{% endif %}{{ year_qs }}{% endif %}" class="button">{% translate 'Clear' %}</a>{% endif %}
 </form>
 
 {# ── Legend ── #}
@@ -196,12 +209,12 @@
     <thead>
       <tr>
         <th class="name-col" style="text-align:left;">
-          <a class="sort-link" href="?sort={% if sort == 'name' %}-name{% else %}name{% endif %}{% if q %}&q={{ q }}{% endif %}">
+          <a class="sort-link" href="?sort={% if sort == 'name' %}-name{% else %}name{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}{% if year_qs %}&{{ year_qs }}{% endif %}">
             {% translate 'Name' %}{% if sort == 'name' %} ↑{% elif sort == '-name' %} ↓{% endif %}
           </a>
         </th>
         <th style="text-align:left;">
-          <a class="sort-link" href="?sort={% if sort == 'home' %}-home{% else %}home{% endif %}{% if q %}&q={{ q }}{% endif %}">
+          <a class="sort-link" href="?sort={% if sort == 'home' %}-home{% else %}home{% endif %}{% if q %}&q={{ q|urlencode }}{% endif %}{% if year_qs %}&{{ year_qs }}{% endif %}">
             {% translate 'Home No.' %}{% if sort == 'home' %} ↑{% elif sort == '-home' %} ↓{% endif %}
           </a>
         </th>

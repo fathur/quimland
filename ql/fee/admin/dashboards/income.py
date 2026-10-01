@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.contrib import admin
 from django.contrib.auth.decorators import permission_required
@@ -15,9 +16,14 @@ from ql.fee.services.utils import fmt_rupiah
 
 @permission_required('fee.view_alltransaction', raise_exception=True)
 def income_dashboard_view(request):
-    today        = timezone.localdate()
-    year         = today.year
-    current_month = today.month
+    today = timezone.localdate()
+    try:
+        year = int(request.GET.get('year', today.year))
+    except ValueError:
+        year = today.year
+    year = min(max(year, 2000), 2100)
+    # Only the current year has a "current month" to highlight.
+    current_month = today.month if year == today.year else None
     months = [date(year, m, 1) for m in range(1, 13)]
 
     funds      = list(Fund.objects.filter(kind=Fund.Kind.ROUTINE).order_by('name'))
@@ -116,7 +122,9 @@ def income_dashboard_view(request):
         ]
         summary_cells.append({'month': month_date.month, 'fund_totals': fund_totals})
 
-    future_months = [m for m in months if m.month > current_month]
+    # Months after today's month — all of a future year, none of a past one.
+    this_month = date(today.year, today.month, 1)
+    future_months = [m for m in months if m > this_month]
     future_periods = {m.strftime('%Y-%m') for m in future_months}
     fund_future_totals = {fund.id: zero for fund in funds}
 
@@ -143,10 +151,28 @@ def income_dashboard_view(request):
     if future_months:
         future_range_display = f'{future_months[0]:%b} – {future_months[-1]:%b} {year}'
 
+    def page_url(**overrides):
+        # Keeps search/sort when switching year (and year when sorting/searching);
+        # default values are dropped so the current year stays at a clean URL.
+        params = {'year': year, 'q': q, 'sort': sort, **overrides}
+        if params['year'] == today.year:
+            params.pop('year')
+        if not params['q']:
+            params.pop('q')
+        if params['sort'] == 'name':
+            params.pop('sort')
+        return '?' + urlencode(params)
+
     context = {
         **admin.site.each_context(request),
         'title': 'Income',
         'year': year,
+        'is_current_year': year == today.year,
+        'prev_year_url': page_url(year=year - 1),
+        'next_year_url': page_url(year=year + 1),
+        'current_year_url': page_url(year=today.year),
+        'current_year': today.year,
+        'year_qs': '' if year == today.year else f'year={year}',
         'months': months,
         'funds': funds,
         'rows': rows,
