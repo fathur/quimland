@@ -11,7 +11,7 @@
 
   .gb-form {
     display: grid; gap: 14px 16px; align-items: start;
-    grid-template-columns: minmax(170px, 200px) minmax(200px, 260px) 1fr;
+    grid-template-columns: minmax(170px, 200px) minmax(240px, 360px) 1fr;
   }
   /* Expense item labels are long (tx id · date · name · amount) — own full-width row */
   .gb-form .gb-item, .gb-form .gb-alert, .gb-form .gb-actions { grid-column: 1 / -1; }
@@ -112,6 +112,7 @@
     <div class="ql-card">
       <div class="ql-card-label">{% translate 'Paid out' %}</div>
       <div class="ql-card-value">{{ paid_display }}</div>
+      {% if surplus_display %}<div class="ql-card-sub">{% blocktranslate %}incl. {{ surplus_display }} surplus{% endblocktranslate %}</div>{% endif %}
     </div>
     <div class="ql-card">
       <div class="ql-card-label">{% translate 'Due to pay today' %}</div>
@@ -130,7 +131,7 @@
   <section class="ql-card gb-card">
     <header class="gb-card-head">
       <h2>{% translate 'Allocate an expense to a month' %}</h2>
-      <p>{% translate 'Record the payment to the collector under Expenses first, then allocate it here to the month it pays for. A rapel can be split across months by saving it once per month.' %}</p>
+      <p>{% translate 'Record the payment to the collector under Expenses first, then allocate it here. The chosen month is settled first; any extra pays off earlier months that still have a remaining balance, and what is left is booked as surplus.' %}</p>
     </header>
 
     <form method="post" class="gb-form">
@@ -154,6 +155,7 @@
         <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
         <div class="gb-money"><span>Rp</span>{{ form.amount }}</div>
         {{ form.amount.errors }}
+        <div class="gb-hint" id="gb-amount-hint"></div>
       </div>
 
       <div class="gb-field gb-item {% if form.transaction_item.errors %}has-error{% endif %}">
@@ -193,21 +195,42 @@
         setHint(itemHint, u === undefined ? '' : '{% translate "Unallocated on this item:" %} ' + fmt(u));
       }
 
-      // Suggest the largest valid payout (min of item's unallocated and the month's
-      // remaining) — but never overwrite an amount the treasurer typed themselves.
+      var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var label = function (p) { return MONTHS[Number(p.slice(5)) - 1] + ' ' + p.slice(0, 4); };
+      var amountHint = document.getElementById('gb-amount-hint');
+
+      // Mirrors split_payout() on the server: chosen month first, then earlier
+      // months with a remaining balance (oldest first), the rest is surplus.
+      function preview() {
+        var a = Number(amount.value), p = period.value;
+        if (!a || !p || p > config.current) { setHint(amountHint, ''); return; }
+        var own = Math.min(a, Number(config.remaining[p] || 0)), left = a - own, parts = [];
+        Object.keys(config.remaining).sort().forEach(function (q) {
+          if (q >= p || left <= 0) return;
+          var take = Math.min(left, Number(config.remaining[q]));
+          if (take > 0) { parts.push(label(q) + ' ' + fmt(take)); left -= take; }
+        });
+        parts.unshift(label(p) + ' ' + fmt(own));
+        var text = '{% translate "Split:" %} ' + parts.join(' · ');
+        if (left > 0) text += ' · {% translate "surplus" %} ' + fmt(left) + ' ({% translate "on" %} ' + label(p) + ')';
+        setHint(amountHint, parts.length > 1 || left > 0 ? text : '', left > 0);
+      }
+
+      // Suggest the whole unallocated amount of the item — the server splits
+      // any excess over the month's remaining — but never overwrite an amount
+      // the treasurer typed themselves.
       function autofill() {
         if (amount.value && amount.dataset.auto !== '1') return;
         var u = Number(config.unallocated[item.value] || 0);
-        var r = Number(config.remaining[period.value] || 0);
-        var v = Math.min(u, r);
-        amount.value = v > 0 ? v : '';
+        amount.value = u > 0 ? u : '';
         amount.dataset.auto = '1';
       }
 
-      amount.addEventListener('input', function () { amount.dataset.auto = ''; });
-      item.addEventListener('change', function () { autofill(); refreshHints(); });
-      period.addEventListener('change', function () { autofill(); refreshHints(); });
+      amount.addEventListener('input', function () { amount.dataset.auto = ''; preview(); });
+      item.addEventListener('change', function () { autofill(); refreshHints(); preview(); });
+      period.addEventListener('change', function () { refreshHints(); preview(); });
       refreshHints();
+      preview();
     })();
   </script>
   {% endif %}
@@ -222,6 +245,7 @@
           <th class="num">{% translate 'Collected' %}</th>
           <th class="num">{% translate 'Paid out' %}</th>
           <th class="num">{% translate 'Remaining' %}</th>
+          <th class="num">{% translate 'Surplus' %}</th>
           <th>{% translate 'Allocations' %}</th>
         </tr>
       </thead>
@@ -240,13 +264,16 @@
           <td class="num">
             {% if row.is_held %}
               —
-            {% elif row.over_paid %}
-              <span class="ql-badge kurang">{% translate 'over-paid' %} {{ row.remaining|floatformat:"0g" }}</span>
+            {% elif row.collected == 0 and row.paid == 0 %}
+              —
             {% elif row.remaining > 0 %}
               <span class="ql-badge partial">{{ row.remaining|floatformat:"0g" }}</span>
             {% else %}
               <span class="ql-badge paid">{% translate 'settled' %}</span>
             {% endif %}
+          </td>
+          <td class="num">
+            {% if row.surplus > 0 %}<span class="ql-badge lebih">{{ row.surplus|floatformat:"0g" }}</span>{% else %}—{% endif %}
           </td>
           <td>
             {% if row.payouts %}
@@ -268,7 +295,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="ql-empty">{% translate 'No garbage money collected yet.' %}</td></tr>
+        <tr><td colspan="6" class="ql-empty">{% translate 'No garbage money collected yet.' %}</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -10,9 +10,8 @@ from django.utils import timezone
 
 from ql.fee.models import Fund, RoutinePayout
 from ql.fee.services.pass_through import (
-    collected_by_period,
+    allocate_payout,
     pass_through_ledger,
-    paid_by_period,
     payable_items,
     period_of,
 )
@@ -60,13 +59,8 @@ class RoutinePayoutForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         period, amount, item = cleaned.get('period'), cleaned.get('amount'), cleaned.get('transaction_item')
-        if period and amount and item:
-            if amount > item.unallocated:
-                self.add_error('amount', f'Only {fmt_rupiah(item.unallocated)} of this expense item is still unallocated.')
-            collected = collected_by_period(self.fund).get(period, {'total': Decimal('0')})['total']
-            remaining = collected - paid_by_period(self.fund).get(period, Decimal('0'))
-            if amount > remaining:
-                self.add_error('amount', f'Only {fmt_rupiah(max(remaining, Decimal("0")))} is left to pay out for {period}.')
+        if period and amount and item and amount > item.unallocated:
+            self.add_error('amount', f'Only {fmt_rupiah(item.unallocated)} of this expense item is still unallocated.')
         return cleaned
 
 
@@ -89,12 +83,11 @@ def garbage_dashboard_view(request):
             return redirect('admin:garbage_dashboard')
         form = RoutinePayoutForm(request.POST, fund=fund, today=today)
         if form.is_valid():
-            RoutinePayout.objects.create(
-                transaction_item=form.cleaned_data['transaction_item'],
-                period=form.cleaned_data['period'],
-                amount=form.cleaned_data['amount'],
-            )
-            messages.success(request, f'Payout of {fmt_rupiah(form.cleaned_data["amount"])} allocated to {form.cleaned_data["period"]}.')
+            period, amount = form.cleaned_data['period'], form.cleaned_data['amount']
+            parts, surplus = allocate_payout(fund, form.cleaned_data['transaction_item'], period, amount)
+            summary = ', '.join(f'{p}: {fmt_rupiah(a)}' for p, a in parts)
+            note = f' (incl. surplus {fmt_rupiah(surplus)} on {period})' if surplus else ''
+            messages.success(request, f'Payout of {fmt_rupiah(amount)} allocated — {summary}{note}.')
             return redirect('admin:garbage_dashboard')
     elif fund and can_edit:
         form = RoutinePayoutForm(fund=fund, today=today)
@@ -112,6 +105,7 @@ def garbage_dashboard_view(request):
             'rows': list(reversed(ledger['rows'])),
             'collected_display': fmt_rupiah(ledger['collected_total']),
             'paid_display': fmt_rupiah(ledger['paid_total']),
+            'surplus_display': fmt_rupiah(ledger['surplus_total']) if ledger['surplus_total'] else None,
             'due_now_display': fmt_rupiah(ledger['due_now']),
             'held_display': fmt_rupiah(ledger['held']),
             'has_held': ledger['held'] != 0,
@@ -123,7 +117,7 @@ def garbage_dashboard_view(request):
             context['has_payable_items'] = bool(unallocated)
             context['form_config'] = {
                 'current': period_of(today),
-                'remaining': {r['period']: str(max(r['remaining'], Decimal('0'))) for r in ledger['rows'] if not r['is_held']},
+                'remaining': {r['period']: str(r['remaining']) for r in ledger['rows'] if not r['is_held']},
                 'unallocated': unallocated,
             }
     return render(request, 'admin/garbage_dashboard.html', context)

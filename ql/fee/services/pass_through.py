@@ -3,16 +3,19 @@ garbage collector pay). Per routine period (YYYY-MM):
 
     collected(P) = Σ IN items of the fund tagged with ItemRoutine.period = P
     paid(P)      = Σ RoutinePayout.amount allocated to P
-    remaining(P) = collected(P) − paid(P)
+    remaining(P) = max(collected(P) − paid(P), 0)
+    surplus(P)   = max(paid(P) − collected(P), 0)   # paid beyond what was collected
 
 Late payments raise collected(P) of an earlier month, which is how a "rapel"
-shows up as a remaining balance on a month that was already paid out once.
+shows up as a remaining balance on a month that was already paid out once —
+and absorbs any surplus that month had.
 Periods after the current month are held (paid in advance, not yet payable).
 """
 
 from datetime import date
 from decimal import Decimal
 
+from django.db import transaction as db_transaction
 from django.db.models import Count, DecimalField, F, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -68,7 +71,46 @@ def paid_by_period(fund):
 
 def remaining_for_period(fund, period):
     collected = collected_by_period(fund).get(period, {'total': ZERO})['total']
-    return collected - paid_by_period(fund).get(period, ZERO)
+    return max(collected - paid_by_period(fund).get(period, ZERO), ZERO)
+
+
+def split_payout(fund, period, amount):
+    """How `amount` paid out "for `period`" is distributed.
+
+    The chosen month is settled first; whatever is left over pays off earlier
+    months that still have a remaining balance (oldest first); anything beyond
+    that is surplus, booked on the chosen month.
+
+    Returns (parts, surplus): parts is [(period, amount), …] with the chosen
+    month first (its amount already includes the surplus), surplus a Decimal.
+    """
+    collected = collected_by_period(fund)
+    paid = paid_by_period(fund)
+
+    def remaining(p):
+        return max(collected.get(p, {'total': ZERO})['total'] - paid.get(p, ZERO), ZERO)
+
+    own = min(amount, remaining(period))
+    left = amount - own
+    earlier = []
+    for p in sorted(p for p in set(collected) | set(paid) if p < period):
+        take = min(left, remaining(p))
+        if take > 0:
+            earlier.append((p, take))
+            left -= take
+    return [(period, own + left)] + earlier, left
+
+
+def allocate_payout(fund, transaction_item, period, amount):
+    """Create the RoutinePayout rows for one allocation (see split_payout).
+    Returns (parts, surplus)."""
+    parts, surplus = split_payout(fund, period, amount)
+    with db_transaction.atomic():
+        for part_period, part_amount in parts:
+            RoutinePayout.objects.create(
+                transaction_item=transaction_item, period=part_period, amount=part_amount,
+            )
+    return parts, surplus
 
 
 def payable_items(fund):
@@ -99,8 +141,8 @@ def pass_through_ledger(fund, today=None):
 
     Returns {
         'rows': [{'period', 'month', 'collected', 'payments', 'paid', 'remaining',
-                  'is_held', 'over_paid', 'payouts'}],  # ascending, no gaps
-        'collected_total', 'paid_total',
+                  'surplus', 'is_held', 'payouts'}],  # ascending, no gaps
+        'collected_total', 'paid_total', 'surplus_total',
         'due_now',   # Σ remaining of periods up to the current month
         'held',      # collected for months after the current one
     }
@@ -129,9 +171,9 @@ def pass_through_ledger(fund, today=None):
                 'collected': c['total'],
                 'payments': c['payments'],
                 'paid': p,
-                'remaining': c['total'] - p,
+                'remaining': max(c['total'] - p, ZERO),
+                'surplus': max(p - c['total'], ZERO),
                 'is_held': period > current,
-                'over_paid': p > c['total'],
                 'payouts': payouts_by_period.get(period, []),
             })
 
@@ -140,6 +182,7 @@ def pass_through_ledger(fund, today=None):
         'rows': rows,
         'collected_total': sum((r['collected'] for r in due_rows), ZERO),
         'paid_total': sum((r['paid'] for r in rows), ZERO),
-        'due_now': sum((max(r['remaining'], ZERO) for r in due_rows), ZERO),
+        'surplus_total': sum((r['surplus'] for r in rows), ZERO),
+        'due_now': sum((r['remaining'] for r in due_rows), ZERO),
         'held': sum((r['collected'] - r['paid'] for r in rows if r['is_held']), ZERO),
     }

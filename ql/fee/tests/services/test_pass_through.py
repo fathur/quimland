@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from ql.fee.admin.dashboards.garbage import RoutinePayoutForm
 from ql.fee.models import Fund, ItemRoutine, RoutinePayout, Transaction, TransactionItem
-from ql.fee.services.pass_through import pass_through_ledger, payable_items
+from ql.fee.services.pass_through import allocate_payout, pass_through_ledger, payable_items, split_payout
 
 User = get_user_model()
 D = Decimal
@@ -105,6 +105,68 @@ class LedgerTests(LedgerTestBase):
         self.assertEqual(ledger['due_now'], D(0))
 
 
+class OverflowAndSurplusTests(LedgerTestBase):
+    """March collected 870K, April 1350K — paid out step by step."""
+
+    def setUp(self):
+        super().setUp()
+        self.collect('2026-03', 870000)
+        self.collect('2026-04', 1350000)
+
+    def pay(self, period, nominal):
+        item = self.expense(nominal)
+        return allocate_payout(self.fund, item, period, D(nominal))
+
+    def ledger_row(self, period):
+        return self.row(pass_through_ledger(self.fund, TODAY), period)
+
+    def test_step_by_step_balances(self):
+        self.pay('2026-03', 550000)
+        self.assertEqual(self.ledger_row('2026-03')['remaining'], D(320000))
+        self.pay('2026-04', 80000)
+        self.assertEqual(self.ledger_row('2026-04')['remaining'], D(1270000))
+        self.pay('2026-04', 500000)
+        self.assertEqual(self.ledger_row('2026-04')['remaining'], D(770000))
+
+    def test_excess_settles_chosen_month_then_earlier_then_surplus(self):
+        self.pay('2026-03', 550000)
+        self.pay('2026-04', 80000)
+        self.pay('2026-04', 500000)
+
+        parts, surplus = self.pay('2026-04', 1410000)
+
+        # April's remaining 770K, then March's remaining 320K, then 320K surplus on April.
+        self.assertEqual(surplus, D(320000))
+        self.assertEqual(dict(parts), {'2026-04': D(1090000), '2026-03': D(320000)})
+        apr, mar = self.ledger_row('2026-04'), self.ledger_row('2026-03')
+        self.assertEqual((apr['remaining'], apr['surplus']), (D(0), D(320000)))
+        self.assertEqual((mar['remaining'], mar['surplus']), (D(0), D(0)))
+        self.assertEqual(pass_through_ledger(self.fund, TODAY)['surplus_total'], D(320000))
+
+    def test_split_without_excess_is_a_single_part(self):
+        parts, surplus = split_payout(self.fund, '2026-04', D(500000))
+        self.assertEqual((parts, surplus), ([('2026-04', D(500000))], D(0)))
+
+    def test_excess_goes_to_oldest_month_first(self):
+        self.collect('2026-02', 100000)
+        parts, surplus = split_payout(self.fund, '2026-04', D(1350000 + 150000))
+        self.assertEqual(parts, [('2026-04', D(1350000)), ('2026-02', D(100000)), ('2026-03', D(50000))])
+        self.assertEqual(surplus, D(0))
+
+    def test_later_collection_absorbs_surplus(self):
+        self.pay('2026-03', 870000)                       # nothing left on earlier months
+        self.pay('2026-04', 1500000)                      # 150K more than collected
+        self.assertEqual(self.ledger_row('2026-04')['surplus'], D(150000))
+        self.collect('2026-04', 200000)                   # late payers for April
+        apr = self.ledger_row('2026-04')
+        self.assertEqual((apr['surplus'], apr['remaining']), (D(0), D(50000)))
+
+    def test_item_cannot_be_over_allocated_through_overflow(self):
+        item = self.expense(100000)
+        allocate_payout(self.fund, item, '2026-04', D(100000))
+        self.assertFalse(payable_items(self.fund).filter(pk=item.pk).exists())
+
+
 class RoutinePayoutFormTests(LedgerTestBase):
     def form(self, item, period, amount):
         return RoutinePayoutForm(
@@ -117,12 +179,10 @@ class RoutinePayoutFormTests(LedgerTestBase):
         item = self.expense(100000)
         self.assertTrue(self.form(item, '2026-09', 100000).is_valid())
 
-    def test_rejects_more_than_collected_for_period(self):
+    def test_more_than_collected_is_accepted_and_overflows(self):
         self.collect('2026-09', 20000, count=2)
         item = self.expense(100000)
-        form = self.form(item, '2026-09', 50000)
-        self.assertFalse(form.is_valid())
-        self.assertIn('amount', form.errors)
+        self.assertTrue(self.form(item, '2026-09', 50000).is_valid())
 
     def test_rejects_more_than_item_unallocated(self):
         self.collect('2026-09', 20000, count=10)
@@ -173,9 +233,9 @@ class GarbageDashboardViewTests(LedgerTestBase):
         self.collect(period, 20000)
         item = self.expense(100000)
 
-        resp = self.client.post(reverse('admin:garbage_dashboard'), {'period': period, 'amount': '50000', 'transaction_item': item.pk})
+        resp = self.client.post(reverse('admin:garbage_dashboard'), {'period': period, 'amount': '500000', 'transaction_item': item.pk})
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'is left to pay out for')
+        self.assertContains(resp, 'unallocated')
         self.assertContains(resp, 'gb-form-config')
         self.assertFalse(RoutinePayout.objects.exists())
 
