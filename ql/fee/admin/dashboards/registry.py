@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path
 
 from .earmarked import earmarked_dashboard_view
+from .garbage import garbage_dashboard_view
 from .funds import funds_dashboard_view
 from .income import income_dashboard_view
 from .leaderboard import leaderboard_dashboard_view
@@ -27,6 +28,11 @@ def _get_urls():
             'income-dashboard/outstanding',
             admin.site.admin_view(outstanding_dashboard_view),
             name='outstanding_dashboard',
+        ),
+        path(
+            'garbage-dashboard/',
+            admin.site.admin_view(garbage_dashboard_view),
+            name='garbage_dashboard',
         ),
         path(
             'leaderboard-dashboard/',
@@ -64,6 +70,14 @@ def _dashboard_app(request):
             'name': 'Tariff Income Overview',
             'object_name': 'IncomeDashboard',
             'admin_url': '/income-dashboard/',
+            'add_url': None,
+            'view_only': True,
+            'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+        })
+        models.append({
+            'name': 'Garbage Payouts',
+            'object_name': 'GarbageDashboard',
+            'admin_url': '/garbage-dashboard/',
             'add_url': None,
             'view_only': True,
             'perms': {'add': False, 'change': True, 'delete': False, 'view': True},

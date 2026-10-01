@@ -42,7 +42,7 @@ class FundAdmin(MPTTModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
-            (None, {'fields': ['parent', 'name', 'color', 'kind', 'description', 'target_amount', 'status']}),
+            (None, {'fields': ['parent', 'name', 'color', 'kind', 'description', 'target_amount', 'status', 'is_pass_through']}),
         ]
         if obj:
             fieldsets.append(('Audit', {'fields': ['created_at', 'updated_at', 'deleted_at'], 'classes': ['collapse']}))

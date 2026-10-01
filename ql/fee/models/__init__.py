@@ -13,6 +13,7 @@ from .loan import Loan
 from .transaction import Transaction, IncomeTransaction, ExpenseTransaction, TransferTransaction, AllTransaction
 from .transaction_item import TransactionItem
 from .item_routine import ItemRoutine
+from .routine_payout import RoutinePayout
 from .project import Project
 from .due_note import DueNote, DueNoteProof
 from .wallet import Wallet
@@ -42,6 +43,7 @@ __all__ = [
     'AllTransaction',
     'TransactionItem',
     'ItemRoutine',
+    'RoutinePayout',
     'Project',
     'DueNote',
     'DueNoteProof',
