@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n static %}
+{% load i18n static fee_filters %}
 
 {% block extrastyle %}{{ block.super }}
 <link rel="stylesheet" href="{% static 'fee/css/dashboard.css' %}">
@@ -78,11 +78,80 @@
   .gb-submit:hover { filter: brightness(1.08); }
   .gb-submit:disabled { opacity: .5; cursor: not-allowed; filter: none; }
   .gb-section-title { margin: 22px 0 8px; font-size: 0.875rem; text-transform: uppercase; letter-spacing: .03em; }
-  .gb-held td { color: var(--body-quiet-color); }
-  .gb-payouts { margin: 4px 0 0; padding: 0; list-style: none; font-size: 0.75rem; color: var(--body-quiet-color); }
-  .gb-payouts li { display: flex; gap: 8px; align-items: center; }
-  .gb-payouts form { display: inline; }
-  .gb-payouts button { border: 0; background: none; color: #b91c1c; cursor: pointer; font-size: 0.75rem; padding: 0; }
+
+  /* ---- Per-month ledger ---- */
+  /* Status text colours, swapped for lighter tints in dark mode (same selectors Django admin's theme uses) */
+  :root { --gb-green: #15803d; --gb-amber: #b45309; --gb-violet: #7c3aed; --gb-blue: #2563eb; }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="auto"] { --gb-green: #4ade80; --gb-amber: #fbbf24; --gb-violet: #c4b5fd; --gb-blue: #93c5fd; }
+  }
+  html[data-theme="dark"] { --gb-green: #4ade80; --gb-amber: #fbbf24; --gb-violet: #c4b5fd; --gb-blue: #93c5fd; }
+
+  .gb-ledger-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 26px 0 10px; }
+  .gb-ledger-head .gb-section-title { margin: 0; }
+  .gb-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.75rem; color: var(--body-quiet-color); }
+  .gb-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .gb-toggle { margin-left: auto; font-size: 0.75rem; color: var(--body-quiet-color); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+
+  .gb-table { min-width: 980px; }
+  .gb-table td { vertical-align: top; }
+  .gb-table .sub { display: block; font-size: 0.6875rem; color: var(--body-quiet-color); margin-top: 3px; font-weight: 400; }
+  .gb-table .amt { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .gb-table tbody tr { border-left: 3px solid transparent; }
+  .gb-table tbody tr.st-partial, .gb-table tbody tr.st-unpaid { border-left-color: #f59e0b; }
+  .gb-table tbody tr.st-surplus { border-left-color: #8b5cf6; }
+  .gb-table tbody tr.st-held, .gb-table tbody tr.st-empty { color: var(--body-quiet-color); }
+  .gb-table tbody tr.st-held .amt, .gb-table tbody tr.st-empty .amt { font-weight: 400; }
+  .gb-table tr.gb-year td {
+    padding: 14px 14px 6px; font-size: 0.6875rem; font-weight: 700; letter-spacing: .06em;
+    color: var(--body-quiet-color); background: none; border-bottom: 1px solid var(--hairline-color);
+  }
+  .gb-table tbody tr.gb-year:hover { background: none; }
+  .gb-month { font-weight: 700; white-space: nowrap; }
+  .gb-month .ql-tag { margin-left: 0; margin-top: 4px; }
+
+  /* Status pills — translucent so they read in both themes */
+  .gb-status { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; white-space: nowrap; }
+  .gb-status.settled { background: rgba(34,197,94,.16);  color: var(--gb-green); }
+  .gb-status.partial, .gb-status.unpaid { background: rgba(245,158,11,.18); color: var(--gb-amber); }
+  .gb-status.surplus { background: rgba(139,92,246,.18); color: var(--gb-violet); }
+  .gb-status.held    { background: rgba(59,130,246,.16); color: var(--gb-blue); }
+  .gb-status.empty   { background: var(--darkened-bg);  color: var(--body-quiet-color); }
+
+  /* Payout progress bar: paid | remaining | surplus, as a share of max(collected, paid) */
+  .gb-progress { min-width: 190px; width: 26%; }
+  .gb-table td.gb-paidwith { min-width: 190px; }
+  .gb-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--darkened-bg); margin: 2px 0 6px; }
+  .gb-bar span { display: block; height: 100%; }
+  .gb-bar .paid      { background: #22c55e; }
+  .gb-bar .remaining { background: #f59e0b; }
+  .gb-bar .surplus   { background: #8b5cf6; }
+  .gb-progress-figs { display: flex; justify-content: space-between; gap: 10px; font-size: 0.75rem; }
+  .gb-progress-figs .left  { color: var(--gb-amber); font-weight: 600; }
+  .gb-progress-figs .extra { color: var(--gb-violet); font-weight: 600; }
+
+  /* Allocation chips */
+  .gb-allocs { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .gb-chip {
+    display: inline-grid; grid-template-columns: auto auto auto; align-items: center; column-gap: 6px;
+    padding: 3px 4px 3px 8px; width: fit-content; max-width: 100%; box-sizing: border-box;
+    border: 1px solid var(--hairline-color); border-radius: 6px; font-size: 0.75rem;
+  }
+  .gb-chip a { font-weight: 700; text-decoration: none; }
+  /* "of Rp X" (part of a larger transaction) drops to its own line under the amount */
+  .gb-chip .of { grid-row: 2; grid-column: 1 / -1; font-size: 0.6875rem; color: var(--body-quiet-color); padding-bottom: 1px; }
+  .gb-chip form { display: inline; margin: 0; }
+  .gb-chip button {
+    border: 0; background: none; cursor: pointer; padding: 0 4px; line-height: 1;
+    font-size: 0.875rem; color: var(--body-quiet-color);
+  }
+  .gb-chip button:hover { color: #b91c1c; }
+
+  .gb-table tfoot td {
+    font-weight: 700; border-top: 2px solid var(--hairline-color); border-bottom: 0;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .gb-hide-blank tr.is-blank { display: none; }
 </style>
 {% endblock %}
 
@@ -236,63 +305,96 @@
   {% endif %}
 
   {# ---------------- Per-month ledger ---------------- #}
-  <h2 class="gb-section-title">{% translate 'Per month' %}</h2>
+  <div class="gb-ledger-head">
+    <h2 class="gb-section-title">{% translate 'Per month' %}</h2>
+    <div class="gb-legend">
+      <span><i style="background:#22c55e"></i>{% translate 'Paid out' %}</span>
+      <span><i style="background:#f59e0b"></i>{% translate 'Still to pay' %}</span>
+      <span><i style="background:#8b5cf6"></i>{% translate 'Surplus' %}</span>
+    </div>
+    {% if blank_count %}
+    <label class="gb-toggle"><input type="checkbox" id="gb-show-blank">
+      {% blocktranslate count n=blank_count %}Show {{ n }} empty month{% plural %}Show {{ n }} empty months{% endblocktranslate %}
+    </label>
+    {% endif %}
+  </div>
+
   <div class="ql-scroll">
-    <table class="ql-table">
+    <table class="ql-table gb-table gb-hide-blank" id="gb-ledger">
       <thead>
         <tr>
           <th>{% translate 'Month' %}</th>
-          <th class="num">{% translate 'Collected' %}</th>
-          <th class="num" title="{% blocktranslate %}Received from the {{ cutoff_day }}th of the previous month up to the {{ cutoff_day }}th of this month, whatever period it pays for{% endblocktranslate %}">{% blocktranslate %}By {{ cutoff_day }}th{% endblocktranslate %}</th>
-          <th class="num">{% translate 'Paid out' %}</th>
-          <th class="num">{% translate 'Remaining' %}</th>
-          <th class="num">{% translate 'Surplus' %}</th>
-          <th>{% translate 'Allocations' %}</th>
+          <th>{% translate 'Status' %}</th>
+          <th class="num" title="{% translate 'Money paid by residents for this month, whenever it was paid' %}">{% translate 'Collected' %}</th>
+          <th title="{% translate 'How much of the collected money has been handed to the collector' %}">{% translate 'Payout progress' %}</th>
+          <th class="num" title="{% blocktranslate %}Cash received from the {{ cutoff_day }}th of the previous month up to the {{ cutoff_day }}th of this month, for any month — late payments land where the money arrived{% endblocktranslate %}">{% blocktranslate %}Cash in by {{ cutoff_day }}th{% endblocktranslate %}</th>
+          <th>{% translate 'Paid with' %}</th>
         </tr>
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr class="{% if row.is_held %}gb-held{% endif %}">
+        {% ifchanged row.month.year %}
+        <tr class="gb-year"><td colspan="6">{{ row.month.year }}</td></tr>
+        {% endifchanged %}
+        <tr class="st-{{ row.status }}{% if row.is_blank %} is-blank{% endif %}">
+          <td class="gb-month">
+            {{ row.month|date:"F" }}
+            {% if row.period == current_period %}<span class="sub"><span class="ql-tag">{% translate 'this month' %}</span></span>{% endif %}
+          </td>
+
           <td>
-            {{ row.month|date:"M Y" }}
-            {% if row.is_held %}<span class="ql-tag">{% translate 'held' %}</span>{% endif %}
-            {% if row.period == current_period %}<span class="ql-tag">{% translate 'this month' %}</span>{% endif %}
+            <span class="gb-status {{ row.status }}">{% translate row.status_label %}</span>
+            {% if row.status == 'held' %}<span class="sub">{% translate 'payable from its own month' %}</span>{% endif %}
           </td>
-          <td class="num">{{ row.collected|floatformat:"0g" }}
-            <div class="ql-card-sub">{% blocktranslate count n=row.payments %}{{ n }} payment{% plural %}{{ n }} payments{% endblocktranslate %}</div>
-          </td>
+
           <td class="num">
-            {% if row.cutoff_total or row.cutoff_payers %}
-              {{ row.cutoff_total|floatformat:"0g" }}
-              <div class="ql-card-sub">{% blocktranslate count n=row.cutoff_payers %}{{ n }} payer{% plural %}{{ n }} payers{% endblocktranslate %}{% if row.cutoff_open %} · {% translate 'so far' %}{% endif %}</div>
+            <span class="amt">{{ row.collected|rp }}</span>
+            <span class="sub">{% blocktranslate count n=row.payments %}{{ n }} payment{% plural %}{{ n }} payments{% endblocktranslate %}</span>
+          </td>
+
+          <td class="gb-progress">
+            {% if row.bar and not row.is_held %}
+              <div class="gb-bar" title="{% blocktranslate with p=row.paid_pct %}{{ p }}% paid out{% endblocktranslate %}">
+                {% if row.bar.paid %}<span class="paid" style="width:{{ row.bar.paid|stringformat:'s' }}%"></span>{% endif %}
+                {% if row.bar.remaining %}<span class="remaining" style="width:{{ row.bar.remaining|stringformat:'s' }}%"></span>{% endif %}
+                {% if row.bar.surplus %}<span class="surplus" style="width:{{ row.bar.surplus|stringformat:'s' }}%"></span>{% endif %}
+              </div>
+              <div class="gb-progress-figs">
+                <span>{% translate 'Paid' %} <span class="amt">{{ row.paid|rp }}</span></span>
+                {% if row.remaining > 0 %}
+                  <span class="left">{{ row.remaining|rp }} {% translate 'to pay' %}</span>
+                {% elif row.surplus > 0 %}
+                  <span class="extra">+{{ row.surplus|rp }} {% translate 'surplus' %}</span>
+                {% else %}
+                  <span>{{ row.paid_pct }}%</span>
+                {% endif %}
+              </div>
             {% else %}—{% endif %}
           </td>
-          <td class="num">{{ row.paid|floatformat:"0g" }}</td>
+
           <td class="num">
-            {% if row.is_held %}
-              —
-            {% elif row.collected == 0 and row.paid == 0 %}
-              —
-            {% elif row.remaining > 0 %}
-              <span class="ql-badge partial">{{ row.remaining|floatformat:"0g" }}</span>
-            {% else %}
-              <span class="ql-badge paid">{% translate 'settled' %}</span>
-            {% endif %}
+            {% if row.cutoff_total %}
+              <span class="amt">{{ row.cutoff_total|rp }}</span>
+              <span class="sub">{% blocktranslate count n=row.cutoff_payers %}{{ n }} payer{% plural %}{{ n }} payers{% endblocktranslate %}{% if row.cutoff_open %} · {% translate 'so far' %}{% endif %}</span>
+              <span class="sub" style="white-space:nowrap;">{{ row.cutoff_start|date:"j M" }} – {{ row.cutoff_date|date:"j M" }}</span>
+            {% else %}—{% endif %}
           </td>
-          <td class="num">
-            {% if row.surplus > 0 %}<span class="ql-badge lebih">{{ row.surplus|floatformat:"0g" }}</span>{% else %}—{% endif %}
-          </td>
-          <td>
+
+          <td class="gb-paidwith">
             {% if row.payouts %}
-            <ul class="gb-payouts">
+            <ul class="gb-allocs">
               {% for payout in row.payouts %}
-              <li>
-                <a href="{% url 'admin:fee_alltransaction_change' payout.transaction_item.transaction_id %}">#{{ payout.transaction_item.transaction_id }}</a>
-                {{ payout.amount|floatformat:"0g" }}
+              <li class="gb-chip">
+                <a href="{% url 'admin:fee_alltransaction_change' payout.transaction_item.transaction_id %}"
+                   title="{{ payout.transaction_item.name|default:'' }}{% if payout.transaction_item.transaction.occurred_at %} — {{ payout.transaction_item.transaction.occurred_at|date:'j M Y' }}{% endif %}">#{{ payout.transaction_item.transaction_id }}</a>
+                <span class="amt">{{ payout.amount|rp }}</span>
+                {% if payout.amount != payout.transaction_item.transaction.nominal %}
+                  <span class="of">{% blocktranslate with total=payout.transaction_item.transaction.nominal|rp %}of {{ total }}{% endblocktranslate %}</span>
+                {% endif %}
                 {% if can_edit %}
                 <form method="post" onsubmit="return confirm('{% translate 'Remove this allocation?' %}');">
                   {% csrf_token %}<input type="hidden" name="delete_id" value="{{ payout.id }}">
-                  <button type="submit">{% translate 'remove' %}</button>
+                  <button type="submit" title="{% translate 'Remove allocation' %}" aria-label="{% translate 'Remove allocation' %}">&times;</button>
                 </form>
                 {% endif %}
               </li>
@@ -302,11 +404,35 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="ql-empty">{% translate 'No garbage money collected yet.' %}</td></tr>
+        <tr><td colspan="6" class="ql-empty">{% translate 'No garbage money collected yet.' %}</td></tr>
         {% endfor %}
       </tbody>
+      {% if rows %}
+      <tfoot>
+        <tr>
+          <td colspan="2">{% translate 'Total' %}</td>
+          <td class="num">{{ totals.collected|rp }}<span class="sub">{% blocktranslate count n=totals.payments %}{{ n }} payment{% plural %}{{ n }} payments{% endblocktranslate %}</span></td>
+          <td>
+            <div class="gb-progress-figs">
+              <span>{% translate 'Paid' %} {{ totals.paid|rp }}</span>
+              <span class="left">{{ totals.remaining|rp }} {% translate 'to pay' %}</span>
+            </div>
+            {% if totals.surplus %}<span class="sub">{% blocktranslate with s=totals.surplus|rp %}incl. {{ s }} surplus{% endblocktranslate %}</span>{% endif %}
+          </td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+      {% endif %}
     </table>
   </div>
+  <script>
+    (function () {
+      var toggle = document.getElementById('gb-show-blank');
+      if (!toggle) return;
+      var table = document.getElementById('gb-ledger');
+      toggle.addEventListener('change', function () { table.classList.toggle('gb-hide-blank', !toggle.checked); });
+    })();
+  </script>
 
 {% endif %}
 </div>

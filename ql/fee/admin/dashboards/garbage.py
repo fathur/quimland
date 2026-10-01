@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from django import forms
@@ -65,6 +66,55 @@ class RoutinePayoutForm(forms.Form):
         return cleaned
 
 
+STATUS_LABELS = {
+    'settled': 'Settled',
+    'partial': 'Partly paid',
+    'unpaid':  'Not paid yet',
+    'surplus': 'Surplus',
+    'held':    'Held',
+    'empty':   'No activity',
+}
+
+
+def _decorate_row(row, cutoff_day):
+    """Presentation fields for one ledger row: status, payout progress bar
+    segments (percent of max(collected, paid)), and the cash-cycle window."""
+    collected, paid = row['collected'], row['paid']
+    if row['is_held']:
+        status = 'held'
+    elif not collected and not paid:
+        status = 'empty'
+    elif row['surplus'] > 0:
+        status = 'surplus'
+    elif row['remaining'] == 0:
+        status = 'settled'
+    elif paid == 0:
+        status = 'unpaid'
+    else:
+        status = 'partial'
+
+    base = max(collected, paid)
+    if base:
+        row['bar'] = {
+            'paid': round(min(paid, collected) / base * 100, 1),
+            'remaining': round(row['remaining'] / base * 100, 1),
+            'surplus': round(row['surplus'] / base * 100, 1),
+        }
+        row['paid_pct'] = int(min(paid, collected) / collected * 100) if collected else 0
+    else:
+        row['bar'] = None
+        row['paid_pct'] = 0
+
+    end = row['cutoff_date']
+    start_month = date(end.year - (end.month == 1), 12 if end.month == 1 else end.month - 1, 1)
+    row['cutoff_start'] = start_month.replace(day=cutoff_day + 1)
+    row['status'] = status
+    row['status_label'] = STATUS_LABELS[status]
+    # Nothing to show at all — hidden behind the "show empty months" toggle.
+    row['is_blank'] = status == 'empty' and not row['cutoff_total']
+    return row
+
+
 @permission_required('fee.view_alltransaction', raise_exception=True)
 def garbage_dashboard_view(request):
     fund = Fund.objects.filter(is_pass_through=True).order_by('id').first()
@@ -103,7 +153,15 @@ def garbage_dashboard_view(request):
     if fund:
         ledger = pass_through_ledger(fund, today, cutoff_day=PAYMENT_GRACE_DAY)
         context.update({
-            'rows': list(reversed(ledger['rows'])),
+            'rows': [_decorate_row(r, PAYMENT_GRACE_DAY) for r in reversed(ledger['rows'])],
+            'totals': {
+                'collected': sum((r['collected'] for r in ledger['rows']), Decimal('0')),
+                'payments': sum(r['payments'] for r in ledger['rows']),
+                'paid': ledger['paid_total'],
+                'remaining': ledger['due_now'],
+                'surplus': ledger['surplus_total'],
+            },
+            'blank_count': 0,
             'collected_display': fmt_rupiah(ledger['collected_total']),
             'paid_display': fmt_rupiah(ledger['paid_total']),
             'surplus_display': fmt_rupiah(ledger['surplus_total']) if ledger['surplus_total'] else None,
@@ -113,6 +171,7 @@ def garbage_dashboard_view(request):
             'current_period': period_of(today),
             'cutoff_day': PAYMENT_GRACE_DAY,
         })
+        context['blank_count'] = sum(1 for r in context['rows'] if r['is_blank'])
         if form is not None:
             # Drives the form's live hints and payout autofill (see the template's script).
             unallocated = {str(item.pk): str(item.unallocated) for item in form.fields['transaction_item'].queryset}
