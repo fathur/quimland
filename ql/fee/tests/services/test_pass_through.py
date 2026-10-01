@@ -21,11 +21,13 @@ class LedgerTestBase(TestCase):
         self.resident = User.objects.create_user(username='warga')
         self.fund = Fund.objects.create(name='Sampah', kind=Fund.Kind.ROUTINE, is_pass_through=True)
 
-    def collect(self, period, nominal, count=1):
+    def collect(self, period, nominal, count=1, paid_on=datetime(2026, 9, 20, 10)):
         for _ in range(count):
+            self.payer_count = getattr(self, 'payer_count', 0) + 1
+            payer = User.objects.create_user(username=f'payer{self.payer_count}')
             tx = Transaction.objects.create(
-                direction='IN', nominal=D(nominal), user=self.resident, creator=self.treasurer,
-                occurred_at=timezone.make_aware(datetime(2026, 9, 20, 10)),
+                direction='IN', nominal=D(nominal), user=payer, creator=self.treasurer,
+                occurred_at=timezone.make_aware(paid_on),
             )
             item = TransactionItem.objects.create(transaction=tx, fund=self.fund, nominal=D(nominal))
             ItemRoutine.objects.create(transaction_item=item, period=period)
@@ -103,6 +105,58 @@ class LedgerTests(LedgerTestBase):
         self.assertFalse(payable_items(self.fund).filter(pk=item.pk).exists())
         ledger = pass_through_ledger(self.fund, TODAY)
         self.assertEqual(ledger['due_now'], D(0))
+
+
+class CutoffCycleTests(LedgerTestBase):
+    """Cash view: what was received between the 5th of last month and the 5th of
+    this month, whatever period it pays for."""
+
+    def cycle(self, period, today=TODAY):
+        return self.row(pass_through_ledger(self.fund, today), period)
+
+    def test_late_payments_land_in_the_cycle_they_were_received(self):
+        self.collect('2026-08', 20000, count=5, paid_on=datetime(2026, 8, 3, 10))   # on time for Aug
+        self.collect('2026-08', 20000, count=3, paid_on=datetime(2026, 8, 20, 10))  # Aug, after the 5th
+        self.collect('2026-08', 20000, count=2, paid_on=datetime(2026, 9, 3, 10))   # Aug, late — Sep cycle
+        self.collect('2026-09', 20000, count=4, paid_on=datetime(2026, 9, 2, 10))   # Sep on time
+
+        aug, sep = self.cycle('2026-08'), self.cycle('2026-09')
+        self.assertEqual((aug['cutoff_total'], aug['cutoff_payers']), (D(100000), 5))
+        self.assertEqual((sep['cutoff_total'], sep['cutoff_payers']), (D(180000), 9))
+        # the period-based figure is untouched: all 10 August payments belong to Aug
+        self.assertEqual(aug['collected'], D(200000))
+
+    def test_cutoff_day_is_inclusive_in_local_time(self):
+        self.collect('2026-09', 10000, paid_on=datetime(2026, 9, 5, 23, 30))   # still the Sep cycle
+        self.collect('2026-09', 10000, paid_on=datetime(2026, 9, 6, 0, 30))    # next cycle
+        self.assertEqual(self.cycle('2026-09')['cutoff_total'], D(10000))
+        self.assertEqual(self.cycle('2026-10')['cutoff_total'], D(10000))
+
+    def test_same_payer_counted_once_per_cycle(self):
+        payer = User.objects.create_user(username='twice')
+        for day in (2, 4):
+            tx = Transaction.objects.create(
+                direction='IN', nominal=D(10000), user=payer, creator=self.treasurer,
+                occurred_at=timezone.make_aware(datetime(2026, 9, day, 9)),
+            )
+            item = TransactionItem.objects.create(transaction=tx, fund=self.fund, nominal=D(10000))
+            ItemRoutine.objects.create(transaction_item=item, period='2026-09')
+        sep = self.cycle('2026-09')
+        self.assertEqual((sep['cutoff_total'], sep['cutoff_payers']), (D(20000), 1))
+
+    def test_cycle_is_open_until_the_cutoff_day_passes(self):
+        self.collect('2026-09', 10000, paid_on=datetime(2026, 9, 2, 10))
+        self.collect('2026-10', 10000, paid_on=datetime(2026, 10, 1, 10))
+        self.assertFalse(self.cycle('2026-09')['cutoff_open'])
+        self.assertTrue(self.cycle('2026-10')['cutoff_open'])
+        self.assertFalse(self.cycle('2026-10', today=date(2026, 10, 6))['cutoff_open'])
+
+    def test_advance_payment_received_before_first_period_still_appears(self):
+        # paid 20 Aug for October: cycle Sep (Aug 6 – Sep 5) has no row-period of its own
+        self.collect('2026-10', 10000, paid_on=datetime(2026, 8, 20, 10))
+        periods = [r['period'] for r in pass_through_ledger(self.fund, TODAY)['rows']]
+        self.assertIn('2026-09', periods)
+        self.assertEqual(self.cycle('2026-09')['cutoff_total'], D(10000))
 
 
 class OverflowAndSurplusTests(LedgerTestBase):

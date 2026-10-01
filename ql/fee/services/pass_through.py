@@ -6,6 +6,13 @@ garbage collector pay). Per routine period (YYYY-MM):
     remaining(P) = max(collected(P) − paid(P), 0)
     surplus(P)   = max(paid(P) − collected(P), 0)   # paid beyond what was collected
 
+Alongside the per-period figures, each row also reports a cash view: what was
+actually received in the cycle that closes on the cut-off day (the 5th) of that
+month — every garbage payment with occurred_at after the previous month's cut-off
+up to this month's cut-off, whatever period it pays for. A late payment for an
+older period therefore lands in the cycle in which the money arrived, so on each
+cut-off day the treasurer knows how much came in and from how many payers.
+
 Late payments raise collected(P) of an earlier month, which is how a "rapel"
 shows up as a remaining balance on a month that was already paid out once —
 and absorbs any surplus that month had.
@@ -23,6 +30,10 @@ from django.utils import timezone
 from ql.fee.models import ItemRoutine, RoutinePayout, Transaction, TransactionItem
 
 ZERO = Decimal('0')
+
+# Default cut-off day of the month for the cash view (callers pass the app-wide
+# PAYMENT_GRACE_DAY from admin/dashboards/data.py so both agree).
+CUTOFF_DAY = 5
 
 
 def period_of(day):
@@ -54,6 +65,38 @@ def collected_by_period(fund):
         )
     )
     return {r['period']: {'total': r['total'] or ZERO, 'payments': r['payments']} for r in rows}
+
+
+def collected_by_cutoff(fund, cutoff_day=CUTOFF_DAY):
+    """{cycle: {'total': Decimal, 'payers': int}} of money received per cut-off cycle.
+
+    A payment received on or before `cutoff_day` of month M (local date) belongs
+    to cycle M ('YYYY-MM'); one received after it belongs to the next month's
+    cycle. Any period counts, so late payments land where they were received.
+    """
+    rows = (
+        ItemRoutine.objects
+        .filter(
+            transaction_item__fund=fund,
+            transaction_item__transaction__direction=Transaction.Direction.IN,
+            transaction_item__transaction__occurred_at__isnull=False,
+            transaction_item__deleted_at__isnull=True,
+            transaction_item__transaction__deleted_at__isnull=True,
+        )
+        .values_list(
+            'transaction_item__transaction__user_id',
+            'transaction_item__transaction__occurred_at',
+            'transaction_item__nominal',
+        )
+    )
+    totals, payers = {}, {}
+    for user_id, occurred_at, nominal in rows:
+        day = timezone.localtime(occurred_at).date()
+        index = day.year * 12 + day.month - 1 + (1 if day.day > cutoff_day else 0)
+        cycle = _period_from_index(index)
+        totals[cycle] = totals.get(cycle, ZERO) + nominal
+        payers.setdefault(cycle, set()).add(user_id)
+    return {c: {'total': totals[c], 'payers': len(payers[c])} for c in totals}
 
 
 def _active_payouts(fund):
@@ -136,12 +179,13 @@ def payable_items(fund):
     )
 
 
-def pass_through_ledger(fund, today=None):
+def pass_through_ledger(fund, today=None, cutoff_day=CUTOFF_DAY):
     """Per-period ledger plus headline totals for `fund`.
 
     Returns {
         'rows': [{'period', 'month', 'collected', 'payments', 'paid', 'remaining',
-                  'surplus', 'is_held', 'payouts'}],  # ascending, no gaps
+                  'surplus', 'is_held', 'payouts',
+                  'cutoff_total', 'cutoff_payers', 'cutoff_date', 'cutoff_open'}],  # ascending, no gaps
         'collected_total', 'paid_total', 'surplus_total',
         'due_now',   # Σ remaining of periods up to the current month
         'held',      # collected for months after the current one
@@ -152,12 +196,13 @@ def pass_through_ledger(fund, today=None):
 
     collected = collected_by_period(fund)
     paid = paid_by_period(fund)
+    cutoff = collected_by_cutoff(fund, cutoff_day)
 
     payouts_by_period = {}
     for payout in _active_payouts(fund).select_related('transaction_item__transaction'):
         payouts_by_period.setdefault(payout.period, []).append(payout)
 
-    known = set(collected) | set(paid)
+    known = set(collected) | set(paid) | set(cutoff)
     rows = []
     if known:
         first, last = _month_index(min(known)), _month_index(max(known | {current}))
@@ -165,6 +210,8 @@ def pass_through_ledger(fund, today=None):
             period = _period_from_index(index)
             c = collected.get(period, {'total': ZERO, 'payments': 0})
             p = paid.get(period, ZERO)
+            k = cutoff.get(period, {'total': ZERO, 'payers': 0})
+            cutoff_date = date(int(period[:4]), int(period[5:7]), cutoff_day)
             rows.append({
                 'period': period,
                 'month': date(int(period[:4]), int(period[5:7]), 1),
@@ -175,6 +222,11 @@ def pass_through_ledger(fund, today=None):
                 'surplus': max(p - c['total'], ZERO),
                 'is_held': period > current,
                 'payouts': payouts_by_period.get(period, []),
+                'cutoff_total': k['total'],
+                'cutoff_payers': k['payers'],
+                'cutoff_date': cutoff_date,
+                # the cycle is still collecting until the cut-off day has passed
+                'cutoff_open': today <= cutoff_date,
             })
 
     due_rows = [r for r in rows if not r['is_held']]

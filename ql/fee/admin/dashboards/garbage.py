@@ -8,6 +8,7 @@ from django.core.validators import RegexValidator
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
+from .data import PAYMENT_GRACE_DAY
 from ql.fee.models import Fund, RoutinePayout
 from ql.fee.services.pass_through import (
     allocate_payout,
@@ -100,7 +101,7 @@ def garbage_dashboard_view(request):
         'can_edit': can_edit,
     }
     if fund:
-        ledger = pass_through_ledger(fund, today)
+        ledger = pass_through_ledger(fund, today, cutoff_day=PAYMENT_GRACE_DAY)
         context.update({
             'rows': list(reversed(ledger['rows'])),
             'collected_display': fmt_rupiah(ledger['collected_total']),
@@ -110,6 +111,7 @@ def garbage_dashboard_view(request):
             'held_display': fmt_rupiah(ledger['held']),
             'has_held': ledger['held'] != 0,
             'current_period': period_of(today),
+            'cutoff_day': PAYMENT_GRACE_DAY,
         })
         if form is not None:
             # Drives the form's live hints and payout autofill (see the template's script).

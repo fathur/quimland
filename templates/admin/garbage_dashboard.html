@@ -243,6 +243,7 @@
         <tr>
           <th>{% translate 'Month' %}</th>
           <th class="num">{% translate 'Collected' %}</th>
+          <th class="num" title="{% blocktranslate %}Received from the {{ cutoff_day }}th of the previous month up to the {{ cutoff_day }}th of this month, whatever period it pays for{% endblocktranslate %}">{% blocktranslate %}By {{ cutoff_day }}th{% endblocktranslate %}</th>
           <th class="num">{% translate 'Paid out' %}</th>
           <th class="num">{% translate 'Remaining' %}</th>
           <th class="num">{% translate 'Surplus' %}</th>
@@ -259,6 +260,12 @@
           </td>
           <td class="num">{{ row.collected|floatformat:"0g" }}
             <div class="ql-card-sub">{% blocktranslate count n=row.payments %}{{ n }} payment{% plural %}{{ n }} payments{% endblocktranslate %}</div>
+          </td>
+          <td class="num">
+            {% if row.cutoff_total or row.cutoff_payers %}
+              {{ row.cutoff_total|floatformat:"0g" }}
+              <div class="ql-card-sub">{% blocktranslate count n=row.cutoff_payers %}{{ n }} payer{% plural %}{{ n }} payers{% endblocktranslate %}{% if row.cutoff_open %} · {% translate 'so far' %}{% endif %}</div>
+            {% else %}—{% endif %}
           </td>
           <td class="num">{{ row.paid|floatformat:"0g" }}</td>
           <td class="num">
@@ -295,7 +302,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="ql-empty">{% translate 'No garbage money collected yet.' %}</td></tr>
+        <tr><td colspan="7" class="ql-empty">{% translate 'No garbage money collected yet.' %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
