@@ -75,11 +75,15 @@ def income_dashboard_view(request):
                 data     = paid.get((user.id, fund.id, period))
                 total    = data['total'] if data else zero
                 status   = dot_status(total, expected)
+                # Money received from a resident who has no tariff for this month:
+                # still real income, so show it (striped badge) and count it.
+                if status == 'na' and data and data['entries']:
+                    status = 'notariff'
 
                 if status != 'na':
                     month_fund_totals[(fund.id, period)] += total
                     month_fund_applicable[(fund.id, period)] = True
-                    if status == 'paid':
+                    if status in ('paid', 'notariff'):
                         month_fund_paid_count[(fund.id, period)] += 1
 
                 if data and data['entries']:
@@ -131,10 +135,7 @@ def income_dashboard_view(request):
     for (user_id, fund_id, period), data in paid.items():
         if period not in future_periods or fund_id not in fund_future_totals:
             continue
-        month_date = date(year, int(period[5:7]), 1)
-        expected   = get_tariff(user_id, fund_id, month_date)
-        if dot_status(data['total'], expected) == 'na':
-            continue
+        # Advance money counts whether or not the resident has a tariff for that month.
         fund_future_totals[fund_id] += data['total']
 
     fund_by_id = {fund.id: fund for fund in funds}

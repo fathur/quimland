@@ -30,6 +30,8 @@
            font-size:0.6875rem; font-weight:700; line-height:1.4;
            white-space:nowrap; text-decoration:none !important; }
   .badge.unpaid { background:#ef4444; color:#fff; }
+  /* paid, but the resident has no tariff for this fund/month — same fund colour, diagonal stripes */
+  .badge.notariff { color:#fff; text-shadow:0 0 2px rgba(0,0,0,.55); }
   .badge.unpaid.noted { background:#f59e0b; color:#fff; }  /* amber = unpaid but explained */
 
   /* Matrix table */
@@ -270,6 +272,14 @@
                 {% endif %}
 
               
+              {% elif badge.status == 'notariff' %}
+                {% if perms.fee.change_incometransaction %}
+                <a class="badge notariff" href="{% url 'admin:fee_incometransaction_change' badge.transaction_id %}" style="--fc:{{ dot.fund.color }};background:repeating-linear-gradient(45deg,var(--fc) 0 4px,color-mix(in srgb,var(--fc) 40%,#fff) 4px 8px);" title="{{ dot.fund.name }}: paid, no tariff — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+                {% elif perms.fee.view_alltransaction %}
+                <a class="badge notariff" href="{% url 'admin:fee_alltransaction_change' badge.transaction_id %}" style="--fc:{{ dot.fund.color }};background:repeating-linear-gradient(45deg,var(--fc) 0 4px,color-mix(in srgb,var(--fc) 40%,#fff) 4px 8px);" title="{{ dot.fund.name }}: paid, no tariff — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
+                {% else %}
+                <span class="badge notariff" style="--fc:{{ dot.fund.color }};background:repeating-linear-gradient(45deg,var(--fc) 0 4px,color-mix(in srgb,var(--fc) 40%,#fff) 4px 8px);" title="{{ dot.fund.name }}: paid, no tariff — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</span>
+                {% endif %}
               {% elif badge.status == 'partial' %}
                 {% if perms.fee.change_alltransaction or perms.fee.view_alltransaction %}
                 <a class="badge" href="{% url 'admin:fee_alltransaction_change' badge.transaction_id %}" style="background:#fff;border:2px solid {{ dot.fund.color }};color:{{ dot.fund.color }};" title="{{ dot.fund.name }}: partial — {{ badge.occurred_at|date:'d M Y, H:i:s' }}">{{ badge.occurred_at|date:"j M y" }}</a>
