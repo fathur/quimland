@@ -3,8 +3,14 @@ garbage collector pay). Per routine period (YYYY-MM):
 
     collected(P) = Σ IN items of the fund tagged with ItemRoutine.period = P
     paid(P)      = Σ RoutinePayout.amount allocated to P
-    remaining(P) = max(collected(P) − paid(P), 0)
-    surplus(P)   = max(paid(P) − collected(P), 0)   # paid beyond what was collected
+    carry_in(P)  = carry_out(P − 1 month)             # surplus credit from the month before
+    remaining(P) = max(collected(P) − paid(P) − carry_in(P), 0)
+    carry_out(P) = max(paid(P) + carry_in(P) − collected(P), 0)
+
+A surplus is never left sitting on the month it happened in: it rolls forward
+as credit and reduces what the next month(s) still have to pay. The chain is
+recomputed from the stored allocations every time, so adding or removing an
+allocation re-flows every later month automatically.
 
 Alongside the per-period figures, each row also reports a cash view: what was
 actually received in the cycle that closes on the cut-off day (the 5th) of that
@@ -15,7 +21,7 @@ cut-off day the treasurer knows how much came in and from how many payers.
 
 Late payments raise collected(P) of an earlier month, which is how a "rapel"
 shows up as a remaining balance on a month that was already paid out once —
-and absorbs any surplus that month had.
+and absorbs any surplus that month had before it rolls forward.
 Periods after the current month are held (paid in advance, not yet payable).
 """
 
@@ -112,9 +118,35 @@ def paid_by_period(fund):
     return {r['period']: r['total'] or ZERO for r in rows}
 
 
+def _carry_chain(collected, paid, first, last):
+    """Walk months first..last (YYYY-MM, inclusive, no gaps) carrying each
+    month's surplus forward as credit. Returns {period: {'carry_in',
+    'remaining', 'carry_out'}}; the last month's carry_out is credit not yet
+    absorbed by any month."""
+    chain, carry = {}, ZERO
+    for index in range(_month_index(first), _month_index(last) + 1):
+        period = _period_from_index(index)
+        c = collected.get(period, {'total': ZERO})['total']
+        effective = paid.get(period, ZERO) + carry
+        chain[period] = {
+            'carry_in': carry,
+            'remaining': max(c - effective, ZERO),
+            'carry_out': max(effective - c, ZERO),
+        }
+        carry = chain[period]['carry_out']
+    return chain
+
+
+def _chain_for(fund):
+    collected, paid = collected_by_period(fund), paid_by_period(fund)
+    known = set(collected) | set(paid)
+    chain = _carry_chain(collected, paid, min(known), max(known)) if known else {}
+    return collected, paid, chain
+
+
 def remaining_for_period(fund, period):
-    collected = collected_by_period(fund).get(period, {'total': ZERO})['total']
-    return max(collected - paid_by_period(fund).get(period, ZERO), ZERO)
+    _, _, chain = _chain_for(fund)
+    return chain.get(period, {'remaining': ZERO})['remaining']
 
 
 def split_payout(fund, period, amount):
@@ -122,16 +154,20 @@ def split_payout(fund, period, amount):
 
     The chosen month is settled first; whatever is left over pays off earlier
     months that still have a remaining balance (oldest first); anything beyond
-    that is surplus, booked on the chosen month.
+    that is surplus, booked on the chosen month — from where the ledger rolls
+    it forward as credit for the following month(s).
+
+    Paying an earlier month only up to its remaining never changes its
+    carry_out (it stays 0), so these remaining figures stay valid while the
+    split is built.
 
     Returns (parts, surplus): parts is [(period, amount), …] with the chosen
     month first (its amount already includes the surplus), surplus a Decimal.
     """
-    collected = collected_by_period(fund)
-    paid = paid_by_period(fund)
+    collected, paid, chain = _chain_for(fund)
 
     def remaining(p):
-        return max(collected.get(p, {'total': ZERO})['total'] - paid.get(p, ZERO), ZERO)
+        return chain.get(p, {'remaining': ZERO})['remaining']
 
     own = min(amount, remaining(period))
     left = amount - own
@@ -184,9 +220,10 @@ def pass_through_ledger(fund, today=None, cutoff_day=CUTOFF_DAY):
 
     Returns {
         'rows': [{'period', 'month', 'collected', 'payments', 'paid', 'remaining',
-                  'surplus', 'is_held', 'payouts',
+                  'carry_in', 'carry_out', 'surplus', 'is_held', 'payouts',
                   'cutoff_total', 'cutoff_payers', 'cutoff_date', 'cutoff_open'}],  # ascending, no gaps
-        'collected_total', 'paid_total', 'surplus_total',
+        'collected_total', 'paid_total',
+        'surplus_total',  # credit still carried past the last month (not yet absorbed)
         'due_now',   # Σ remaining of periods up to the current month
         'held',      # collected for months after the current one
     }
@@ -205,11 +242,13 @@ def pass_through_ledger(fund, today=None, cutoff_day=CUTOFF_DAY):
     known = set(collected) | set(paid) | set(cutoff)
     rows = []
     if known:
-        first, last = _month_index(min(known)), _month_index(max(known | {current}))
-        for index in range(first, last + 1):
+        first, last = min(known), max(known | {current})
+        chain = _carry_chain(collected, paid, first, last)
+        for index in range(_month_index(first), _month_index(last) + 1):
             period = _period_from_index(index)
             c = collected.get(period, {'total': ZERO, 'payments': 0})
             p = paid.get(period, ZERO)
+            link = chain[period]
             k = cutoff.get(period, {'total': ZERO, 'payers': 0})
             cutoff_date = date(int(period[:4]), int(period[5:7]), cutoff_day)
             rows.append({
@@ -218,8 +257,11 @@ def pass_through_ledger(fund, today=None, cutoff_day=CUTOFF_DAY):
                 'collected': c['total'],
                 'payments': c['payments'],
                 'paid': p,
-                'remaining': max(c['total'] - p, ZERO),
-                'surplus': max(p - c['total'], ZERO),
+                'carry_in': link['carry_in'],
+                'remaining': link['remaining'],
+                'carry_out': link['carry_out'],
+                # kept for callers/templates: what this month passes forward
+                'surplus': link['carry_out'],
                 'is_held': period > current,
                 'payouts': payouts_by_period.get(period, []),
                 'cutoff_total': k['total'],
@@ -234,7 +276,7 @@ def pass_through_ledger(fund, today=None, cutoff_day=CUTOFF_DAY):
         'rows': rows,
         'collected_total': sum((r['collected'] for r in due_rows), ZERO),
         'paid_total': sum((r['paid'] for r in rows), ZERO),
-        'surplus_total': sum((r['surplus'] for r in rows), ZERO),
+        'surplus_total': rows[-1]['carry_out'] if rows else ZERO,
         'due_now': sum((r['remaining'] for r in due_rows), ZERO),
         'held': sum((r['collected'] - r['paid'] for r in rows if r['is_held']), ZERO),
     }

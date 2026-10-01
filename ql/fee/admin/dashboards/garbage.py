@@ -70,37 +70,62 @@ STATUS_LABELS = {
     'settled': 'Settled',
     'partial': 'Partly paid',
     'unpaid':  'Not paid yet',
-    'surplus': 'Surplus',
+    'surplus': 'Carried forward',
     'held':    'Held',
     'empty':   'No activity',
 }
 
 
+def _link_carries(rows):
+    """For ascending ledger rows, name where surplus credit comes from and goes
+    to: `carry_from` on a month receiving credit is the month whose payout
+    created it, `carry_to` on a month passing credit on is the first later month
+    that actually has collected money to absorb it (empty months just pass it
+    through)."""
+    origin = None
+    for row in rows:
+        row['carry_from'] = origin if row['carry_in'] else None
+        if row['carry_out'] and (row['paid'] or row['collected']):
+            origin = row['month']
+        elif not row['carry_out']:
+            origin = None
+    absorber = None
+    for row in reversed(rows):
+        row['carry_to'] = absorber if row['carry_out'] else None
+        if row['carry_in'] and row['collected']:
+            absorber = row['month']
+    return rows
+
+
 def _decorate_row(row, cutoff_day):
     """Presentation fields for one ledger row: status, payout progress bar
-    segments (percent of max(collected, paid)), and the cash-cycle window."""
-    collected, paid = row['collected'], row['paid']
+    segments (percent of max(collected, paid + credit in)), and the cash-cycle
+    window."""
+    collected, paid, credit = row['collected'], row['paid'], row['carry_in']
     if row['is_held']:
         status = 'held'
     elif not collected and not paid:
         status = 'empty'
-    elif row['surplus'] > 0:
+    elif row['carry_out'] > 0:
         status = 'surplus'
     elif row['remaining'] == 0:
         status = 'settled'
-    elif paid == 0:
+    elif paid == 0 and credit == 0:
         status = 'unpaid'
     else:
         status = 'partial'
 
-    base = max(collected, paid)
+    base = max(collected, paid + credit)
     if base:
+        credit_used = min(credit, collected)
+        paid_used = min(paid, collected - credit_used)
         row['bar'] = {
-            'paid': round(min(paid, collected) / base * 100, 1),
+            'credit': round(credit_used / base * 100, 1),
+            'paid': round(paid_used / base * 100, 1),
             'remaining': round(row['remaining'] / base * 100, 1),
-            'surplus': round(row['surplus'] / base * 100, 1),
+            'carry_out': round(row['carry_out'] / base * 100, 1),
         }
-        row['paid_pct'] = int(min(paid, collected) / collected * 100) if collected else 0
+        row['paid_pct'] = int((credit_used + paid_used) / collected * 100) if collected else 0
     else:
         row['bar'] = None
         row['paid_pct'] = 0
@@ -137,7 +162,7 @@ def garbage_dashboard_view(request):
             period, amount = form.cleaned_data['period'], form.cleaned_data['amount']
             parts, surplus = allocate_payout(fund, form.cleaned_data['transaction_item'], period, amount)
             summary = ', '.join(f'{p}: {fmt_rupiah(a)}' for p, a in parts)
-            note = f' (incl. surplus {fmt_rupiah(surplus)} on {period})' if surplus else ''
+            note = f' — {fmt_rupiah(surplus)} surplus is carried forward as credit for the next month' if surplus else ''
             messages.success(request, f'Payout of {fmt_rupiah(amount)} allocated — {summary}{note}.')
             return redirect('admin:garbage_dashboard')
     elif fund and can_edit:
@@ -153,7 +178,7 @@ def garbage_dashboard_view(request):
     if fund:
         ledger = pass_through_ledger(fund, today, cutoff_day=PAYMENT_GRACE_DAY)
         context.update({
-            'rows': [_decorate_row(r, PAYMENT_GRACE_DAY) for r in reversed(ledger['rows'])],
+            'rows': [_decorate_row(r, PAYMENT_GRACE_DAY) for r in reversed(_link_carries(ledger['rows']))],
             'totals': {
                 'collected': sum((r['collected'] for r in ledger['rows']), Decimal('0')),
                 'payments': sum(r['payments'] for r in ledger['rows']),

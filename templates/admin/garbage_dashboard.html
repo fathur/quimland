@@ -118,17 +118,20 @@
   .gb-status.held    { background: rgba(59,130,246,.16); color: var(--gb-blue); }
   .gb-status.empty   { background: var(--darkened-bg);  color: var(--body-quiet-color); }
 
-  /* Payout progress bar: paid | remaining | surplus, as a share of max(collected, paid) */
+  /* Payout progress bar: credit in | paid | remaining | carried out, as a share of max(collected, paid + credit) */
   .gb-progress { min-width: 190px; width: 26%; }
   .gb-table td.gb-paidwith { min-width: 190px; }
   .gb-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--darkened-bg); margin: 2px 0 6px; }
   .gb-bar span { display: block; height: 100%; }
   .gb-bar .paid      { background: #22c55e; }
   .gb-bar .remaining { background: #f59e0b; }
-  .gb-bar .surplus   { background: #8b5cf6; }
+  .gb-bar .credit    { background: #22c55e; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.45) 0 3px, transparent 3px 6px); }
+  .gb-bar .carry_out { background: #8b5cf6; }
   .gb-progress-figs { display: flex; justify-content: space-between; gap: 10px; font-size: 0.75rem; }
   .gb-progress-figs .left  { color: var(--gb-amber); font-weight: 600; }
   .gb-progress-figs .extra { color: var(--gb-violet); font-weight: 600; }
+  .gb-credit-note { color: var(--gb-violet); }
+  .gb-legend i.gb-bar-credit-swatch { background: #22c55e; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.55) 0 2px, transparent 2px 4px); }
 
   /* Allocation chips */
   .gb-allocs { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
@@ -181,7 +184,7 @@
     <div class="ql-card">
       <div class="ql-card-label">{% translate 'Paid out' %}</div>
       <div class="ql-card-value">{{ paid_display }}</div>
-      {% if surplus_display %}<div class="ql-card-sub">{% blocktranslate %}incl. {{ surplus_display }} surplus{% endblocktranslate %}</div>{% endif %}
+      {% if surplus_display %}<div class="ql-card-sub">{% blocktranslate %}{{ surplus_display }} credit carried forward{% endblocktranslate %}</div>{% endif %}
     </div>
     <div class="ql-card">
       <div class="ql-card-label">{% translate 'Due to pay today' %}</div>
@@ -200,7 +203,7 @@
   <section class="ql-card gb-card">
     <header class="gb-card-head">
       <h2>{% translate 'Allocate an expense to a month' %}</h2>
-      <p>{% translate 'Record the payment to the collector under Expenses first, then allocate it here. The chosen month is settled first; any extra pays off earlier months that still have a remaining balance, and what is left is booked as surplus.' %}</p>
+      <p>{% translate 'Record the payment to the collector under Expenses first, then allocate it here. The chosen month is settled first; any extra pays off earlier months that still have a remaining balance, and what is left is carried forward as credit for the next month.' %}</p>
     </header>
 
     <form method="post" class="gb-form">
@@ -269,7 +272,7 @@
       var amountHint = document.getElementById('gb-amount-hint');
 
       // Mirrors split_payout() on the server: chosen month first, then earlier
-      // months with a remaining balance (oldest first), the rest is surplus.
+      // months with a remaining balance (oldest first), the rest is carried forward.
       function preview() {
         var a = Number(amount.value), p = period.value;
         if (!a || !p || p > config.current) { setHint(amountHint, ''); return; }
@@ -281,7 +284,7 @@
         });
         parts.unshift(label(p) + ' ' + fmt(own));
         var text = '{% translate "Split:" %} ' + parts.join(' · ');
-        if (left > 0) text += ' · {% translate "surplus" %} ' + fmt(left) + ' ({% translate "on" %} ' + label(p) + ')';
+        if (left > 0) text += ' · ' + fmt(left) + ' {% translate "carried to next month" %}';
         setHint(amountHint, parts.length > 1 || left > 0 ? text : '', left > 0);
       }
 
@@ -310,7 +313,8 @@
     <div class="gb-legend">
       <span><i style="background:#22c55e"></i>{% translate 'Paid out' %}</span>
       <span><i style="background:#f59e0b"></i>{% translate 'Still to pay' %}</span>
-      <span><i style="background:#8b5cf6"></i>{% translate 'Surplus' %}</span>
+      <span><i class="gb-bar-credit-swatch"></i>{% translate 'Credit from previous month' %}</span>
+      <span><i style="background:#8b5cf6"></i>{% translate 'Carried to next month' %}</span>
     </div>
     {% if blank_count %}
     <label class="gb-toggle"><input type="checkbox" id="gb-show-blank">
@@ -344,7 +348,9 @@
 
           <td>
             <span class="gb-status {{ row.status }}">{% translate row.status_label %}</span>
-            {% if row.status == 'held' %}<span class="sub">{% translate 'payable from its own month' %}</span>{% endif %}
+            {% if row.status == 'held' %}<span class="sub">{% translate 'payable from its own month' %}</span>
+              {% if row.carry_in %}<span class="sub gb-credit-note">{% blocktranslate with c=row.carry_in|rp %}{{ c }} credit waiting{% endblocktranslate %}</span>{% endif %}
+            {% endif %}
           </td>
 
           <td class="num">
@@ -355,20 +361,24 @@
           <td class="gb-progress">
             {% if row.bar and not row.is_held %}
               <div class="gb-bar" title="{% blocktranslate with p=row.paid_pct %}{{ p }}% paid out{% endblocktranslate %}">
+                {% if row.bar.credit %}<span class="credit" style="width:{{ row.bar.credit|stringformat:'s' }}%"></span>{% endif %}
                 {% if row.bar.paid %}<span class="paid" style="width:{{ row.bar.paid|stringformat:'s' }}%"></span>{% endif %}
                 {% if row.bar.remaining %}<span class="remaining" style="width:{{ row.bar.remaining|stringformat:'s' }}%"></span>{% endif %}
-                {% if row.bar.surplus %}<span class="surplus" style="width:{{ row.bar.surplus|stringformat:'s' }}%"></span>{% endif %}
+                {% if row.bar.carry_out %}<span class="carry_out" style="width:{{ row.bar.carry_out|stringformat:'s' }}%"></span>{% endif %}
               </div>
               <div class="gb-progress-figs">
                 <span>{% translate 'Paid' %} <span class="amt">{{ row.paid|rp }}</span></span>
                 {% if row.remaining > 0 %}
                   <span class="left">{{ row.remaining|rp }} {% translate 'to pay' %}</span>
-                {% elif row.surplus > 0 %}
-                  <span class="extra">+{{ row.surplus|rp }} {% translate 'surplus' %}</span>
+                {% elif row.carry_out > 0 %}
+                  <span class="extra">&rarr; {{ row.carry_out|rp }} {% if row.carry_to %}{% blocktranslate with m=row.carry_to|date:"M" %}to {{ m }}{% endblocktranslate %}{% else %}{% translate 'to next month' %}{% endif %}</span>
                 {% else %}
                   <span>{{ row.paid_pct }}%</span>
                 {% endif %}
               </div>
+              {% if row.carry_in %}
+                <span class="sub gb-credit-note">+ {{ row.carry_in|rp }} {% if row.carry_from %}{% blocktranslate with m=row.carry_from|date:"F" %}credit from {{ m }}{% endblocktranslate %}{% else %}{% translate 'credit from earlier months' %}{% endif %}</span>
+              {% endif %}
             {% else %}—{% endif %}
           </td>
 
@@ -417,7 +427,7 @@
               <span>{% translate 'Paid' %} {{ totals.paid|rp }}</span>
               <span class="left">{{ totals.remaining|rp }} {% translate 'to pay' %}</span>
             </div>
-            {% if totals.surplus %}<span class="sub">{% blocktranslate with s=totals.surplus|rp %}incl. {{ s }} surplus{% endblocktranslate %}</span>{% endif %}
+            {% if totals.surplus %}<span class="sub gb-credit-note">{% blocktranslate with s=totals.surplus|rp %}{{ s }} credit carried forward, not yet absorbed{% endblocktranslate %}</span>{% endif %}
           </td>
           <td colspan="2"></td>
         </tr>

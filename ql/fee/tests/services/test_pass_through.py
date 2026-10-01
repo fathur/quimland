@@ -221,6 +221,60 @@ class OverflowAndSurplusTests(LedgerTestBase):
         self.assertFalse(payable_items(self.fund).filter(pk=item.pk).exists())
 
 
+class CarryForwardTests(LedgerTestBase):
+    """Surplus rolls forward as credit: April's overpayment reduces May's bill."""
+
+    def setUp(self):
+        super().setUp()
+        self.collect('2026-04', 1350000)
+        self.collect('2026-05', 1350000)
+
+    def pay(self, period, nominal):
+        item = self.expense(nominal)
+        allocate_payout(self.fund, item, period, D(nominal))
+        return item
+
+    def rows(self):
+        return {r['period']: r for r in pass_through_ledger(self.fund, TODAY)['rows']}
+
+    def test_april_surplus_reduces_may(self):
+        self.pay('2026-04', 1610000)          # 260K more than April collected
+        self.pay('2026-05', 910000)
+        rows = self.rows()
+        self.assertEqual((rows['2026-04']['remaining'], rows['2026-04']['carry_out']), (D(0), D(260000)))
+        self.assertEqual(rows['2026-05']['carry_in'], D(260000))
+        self.assertEqual(rows['2026-05']['remaining'], D(180000))   # 1350 − 910 − 260
+        self.assertEqual(pass_through_ledger(self.fund, TODAY)['due_now'], D(180000))
+
+    def test_credit_passes_through_empty_months(self):
+        self.collect('2026-08', 100000)
+        self.pay('2026-04', 1350000)          # April settled, so May's excess can't go back to it
+        self.pay('2026-05', 1350000 + 50000)  # 50K surplus on May; Jun/Jul are empty
+        rows = self.rows()
+        self.assertEqual(rows['2026-06']['carry_in'], D(50000))
+        self.assertEqual(rows['2026-08']['remaining'], D(50000))   # 100K − 50K credit
+
+    def test_unabsorbed_credit_is_reported(self):
+        self.pay('2026-04', 1350000)
+        self.pay('2026-05', 1350000 + 70000)
+        ledger = pass_through_ledger(self.fund, TODAY)
+        self.assertEqual(ledger['surplus_total'], D(70000))
+
+    def test_removing_the_overpayment_reflows(self):
+        self.pay('2026-04', 1610000)
+        RoutinePayout.objects.filter(period='2026-04').delete()
+        rows = self.rows()
+        self.assertEqual(rows['2026-05']['carry_in'], D(0))
+        self.assertEqual(rows['2026-05']['remaining'], D(1350000))
+
+    def test_split_respects_credit(self):
+        self.pay('2026-04', 1610000)          # May now only owes 1,090K
+        parts, surplus = split_payout(self.fund, '2026-05', D(1090000))
+        self.assertEqual((parts, surplus), ([('2026-05', D(1090000))], D(0)))
+        parts, surplus = split_payout(self.fund, '2026-05', D(1100000))
+        self.assertEqual(surplus, D(10000))
+
+
 class RoutinePayoutFormTests(LedgerTestBase):
     def form(self, item, period, amount):
         return RoutinePayoutForm(
